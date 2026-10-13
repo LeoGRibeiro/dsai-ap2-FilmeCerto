@@ -29,6 +29,30 @@ Projeto da AP1 da disciplina **Desenvolvimento de Software Apoiado por IA** (UFP
 
 O motor não usa rede neural. Ele monta consultas ao catálogo do [TMDB](https://www.themoviedb.org/) a partir das suas preferências e corta os gêneros que você evita. Em seguida, pontua cada candidato pela afinidade com os gêneros, pela nota e pela popularidade, e junta as recomendações do TMDB para os filmes que você amou. Os detalhes estão em [`SPEC/2026-10-05-motor-recomendacao.md`](SPEC/2026-10-05-motor-recomendacao.md).
 
+## Use o Filme Certo pelo seu agente (MCP)
+
+O Filme Certo também é um servidor [MCP](https://modelcontextprotocol.io): um agente de IA pode buscar filmes, pedir recomendações e cuidar das suas listas por você.
+
+1. Crie sua conta em <https://dsai-ap1-filme-certo.vercel.app/> e conte seus gostos.
+2. No Claude Code:
+
+   ```bash
+   claude mcp add --transport http filme-certo https://dsai-ap1-filme-certo.vercel.app/api/mcp
+   ```
+
+3. Rode `/mcp`, escolha `filme-certo` e entre com sua conta. O Filme Certo pergunta se você autoriza o agente.
+
+| Tool                | O que faz                                 |
+| ------------------- | ----------------------------------------- |
+| `buscar_filmes`     | busca por nome                            |
+| `detalhes_filme`    | sinopse, elenco e onde assistir no Brasil |
+| `recomendar_filmes` | recomendações do motor, com o motivo      |
+| `ver_listas`        | "Quero assistir" e "Já assisti"           |
+| `marcar_na_lista`   | põe ou tira um filme das listas           |
+| `avaliar_filme`     | "Amei", "Gostei" ou "Não é pra mim"       |
+
+O agente só enxerga a sua conta: o acesso usa o seu login, e o banco aplica as mesmas regras do site. Detalhes em [`SPEC/2026-10-13-mcp.md`](SPEC/2026-10-13-mcp.md).
+
 ## Tecnologias
 
 | Camada               | Tecnologia                                                       |
@@ -38,6 +62,7 @@ O motor não usa rede neural. Ele monta consultas ao catálogo do [TMDB](https:/
 | Banco e autenticação | Supabase (Postgres + Supabase Auth, com RLS)                     |
 | Catálogo de filmes   | API do TMDB (v3), com dados de onde assistir da JustWatch        |
 | Validação            | zod                                                              |
+| Agentes (MCP)        | mcp-handler + SDK MCP v2, OAuth 2.1 Server do Supabase           |
 | Testes               | Vitest + Testing Library (unidade/componentes), Playwright (E2E) |
 | CI e deploy          | GitHub Actions e Vercel                                          |
 
@@ -91,6 +116,7 @@ Cada parte do sistema começou por uma **spec**, commitada antes do código, com
 | [`2026-10-05-me-surpreenda`](SPEC/2026-10-05-me-surpreenda.md)                     | Globo "Me surpreenda"                                |
 | [`2026-10-06-onboarding-assertivo`](SPEC/2026-10-06-onboarding-assertivo.md)       | Passo a passo de 7 perguntas e "Nos seus streamings" |
 | [`2026-10-06-interface`](SPEC/2026-10-06-interface.md)                             | Identidade visual e telas                            |
+| [`2026-10-13-mcp`](SPEC/2026-10-13-mcp.md)                                         | Servidor MCP e login OAuth para agentes              |
 
 ### Estrutura
 

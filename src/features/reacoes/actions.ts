@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import { obterReacao } from "@/features/reacoes/consultas";
+import { definirReacao } from "@/features/reacoes/gravar";
 import { reacaoSchema } from "@/features/reacoes/schema";
 import { createClient } from "@/lib/supabase/server";
-import { obterFilme } from "@/lib/tmdb/filmes";
 
 export type EstadoReacao = { mensagem?: string };
 
@@ -31,38 +32,10 @@ export async function alternarReacao(
   } = await supabase.auth.getUser();
   if (!user) return { mensagem: "Sua sessão expirou. Entre de novo." };
 
-  const { data: atual } = await supabase
-    .from("reacoes")
-    .select("reacao")
-    .eq("tmdb_id", tmdbId)
-    .maybeSingle();
-
-  if (atual?.reacao === reacao) {
-    const { error } = await supabase.from("reacoes").delete().eq("tmdb_id", tmdbId);
-    if (error) {
-      console.error("[reacoes] falha ao remover:", error.code, error.message);
-      return { mensagem: ERRO_GENERICO };
-    }
-  } else {
-    let filme;
-    try {
-      filme = await obterFilme(tmdbId);
-    } catch {
-      return { mensagem: ERRO_GENERICO };
-    }
-    if (!filme) return { mensagem: "Filme não encontrado." };
-
-    const { error } = await supabase.from("reacoes").upsert({
-      usuario_id: user.id,
-      tmdb_id: tmdbId,
-      reacao,
-      titulo: filme.titulo,
-      generos: filme.generos.map((genero) => genero.id),
-    });
-    if (error) {
-      console.error("[reacoes] falha ao salvar:", error.code, error.message);
-      return { mensagem: ERRO_GENERICO };
-    }
+  const atual = await obterReacao(tmdbId, supabase);
+  const gravado = await definirReacao(supabase, user.id, tmdbId, atual === reacao ? null : reacao);
+  if (!gravado.ok) {
+    return { mensagem: gravado.erro === "filme-nao-encontrado" ? "Filme não encontrado." : ERRO_GENERICO };
   }
 
   revalidatePath(`/filme/${tmdbId}`);

@@ -5,10 +5,11 @@ import { cache } from "react";
 import type { Reacao } from "@/features/reacoes/opcoes";
 import type { ReacaoMotor } from "@/features/recomendacao/tipos";
 import { createClient } from "@/lib/supabase/server";
+import type { ClienteSupabase } from "@/lib/supabase/token";
 
 /** Todas as reações do usuário logado (a RLS limita às dele), no formato do motor. */
-export const obterReacoes = cache(async (): Promise<ReacaoMotor[]> => {
-  const supabase = await createClient();
+export const obterReacoes = cache(async (cliente?: ClienteSupabase): Promise<ReacaoMotor[]> => {
+  const supabase = cliente ?? (await createClient());
   const { data, error } = await supabase
     .from("reacoes")
     .select("tmdb_id, reacao, titulo, generos")
@@ -27,8 +28,8 @@ export const obterReacoes = cache(async (): Promise<ReacaoMotor[]> => {
 });
 
 /** Reação do usuário logado a um filme, ou `null`. */
-export async function obterReacao(tmdbId: number): Promise<Reacao | null> {
-  const supabase = await createClient();
+export async function obterReacao(tmdbId: number, cliente?: ClienteSupabase): Promise<Reacao | null> {
+  const supabase = cliente ?? (await createClient());
   const { data } = await supabase
     .from("reacoes")
     .select("reacao")

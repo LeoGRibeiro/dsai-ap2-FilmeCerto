@@ -5,10 +5,11 @@ import { cache } from "react";
 import { COLUNAS_PREFERENCIAS, deLinha } from "@/features/preferencias/linha";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
 import { createClient } from "@/lib/supabase/server";
+import type { ClienteSupabase } from "@/lib/supabase/token";
 
 /** Preferências do usuário logado, ou `null` se ele ainda não fez o onboarding. */
-export const obterPreferencias = cache(async (): Promise<PreferenciasInput | null> => {
-  const supabase = await createClient();
+export const obterPreferencias = cache(async (cliente?: ClienteSupabase): Promise<PreferenciasInput | null> => {
+  const supabase = cliente ?? (await createClient());
   const { data, error } = await supabase
     .from("preferencias")
     .select(COLUNAS_PREFERENCIAS)

@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import { obterStatusLista } from "@/features/listas/consultas";
+import { definirLista } from "@/features/listas/gravar";
 import { listaSchema } from "@/features/listas/schema";
 import { createClient } from "@/lib/supabase/server";
-import { obterFilme } from "@/lib/tmdb/filmes";
 
 export type EstadoLista = { mensagem?: string };
 
@@ -31,42 +32,10 @@ export async function alternarLista(
   } = await supabase.auth.getUser();
   if (!user) return { mensagem: "Sua sessão expirou. Entre de novo." };
 
-  const { data: atual } = await supabase
-    .from("lista_itens")
-    .select("status")
-    .eq("tmdb_id", tmdbId)
-    .maybeSingle();
-
-  if (atual?.status === status) {
-    const { error } = await supabase.from("lista_itens").delete().eq("tmdb_id", tmdbId);
-    if (error) {
-      console.error("[listas] falha ao remover:", error.code, error.message);
-      return { mensagem: ERRO_GENERICO };
-    }
-  } else {
-    let filme;
-    try {
-      filme = await obterFilme(tmdbId);
-    } catch {
-      return { mensagem: ERRO_GENERICO };
-    }
-    if (!filme) return { mensagem: "Filme não encontrado." };
-
-    const { error } = await supabase.from("lista_itens").upsert({
-      usuario_id: user.id,
-      tmdb_id: tmdbId,
-      status,
-      titulo: filme.titulo,
-      poster_path: filme.posterPath,
-      ano: filme.ano,
-      generos: filme.generos.map((genero) => genero.id),
-      // Ao entrar ou trocar de lista, o filme vai para o topo da aba.
-      adicionado_em: new Date().toISOString(),
-    });
-    if (error) {
-      console.error("[listas] falha ao salvar:", error.code, error.message);
-      return { mensagem: ERRO_GENERICO };
-    }
+  const atual = await obterStatusLista(tmdbId, supabase);
+  const gravado = await definirLista(supabase, user.id, tmdbId, atual === status ? null : status);
+  if (!gravado.ok) {
+    return { mensagem: gravado.erro === "filme-nao-encontrado" ? "Filme não encontrado." : ERRO_GENERICO };
   }
 
   revalidatePath(`/filme/${tmdbId}`);

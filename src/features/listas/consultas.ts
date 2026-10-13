@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { StatusLista } from "@/features/listas/opcoes";
 import type { Reacao } from "@/features/reacoes/opcoes";
 import { createClient } from "@/lib/supabase/server";
+import type { ClienteSupabase } from "@/lib/supabase/token";
 
 export type ItemLista = {
   tmdbId: number;
@@ -17,8 +18,8 @@ export type ItemLista = {
 };
 
 /** Itens das duas listas do usuário logado, do mais recente para o mais antigo. */
-export const obterItensLista = cache(async (): Promise<ItemLista[]> => {
-  const supabase = await createClient();
+export const obterItensLista = cache(async (cliente?: ClienteSupabase): Promise<ItemLista[]> => {
+  const supabase = cliente ?? (await createClient());
   const [itens, reacoes] = await Promise.all([
     supabase
       .from("lista_itens")
@@ -44,8 +45,8 @@ export const obterItensLista = cache(async (): Promise<ItemLista[]> => {
 });
 
 /** IDs dos filmes nas duas listas, para o motor não recomendá-los. */
-export async function idsNasListas(): Promise<number[]> {
-  const supabase = await createClient();
+export async function idsNasListas(cliente?: ClienteSupabase): Promise<number[]> {
+  const supabase = cliente ?? (await createClient());
   const { data, error } = await supabase.from("lista_itens").select("tmdb_id");
   if (error) {
     console.error("[listas] falha ao ler IDs:", error.code, error.message);
@@ -55,8 +56,8 @@ export async function idsNasListas(): Promise<number[]> {
 }
 
 /** Lista em que o filme está, ou `null`. */
-export async function obterStatusLista(tmdbId: number): Promise<StatusLista | null> {
-  const supabase = await createClient();
+export async function obterStatusLista(tmdbId: number, cliente?: ClienteSupabase): Promise<StatusLista | null> {
+  const supabase = cliente ?? (await createClient());
   const { data } = await supabase
     .from("lista_itens")
     .select("status")
