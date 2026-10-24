@@ -40,7 +40,33 @@ O Filme Certo também é um servidor [MCP](https://modelcontextprotocol.io): um 
    claude mcp add --transport http filme-certo https://dsai-ap1-filme-certo.vercel.app/api/mcp
    ```
 
-3. Rode `/mcp`, escolha `filme-certo` e entre com sua conta. O Filme Certo pergunta se você autoriza o agente.
+   Use `--scope user` para o servidor valer em qualquer pasta. Sem a opção, ele vale só na pasta em que o comando foi rodado. Quem usa só a extensão do VS Code não tem o `claude` no PATH: o executável fica em `~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/`.
+
+3. Abra o Claude Code (`claude`), rode `/mcp`, escolha `filme-certo` e depois **Authenticate**. O navegador abre o Filme Certo: entre com sua conta e clique em **Autorizar**. Se você pedir uma tarefa antes de entrar, o agente oferece o link de login sozinho.
+4. Peça em português o que quiser fazer. O agente escolhe as tools. Exemplos:
+   - "Liste as tools do filme-certo e explique cada uma."
+   - "Recomende 3 filmes que estejam nos meus streamings e me diga onde ver cada um."
+   - "Onde posso assistir Duna?"
+   - "Coloque Interestelar na minha lista Quero assistir."
+   - "Eu amei Coraline, registre isso."
+
+O Claude Code pede sua confirmação antes de cada tool de escrita (`marcar_na_lista` e `avaliar_filme`) se o projeto tiver estas permissões em `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__filme-certo__buscar_filmes",
+      "mcp__filme-certo__detalhes_filme",
+      "mcp__filme-certo__recomendar_filmes",
+      "mcp__filme-certo__ver_listas"
+    ],
+    "ask": ["mcp__filme-certo__marcar_na_lista", "mcp__filme-certo__avaliar_filme"]
+  }
+}
+```
+
+Para sair, use "Clear authentication" no `/mcp` ou rode `claude mcp remove filme-certo`.
 
 | Tool                | O que faz                                 |
 | ------------------- | ----------------------------------------- |
