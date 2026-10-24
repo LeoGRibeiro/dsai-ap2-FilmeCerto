@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { DefinicaoTool } from "@/features/mcp/contexto";
 import { erro, linkFilme, MSG, ok } from "@/features/mcp/formatar";
+import { nomesPorServico } from "@/features/mcp/provedores";
 import { tmdbIdSchema } from "@/features/reacoes/schema";
 
 const MAX_ELENCO = 5;
@@ -31,7 +32,6 @@ export const detalhesFilme: DefinicaoTool<typeof entrada> = {
     }
     const meus = new Set(preferencias?.streamings ?? []);
     const onde = filme.ondeAssistir;
-    const nomes = (lista: { nome: string }[]) => lista.map((p) => p.nome);
 
     return ok({
       tmdb_id: filme.id,
@@ -46,9 +46,13 @@ export const detalhesFilme: DefinicaoTool<typeof entrada> = {
       direcao: filme.direcao,
       elenco: filme.elenco.slice(0, MAX_ELENCO).map((p) => p.nome),
       onde_assistir: onde
-        ? { assinatura: nomes(onde.assinatura), aluguel: nomes(onde.aluguel), compra: nomes(onde.compra) }
+        ? {
+            assinatura: nomesPorServico(onde.assinatura),
+            aluguel: nomesPorServico(onde.aluguel),
+            compra: nomesPorServico(onde.compra),
+          }
         : null,
-      nos_meus_streamings: onde ? nomes(onde.assinatura.filter((p) => meus.has(p.id))) : [],
+      nos_meus_streamings: onde ? nomesPorServico(onde.assinatura, meus) : [],
       minha_lista: estado.lista,
       minha_reacao: estado.reacao,
       link: linkFilme(ctx.origem, filme.id),
