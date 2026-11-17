@@ -50,3 +50,6 @@ next-env.d.ts
 # supabase
 supabase/.branches
 supabase/.temp
+
+# material da disciplina (slides e pedido do cliente em PDF; o pedido está transcrito em docs/ap2/)
+/pdfs_trabalhos/
