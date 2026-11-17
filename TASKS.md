@@ -12,12 +12,16 @@
 - [x] Issues: #2 Primeiras impressões (com perguntas ao cliente), #3 deploy, #4 medição, #5 métricas, #6 wizard, #7 "Como foi?", #8 séries, #9 "Noite a dois".
 - [x] Linha de base medida: `4ac8b98` = 10.643 linhas (`cloc`), 305 testes unitários verdes, lint e typecheck limpos.
 - [x] Projeto do Supabase da dupla ativo.
-- [x] Documentos da AP2 escritos na branch `docs/diretrizes-ap2` (PR #1): `docs/ap2/pedido-do-cliente.md`, `SPEC/2026-11-17-visao-geral-ap2.md`, `AGENTS.md`, `TASKS.md` e `.gitignore`.
+- [x] **Passo 1:** documentos da AP2 em 4 commits separados (PR #1). O PR #1 foi mesclado por engano na `feat/dsai-ap2`; os documentos chegam à `main` pelo PR da sessão de 2026-11-17, que faz merge dessa branch.
+- [x] **Passo 2 (#3):** deploy próprio no ar em **<https://dsai-ap2-filme-certo.vercel.app>** (PR #10).
+  - Vercel: projeto `dsai-ap2-filme-certo` ligado ao fork pelo app da Vercel no GitHub, produção a partir da `main`, variáveis de produção `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `TMDB_READ_TOKEN`.
+  - Supabase: projeto `FilmeCerto` (`ndugdhtzdjweqvwjwvxy`) linkado pelo CLI. O schema das 5 migrations da AP1 já existia (criado pelo editor SQL) e o histórico foi acertado com `supabase migration repair --status applied`; o próximo `db push` aplica só migrations novas.
+  - `/api/health` devolve `{ status, commit }`; a produção respondeu com o SHA do merge do PR #10 (`5374335`).
+  - README aponta para a URL nova e o CI do fork.
 
 ### Pendente de configuração manual
 
-- [ ] Confirmar que o `.env.local` aponta para o projeto do Supabase da dupla.
-- [ ] Supabase, em Authentication > URL Configuration: pôr o domínio da Vercel em Site URL e Redirect URLs, assim que ele existir (passo 2).
+- [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**` (sem isso o login não volta para o site).
 - [ ] Ambiente local de cada integrante: `.env.local` a partir do `.env.example`, com as duas variáveis `NEXT_PUBLIC_*` do Supabase, que são públicas, e um `TMDB_READ_TOKEN` próprio, criado em themoviedb.org > Settings > API. Lint, typecheck e testes unitários não precisam do arquivo.
 
 ## Responsáveis
@@ -39,7 +43,9 @@ Cada PR é revisado e aprovado pelo outro integrante.
 
 ## Passos
 
-### Passo 1: documentos da AP2, PR #1
+> **Próximos:** passo 3 (Lucas, #4) e passo 4 (Leonardo, #5), em paralelo.
+
+### Passo 1: documentos da AP2, PR #1 (concluído)
 
 Na branch `docs/diretrizes-ap2`, commitar os documentos em **commits separados**, todos com `Spec: SPEC/2026-11-17-visao-geral-ap2.md`:
 
@@ -50,24 +56,24 @@ Na branch `docs/diretrizes-ap2`, commitar os documentos em **commits separados**
 
 Depois: push, atualizar a descrição do PR #1 (`gh pr edit 1`), acompanhar o CI (`gh run watch`), revisão e merge.
 
-### Passo 2: deploy próprio, #3
+### Passo 2: deploy próprio, #3 (concluído)
 
 1. Aplicar as migrations no Supabase da dupla: `pnpm exec supabase login`, `pnpm exec supabase link --project-ref <ref>` e `pnpm exec supabase db push`.
 2. Criar o projeto na Vercel ligado ao fork, com produção a partir da `main` (`vercel link` e `vercel git connect`, ou pelo dashboard). Variáveis de produção com `vercel env add`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `TMDB_READ_TOKEN`.
 3. Fazer `/api/health` devolver `{ status, commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null }`, com teste unitário. O commit cita a spec de visão geral.
 4. Pôr a URL nova no README.
 
-### Passo 3: medição no CI, #4
+### Passo 3: medição no CI, #4 (Lucas, próximo)
 
 Na branch `chore/medicao`:
 
 - `@vitest/coverage-v8`, com cobertura do projeto `unit` no CI. Para a cobertura do diff: gerar `lcov` e comparar com `git diff origin/main` (`diff-cover` via `pipx`, ou um script Node pequeno).
 - `jscpd` com limite de 5% (`.jscpd.json`, ignorando `tests/e2e/tmdb-falso` e `database.types.ts` se necessário).
 - `gitleaks/gitleaks-action` e `pnpm audit --audit-level critical` no CI.
-- `scripts/custo-sessao.mjs`: lê um `.jsonl` do Claude Code, soma `message.usage` (entrada, saída, criação e leitura de cache) e imprime a linha para `prompts/custos.md`. Testar com um `.jsonl` pequeno de fixture.
-- Criar `prompts/custos.md` com a tabela `| sessão | ferramenta | modelo | tokens entrada | tokens saída | custo estimado |` e preencher as sessões já existentes.
+- `prompts/custos.md` já existe, com a tabela e a sessão de 2026-11-17 somada à mão. Falta transformar essa soma em `scripts/custo-sessao.mjs`: ler o `.jsonl` do Claude Code (e os de subagentes, se houver), somar `message.usage` das mensagens do assistente (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`) contando cada `message.id` uma vez só, e imprimir a linha da tabela. Testar com um `.jsonl` de fixture que tenha `message.id` repetido.
+- A extensão do VS Code não tem `/cost`: a coluna de custo fica "não disponível (extensão VS Code)", e os tokens bastam para o critério.
 
-### Passo 4: métricas de uso, #5
+### Passo 4: métricas de uso, #5 (Leonardo, próximo)
 
 Spec `SPEC/AAAA-MM-DD-metricas.md`. Proposta de desenho, a confirmar na spec:
 
