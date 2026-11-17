@@ -12,12 +12,17 @@
 - [x] Issues: #2 Primeiras impressões (com perguntas ao cliente), #3 deploy, #4 medição, #5 métricas, #6 wizard, #7 "Como foi?", #8 séries, #9 "Noite a dois".
 - [x] Linha de base medida: `4ac8b98` = 10.643 linhas (`cloc`), 305 testes unitários verdes, lint e typecheck limpos.
 - [x] Projeto do Supabase da dupla ativo.
-- [x] **Passo 1:** documentos da AP2 em 4 commits separados (PR #1). O PR #1 foi mesclado por engano na `feat/dsai-ap2`; os documentos chegam à `main` pelo PR da sessão de 2026-11-17, que faz merge dessa branch.
+- [x] **Passo 1:** documentos da AP2 em 4 commits separados (PR #1). O PR #1 foi mesclado por engano na `feat/dsai-ap2`; os documentos chegaram à `main` pelo PR #11. A branch `feat/dsai-ap2` foi apagada.
 - [x] **Passo 2 (#3):** deploy próprio no ar em **<https://dsai-ap2-filme-certo.vercel.app>** (PR #10).
   - Vercel: projeto `dsai-ap2-filme-certo` ligado ao fork pelo app da Vercel no GitHub, produção a partir da `main`, variáveis de produção `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `TMDB_READ_TOKEN`.
   - Supabase: projeto `FilmeCerto` (`ndugdhtzdjweqvwjwvxy`) linkado pelo CLI. O schema das 5 migrations da AP1 já existia (criado pelo editor SQL) e o histórico foi acertado com `supabase migration repair --status applied`; o próximo `db push` aplica só migrations novas.
   - `/api/health` devolve `{ status, commit }`; a produção respondeu com o SHA do merge do PR #10 (`5374335`).
   - README aponta para a URL nova e o CI do fork.
+- [x] **Processo reforçado** (branch `chore/processo`):
+  - O AGENTS.md ganhou a seção 0, um checklist obrigatório de início de sessão, commit, PR, merge e encerramento, com um comando de autoverificação.
+  - Hooks em `.githooks/`: `pre-commit` bloqueia commit na `main` e `commit-msg` exige `Agent:` e `Spec:`, com a spec existente. São ativados pelo `prepare` do `pnpm install`.
+  - `prompts/custos.md` agora tem todas as sessões: a do Antigravity de 28/10 e as 7 da AP1.
+  - **Merges só pelo terminal, com trailers** (AGENTS.md, seção 0). Os merges dos PRs #1, #10 e #11 foram feitos pelo botão do GitHub e ficaram sem trailers (10 de 13 commits, 77%). Os próximos commits e merges, todos com trailers, devolvem a taxa para acima de 80%.
 
 ### Pendente de configuração manual
 
@@ -70,7 +75,7 @@ Na branch `chore/medicao`:
 - `@vitest/coverage-v8`, com cobertura do projeto `unit` no CI. Para a cobertura do diff: gerar `lcov` e comparar com `git diff origin/main` (`diff-cover` via `pipx`, ou um script Node pequeno).
 - `jscpd` com limite de 5% (`.jscpd.json`, ignorando `tests/e2e/tmdb-falso` e `database.types.ts` se necessário).
 - `gitleaks/gitleaks-action` e `pnpm audit --audit-level critical` no CI.
-- `prompts/custos.md` já existe, com a tabela e a sessão de 2026-11-17 somada à mão. Falta transformar essa soma em `scripts/custo-sessao.mjs`: ler o `.jsonl` do Claude Code (e os de subagentes, se houver), somar `message.usage` das mensagens do assistente (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`) contando cada `message.id` uma vez só, e imprimir a linha da tabela. Testar com um `.jsonl` de fixture que tenha `message.id` repetido.
+- `prompts/custos.md` já existe, com todas as sessões somadas à mão. Falta transformar essa soma em `scripts/custo-sessao.mjs`: ler o `.jsonl` do Claude Code (e os de subagentes, se houver), somar `message.usage` das mensagens do assistente (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`) contando cada `message.id` uma vez só, e imprimir a linha da tabela. Testar com um `.jsonl` de fixture que tenha `message.id` repetido.
 - A extensão do VS Code não tem `/cost`: a coluna de custo fica "não disponível (extensão VS Code)", e os tokens bastam para o critério.
 
 ### Passo 4: métricas de uso, #5 (Leonardo, próximo)

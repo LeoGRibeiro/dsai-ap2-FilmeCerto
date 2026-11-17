@@ -1,0 +1,10 @@
+#!/bin/sh
+# Regra da AP2 (AGENTS.md, seção 2): nada de commit direto na main.
+# Ativado por `git config core.hooksPath .githooks` (o `pnpm install` já faz).
+
+if [ "$(git symbolic-ref --short HEAD 2>/dev/null)" = "main" ]; then
+  echo "commit recusado: não se commita na main. Crie uma branch a partir dela:" >&2
+  echo "  git switch -c feat/<slug>" >&2
+  exit 1
+fi
+exit 0
