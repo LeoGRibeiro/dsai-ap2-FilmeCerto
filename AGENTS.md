@@ -15,6 +15,73 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 > **Todo agente lê este arquivo e depois o [TASKS.md](TASKS.md)** antes de fazer qualquer coisa. O TASKS.md diz o que já foi feito e qual é o próximo passo.
 >
 > Tudo é auditado **por script, a partir do repositório**. O que não estiver no repositório do jeito descrito aqui conta como não feito ou zera o critério.
+>
+> **A seção 0 é obrigatória em toda sessão, sem exceção.** As outras seções detalham o porquê.
+
+## 0. Checklist obrigatório
+
+### Ao começar a sessão
+
+```bash
+git switch main && git pull --ff-only     # sempre partir da main atualizada
+git config core.hooksPath .githooks       # hooks da AP2 (o pnpm install já faz)
+git switch -c <tipo>/<slug>               # feat/, fix/, docs/ ou chore/
+```
+
+- Leia o [TASKS.md](TASKS.md) e pegue o próximo passo.
+- Nunca trabalhe na `main` nem numa branch cujo PR já foi mesclado.
+
+### Antes de cada commit
+
+1. **Funcionalidade nova?** A spec dela (`SPEC/AAAA-MM-DD-<parte>.md`) já precisa estar commitada **sozinha, num commit anterior**. Se não estiver, commite a spec primeiro.
+2. **Um passo lógico por commit**, com menos de 400 linhas alteradas e com o teste junto.
+3. A mensagem **termina com `Agent:` e `Spec:`** (seção 5). O hook `.githooks/commit-msg` recusa o commit sem os dois, ou se a spec citada não existir. **Nunca use `--no-verify`.**
+
+### Antes de abrir o PR
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm check:secrets
+git push -u origin HEAD
+gh pr create --base main --title "<tipo>(<escopo>): <resumo>" --body "Closes #<N>
+Spec: SPEC/<spec>.md
+<o que mudou e como testar>"
+gh run watch                               # o CI tem que ficar verde
+```
+
+- **Sempre `--base main`.** O PR #1 foi aberto contra outra branch e teve que ser refeito.
+- Peça a aprovação do **outro** integrante.
+
+### Para mesclar: nunca pelo botão do GitHub
+
+O merge do GitHub cria um commit **sem trailers**, que conta contra o mínimo de 80%. Isso já aconteceu nos PRs #1, #10 e #11. Mescle só depois da aprovação e do CI verde, sempre pelo terminal:
+
+```bash
+gh pr merge <N> --merge \
+  --subject "Merge pull request #<N>: <título do PR>" \
+  --body "<resumo em uma linha>
+
+Agent: claude-code/claude-opus-5-5
+Spec: SPEC/<spec do PR>.md"
+git switch main && git pull --ff-only
+curl -s https://dsai-ap2-filme-certo.vercel.app/api/health   # depois do deploy, "commit" = SHA da main
+```
+
+Se quem mescla é a própria pessoa, sem agente, use `Agent: none`.
+
+### Ao encerrar a sessão
+
+1. Atualize o [TASKS.md](TASKS.md): o que foi feito e qual é o próximo passo (commit `docs(tasks): ...`).
+2. Registre a sessão (seção 8): copie a exportação para `prompts/sessoes/`, procure segredos e adicione a linha em `prompts/custos.md` (commit `chore(sessoes): ...`).
+3. Os dois commits entram na branch do PR em aberto. Se não houver PR aberto, use a branch `chore/sessoes-AAAA-MM-DD` com o próprio PR.
+
+### Autoverificação (rode antes de encerrar)
+
+```bash
+# commits com os dois trailers desde a AP1 (mínimo 80%)
+t=0; ok=0; for c in $(git rev-list 4ac8b98..origin/main); do t=$((t+1)); b=$(git log -1 --format=%B $c); echo "$b" | grep -q '^Agent:' && echo "$b" | grep -q '^Spec:' && ok=$((ok+1)); done; echo "trailers: $ok/$t"
+# parcela de commits de cada integrante (mínimo 30% cada)
+git shortlog -sn 4ac8b98..origin/main
+```
 
 ## 1. Quem é quem
 
@@ -53,9 +120,10 @@ issue → branch → commit da SPEC → commits de código + testes → PR → a
 2. **Branch** a partir da `main` atualizada: `feat/<slug>`, `fix/<slug>`, `docs/<slug>` ou `chore/<slug>`.
 3. **Spec primeiro.** Arquivo `SPEC/AAAA-MM-DD-<slug>.md`, com a data do dia em que foi escrita, num **commit só da spec**, anterior a qualquer commit de código que a cite. Veja a seção 4.
 4. **Código com testes**, em commits pequenos (seção 5).
-5. **PR** para a `main`, com descrição que liga a issue (`Closes #N`) e a spec.
-6. **Aprovação:** o *outro* integrante revisa e aprova no GitHub, porque o autor não pode aprovar o próprio PR. Depois, merge por merge commit.
-7. Atualizar o [TASKS.md](TASKS.md) no fim da sessão.
+5. **PR** com `--base main`, com descrição que liga a issue (`Closes #N`) e a spec.
+6. **Aprovação:** o *outro* integrante revisa e aprova no GitHub, porque o autor não pode aprovar o próprio PR.
+7. **Merge pelo terminal**, com trailers na mensagem do merge (seção 0). Nunca pelo botão do GitHub.
+8. Atualizar o [TASKS.md](TASKS.md) e registrar a sessão no fim.
 
 ## 4. Specs (`SPEC/`)
 
@@ -81,7 +149,7 @@ Spec: SPEC/2026-11-17-wizard-noite.md
 
 - `Agent:` traz `<ferramenta>/<modelo>` de quem gerou o código. Escrito à mão: `Agent: none`. Gerado e editado à mão: `Agent: claude-code/claude-opus-5-5 + manual`.
 - `Spec:` aponta a spec que o commit implementa. Commits de processo, infraestrutura e sessões citam `SPEC/2026-11-17-visao-geral-ap2.md`.
-- **Pelo menos 80% dos commits** devem ter os dois trailers. A meta é 100%.
+- **Pelo menos 80% dos commits** devem ter os dois trailers. A meta é 100%. **Merges também são commits e entram na conta.** Os merges de PR levam trailers na mensagem (seção 0), e o hook `commit-msg` cobre os commits e merges locais.
 - **Commits pequenos:** a mediana tem que ficar **abaixo de 400 linhas** alteradas. Um commit por passo lógico: migration, lógica pura com testes, action, tela.
 - **Frequência:** commits em pelo menos 2 dias distintos por semana.
 - **Autoria:** cada integrante com **pelo menos 30% dos commits**. Dividam as issues entre os dois (veja o TASKS.md).
@@ -123,7 +191,9 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm check:secrets
   - Outras ferramentas: a exportação da conversa. Se não houver, a conversa inteira num `.md`.
   - Acima de 50 MB, compacte com `gzip`.
 - **Todo dia com commit de agente precisa de uma sessão registrada.**
-- **Custo:** cada sessão tem uma linha em `prompts/custos.md` (arquivo, ferramenta, modelo, tokens de entrada e saída, custo estimado). Antes de encerrar uma sessão do Claude Code, rode `/cost` e anote o valor.
+- **Custo:** cada sessão tem uma linha em `prompts/custos.md` (arquivo, ferramenta, modelo, tokens de entrada, saída e cache, custo).
+  - Claude Code: a extensão do VS Code não tem `/cost`. Some `message.usage` das mensagens do assistente no `.jsonl` (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`), contando cada `message.id` uma vez só. O critério aceita tokens **ou** custo.
+  - Antigravity: a exportação traz uma linha `"type":"cost-state"` com os tokens e o `costUSD`. Use esses valores.
 - **Segredos:** antes de commitar uma exportação, procure chaves (`sb_secret_`, `eyJhbGciOi`, `TMDB_READ_TOKEN=`, `ghp_`, `sk-`). **Nunca peça ao agente para ler o `.env.local`.** Uma chave exposta tem que ser revogada, não só apagada.
 - Prompts entram como foram escritos, inclusive os que falharam e os de uma palavra. Nunca reescreva prompts depois.
 
@@ -177,6 +247,8 @@ cloc --git --diff 4ac8b98 HEAD \
 - Neste terminal sem TTY, o `pnpm install` precisa de `CI=true` (`CI=true pnpm install --frozen-lockfile`).
 - Comandos: `pnpm dev` (http://localhost:3000), `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:secrets`. Integração e E2E precisam de Docker (`pnpm db:start`).
 - `gh` (GitHub CLI) e `vercel` (CLI, logado como `leogribeiro`) estão instalados.
+- **Hooks de git** em `.githooks/`: `pre-commit` bloqueia commit na `main` e `commit-msg` exige os trailers. São ativados por `git config core.hooksPath .githooks`, que o script `prepare` roda no `pnpm install`. Num clone novo, confira com `git config core.hooksPath`.
+- No Git Bash, `git show <ref>:<arquivo>` precisa de `MSYS_NO_PATHCONV=1`, senão o caminho é convertido e o comando falha.
 
 ## 12. Postura esperada do agente
 
