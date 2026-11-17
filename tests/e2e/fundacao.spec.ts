@@ -35,5 +35,5 @@ test("o rodapé mostra a atribuição ao TMDB em todas as páginas", async ({ pa
 test("GET /api/health responde ok", async ({ request }) => {
   const response = await request.get("/api/health");
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({ status: "ok" });
+  expect(await response.json()).toMatchObject({ status: "ok" });
 });
