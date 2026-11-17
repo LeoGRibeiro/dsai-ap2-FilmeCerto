@@ -51,5 +51,5 @@ next-env.d.ts
 supabase/.branches
 supabase/.temp
 
-# materiais da disciplina, fora do repositório
-pdfs_trabalhos/
+# material da disciplina (slides e pedido do cliente em PDF; o pedido está transcrito em docs/ap2/)
+/pdfs_trabalhos/

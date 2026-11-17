@@ -2,9 +2,9 @@
 
 **O filme certo para hoje à noite.** O Filme Certo pergunta o que você curte, o que prefere evitar e quais streamings assina. Depois sugere filmes para o seu gosto e mostra onde assistir cada um no Brasil. As sugestões mudam conforme você avalia os filmes.
 
-### Acesse: **<https://dsai-ap1-filme-certo.vercel.app/>**
+### Acesse: **<https://dsai-ap2-filme-certo.vercel.app/>**
 
-[![CI](https://github.com/sandroccosta/dsai-ap1--FilmeCerto-/actions/workflows/ci.yml/badge.svg)](https://github.com/sandroccosta/dsai-ap1--FilmeCerto-/actions/workflows/ci.yml)
+[![CI](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/actions/workflows/ci.yml)
 
 Projeto da AP1 da disciplina **Desenvolvimento de Software Apoiado por IA** (UFPA, 2026), feito por:
 
@@ -33,11 +33,11 @@ O motor não usa rede neural. Ele monta consultas ao catálogo do [TMDB](https:/
 
 O Filme Certo também é um servidor [MCP](https://modelcontextprotocol.io): um agente de IA pode buscar filmes, pedir recomendações e cuidar das suas listas por você.
 
-1. Crie sua conta em <https://dsai-ap1-filme-certo.vercel.app/> e conte seus gostos.
+1. Crie sua conta em <https://dsai-ap2-filme-certo.vercel.app/> e conte seus gostos.
 2. No Claude Code:
 
    ```bash
-   claude mcp add --transport http filme-certo https://dsai-ap1-filme-certo.vercel.app/api/mcp
+   claude mcp add --transport http filme-certo https://dsai-ap2-filme-certo.vercel.app/api/mcp
    ```
 
    Use `--scope user` para o servidor valer em qualquer pasta. Sem a opção, ele vale só na pasta em que o comando foi rodado. Quem usa só a extensão do VS Code não tem o `claude` no PATH: o executável fica em `~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/`.
