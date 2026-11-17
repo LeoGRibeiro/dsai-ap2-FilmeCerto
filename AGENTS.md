@@ -8,80 +8,180 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Diretrizes da AP2 — Filme Certo (Desenvolvimento de Software Apoiado por IA - UFPA)
+# Diretrizes da AP2: Filme Certo
 
-Este repositório é a continuidade (AP2) do projeto legado **Filme Certo**.
-Qualquer agente de IA que atue neste projeto DEVE seguir rigorosamente as regras e métricas de processo, qualidade e restrições da disciplina, pois **tudo é auditado automaticamente por scripts**. O que não está no repositório de acordo com as regras não aconteceu ou zera o critério.
+> Disciplina **Desenvolvimento de Software Apoiado por IA** (UFPA, 2026). Este repositório é o fork em que a dupla da AP2 evolui o Filme Certo, construído por outra dupla na AP1.
+>
+> **Todo agente lê este arquivo e depois o [TASKS.md](TASKS.md)** antes de fazer qualquer coisa. O TASKS.md diz o que já foi feito e qual é o próximo passo.
+>
+> Tudo é auditado **por script, a partir do repositório**. O que não estiver no repositório do jeito descrito aqui conta como não feito ou zera o critério.
 
----
+## 1. Quem é quem
 
-## 1. Restrições Inegociáveis (Eliminatórias / Nota Zero)
+| Papel | Pessoas |
+|---|---|
+| Dupla da AP2 (escreve o código) | Leonardo Ribeiro ([@LeoGRibeiro](https://github.com/LeoGRibeiro)) e Lucas Reis ([@Lucas-xps](https://github.com/Lucas-xps)) |
+| Clientes (autores da AP1, **não** escrevem código) | Alexsandro Costa ([@sandroccosta](https://github.com/sandroccosta)) e Jonathan Fagundes ([@jonathanfufu](https://github.com/jonathanfufu)) |
+| Professor | Gustavo Pinto |
 
-1. **Sem reescrita de projeto:**
-   - Proibido trocar a linguagem (TypeScript), o framework (Next.js 16 App Router) ou a stack base (Tailwind, Supabase, TMDB).
-   - Proibido apagar módulos inteiros para refazer do zero ou abrir outro repositório.
-   - Refatorações devem ser estritamente localizadas, justificadas em issues e 100% cobertas por testes.
-2. **Histórico sem reescrita:**
-   - **NUNCA** fazer `git push --force` na branch `main`.
-   - **NUNCA** fazer commit direto na branch `main`. Todo trabalho deve ser feito em branches de funcionalidade (`feat/...`, `fix/...`, `docs/...`) e integrado na `main` exclusivamente via Pull Request aprovado.
-3. **Autoria e clientes:**
-   - Os autores originais da AP1 (Alexsandro Costa e Jonathan Fagundes) são clientes/stakeholders e NÃO escrevem código na AP2. Commits de autores originais no fork não contam.
-   - Os commits da AP2 devem ser distribuídos de forma equilibrada entre os integrantes da nova dupla (mínimo de 30% dos commits para cada um).
+- **Prazo final:** 19/11/2026.
+- **Requisitos:** [docs/ap2/pedido-do-cliente.md](docs/ap2/pedido-do-cliente.md), em ordem de prioridade.
+- **Escopo e decisões gerais:** [SPEC/2026-11-17-visao-geral-ap2.md](SPEC/2026-11-17-visao-geral-ap2.md).
+- **Backlog:** issues do GitHub, de #2 a #9.
 
----
+Trabalhamos como **FDE**: somos donos do negócio e da técnica. Quando houver dúvida de produto, a resposta vem do pedido do cliente. Se o pedido não responder, registre a dúvida numa issue com o rótulo `pergunta-cliente`, siga com a opção mais conservadora e documente a decisão na spec.
 
-## 2. Fluxo Obrigatório de Trabalho para Toda Funcionalidade
+## 2. Restrições eliminatórias
 
-Para **qualquer** funcionalidade ou alteração no sistema, a ordem cronológica de commits no Git DEVE ser respeitada:
+Qualquer uma destas anula a AP2 ou zera o critério:
 
-### Passo 1: Spec Primeiro (`SPEC/`)
-- Crie um arquivo markdown datado em `SPEC/` seguindo o padrão do projeto:
-  `SPEC/YYYY-MM-DD-<slug-da-funcionalidade>.md`
-- A spec deve detalhar: *O quê*, *Por quê*, *Decisões técnicas*, *Critérios de aceitação testáveis* e *Fora do escopo*.
-- **REGRA CRÍTICA:** A spec DEVE ser commitada no Git **antes** do primeiro commit de código que a implementa ou cita.
+1. **Sem reescrita.** Não trocar linguagem (TypeScript), framework (Next.js 16 App Router), banco (Supabase) nem catálogo (TMDB). Não abrir outro repositório. Não apagar módulos para refazer.
+2. **Refatoração só localizada,** justificada numa issue e coberta por teste.
+3. **Histórico sem reescrita.** Nada de `push --force`, `rebase` do que já foi enviado, `squash` ou `commit --amend` em commit já publicado. O merge de PR é sempre por *merge commit*; squash e rebase estão desativados no repositório.
+4. **Nada de commit direto na `main`.** A `main` é protegida: só aceita PR com 1 aprovação e com o check `verificar` do CI verde.
+5. **Autoria real.** Cada pessoa commita com a própria conta, nas próprias sessões. **Nunca** use `--author` ou `Co-authored-by` para atribuir trabalho a quem não o fez. Commits dos clientes no fork não contam.
+6. **Sem URL pública no ar e CI verde, a AP2 não é avaliada.**
+7. **Linhas inventadas não contam:** código duplicado, gerado em massa, morto ou arquivos gerados (lockfiles, `build/`, `vendor/`, minificados).
 
-### Passo 2: Implementação com Testes
-- Código novo deve nascer acompanhado de testes unitários (`tests/unit/`), de integração (`tests/integration/`) e/ou ponta a ponta (`tests/e2e/`).
-- Meta de cobertura: **≥ 70% de diff coverage** (cobertura de linhas do código novo).
-- Testes devem ser reais ("testes que testam": se a mudança for revertida, o teste correspondente deve falhar).
-- Proibida a geração de código duplicado (máximo tolerado no projeto: 5% medido com `jscpd`).
-- Proibido código morto ou gerado em massa apenas para inflar contagem de linhas.
+## 3. Fluxo obrigatório de cada funcionalidade
 
-### Passo 3: Commits Pequenos e com Metadados Obrigatórios
-- **Tamanho dos commits:** Frequência de pelo menos 2 dias por semana; **tamanho mediano do commit < 400 linhas**. Evite commits gigantescos.
-- **Trailers obrigatórios em pelo menos 80% dos commits:**
-  Todo commit de agente DEVE incluir no final da mensagem os trailers `Agent:` e `Spec:`.
-  Exemplo:
-  ```gitcommit
-  feat(estatisticas): adiciona cálculo de tempo total assistido
-
-  Calcula o total em minutos e horas com base nos filmes da lista
-  de assistidos e na duração obtida do TMDB.
-
-  Agent: antigravity/gemini-3-8-flash
-  Spec: SPEC/2026-10-29-estatisticas-cinfilo.md
-  ```
-
-### Passo 4: Registro da Sessão de IA (`prompts/sessoes/`)
-- **100% dos dias com commits de agente** devem ter um arquivo de registro de sessão correspondente em `prompts/sessoes/YYYY-MM-DD-HHMM-<nome-agente>.jsonl`.
-- **Custo ou tokens registrados:** Toda sessão DEVE registrar o consumo de tokens e/ou custo financeiro estimado.
-
----
-
-## 3. Segurança e Segredos
-- **Zero tolerância a segredos no repositório:**
-  - Nenhuma chave de API real, token de serviço ou senha pode ser commitada no Git (auditado com `gitleaks` e `pnpm check:secrets`).
-  - Mantenha `.env.local` estritamente ignorado no `.gitignore`. Use apenas `.env.example` para documentar novas variáveis.
-- Sempre preserve e respeite as políticas de RLS (Row Level Security) do Supabase em qualquer tabela nova criada via migration em `supabase/migrations/`.
-
----
-
-## 4. Portões de Qualidade e CI Local
-Antes de submeter qualquer branch ou abrir PR, os seguintes comandos devem rodar limpos e sair com código 0:
-```bash
-pnpm lint          # Sem avisos ou erros de lint
-pnpm typecheck     # tsc --noEmit sem erros
-pnpm test          # Suíte unitária 100% verde
-pnpm check:secrets # Sem vazamento de variáveis privadas para o bundle
 ```
-O CI no GitHub Actions (`.github/workflows/ci.yml`) deve permanecer verde no último commit da `main` em 100% do tempo.
+issue → branch → commit da SPEC → commits de código + testes → PR → aprovação do outro integrante → merge
+```
+
+1. **Issue.** Toda funcionalidade, refatoração ou correção tem issue. O backlog já está em #3 a #9.
+2. **Branch** a partir da `main` atualizada: `feat/<slug>`, `fix/<slug>`, `docs/<slug>` ou `chore/<slug>`.
+3. **Spec primeiro.** Arquivo `SPEC/AAAA-MM-DD-<slug>.md`, com a data do dia em que foi escrita, num **commit só da spec**, anterior a qualquer commit de código que a cite. Veja a seção 4.
+4. **Código com testes**, em commits pequenos (seção 5).
+5. **PR** para a `main`, com descrição que liga a issue (`Closes #N`) e a spec.
+6. **Aprovação:** o *outro* integrante revisa e aprova no GitHub, porque o autor não pode aprovar o próprio PR. Depois, merge por merge commit.
+7. Atualizar o [TASKS.md](TASKS.md) no fim da sessão.
+
+## 4. Specs (`SPEC/`)
+
+- Nome: `AAAA-MM-DD-<parte>.md`. Uma spec por funcionalidade nova.
+- Cabeçalho no formato da AP1: **Data**, **Componente**, **Status**, **Substitui**.
+- Seções: **O quê**, **Por quê** (citando a seção do [pedido do cliente](docs/ap2/pedido-do-cliente.md)), **Decisões técnicas** (em tabela, como nas specs da AP1), **Banco de dados** (se houver), **Critérios de aceitação** (numerados, verificáveis e ligados a testes) e **Fora do escopo**.
+- O wizard tem uma exigência do cliente: a **tabela de mapeamento** das respostas para os filtros (gêneros, tom, classificação) tem que estar na spec.
+- Ajuste pequeno: edite a spec e commite. Mudança de rumo: crie um arquivo novo e datado dizendo qual spec ele substitui.
+- Exemplos bons para copiar: [2026-10-05-listas.md](SPEC/2026-10-05-listas.md) e [2026-10-05-reacoes.md](SPEC/2026-10-05-reacoes.md).
+
+## 5. Commits
+
+Formato *Conventional Commits* em português, como na AP1, com **dois trailers obrigatórios** no fim da mensagem:
+
+```
+feat(noite): troca a sugestão quando o motivo é "muito longo"
+
+Reduz a duração máxima da próxima rodada para 100 minutos.
+
+Agent: claude-code/claude-opus-5-5
+Spec: SPEC/2026-11-17-wizard-noite.md
+```
+
+- `Agent:` traz `<ferramenta>/<modelo>` de quem gerou o código. Escrito à mão: `Agent: none`. Gerado e editado à mão: `Agent: claude-code/claude-opus-5-5 + manual`.
+- `Spec:` aponta a spec que o commit implementa. Commits de processo, infraestrutura e sessões citam `SPEC/2026-11-17-visao-geral-ap2.md`.
+- **Pelo menos 80% dos commits** devem ter os dois trailers. A meta é 100%.
+- **Commits pequenos:** a mediana tem que ficar **abaixo de 400 linhas** alteradas. Um commit por passo lógico: migration, lógica pura com testes, action, tela.
+- **Frequência:** commits em pelo menos 2 dias distintos por semana.
+- **Autoria:** cada integrante com **pelo menos 30% dos commits**. Dividam as issues entre os dois (veja o TASKS.md).
+- Exportações de sessão vão em **commit separado** (`chore(sessoes): ...`), para não distorcer o tamanho dos commits de código.
+- Mensagens com várias linhas: use arquivo temporário ou heredoc. No PowerShell, here-string `@'...'@` com o `'@` final na coluna 0.
+
+## 6. Testes e qualidade
+
+| Critério | Mínimo | Como cumprir |
+|---|---|---|
+| Cobertura do código novo (*diff coverage*) | 70% | Teste junto com o código, no mesmo PR |
+| Testes que testam | Revertida a mudança, o teste falha | Testar comportamento observável, nunca só "renderiza sem erro" |
+| Duplicação (`jscpd`) | até 5% | Reaproveitar o que existe: `Trailer`, `definirReacao`, `descobrirFilmes` |
+| CI | Verde no último commit da `main`; 80% dos builds verdes | Rodar os portões locais antes de cada push |
+
+- **Unitários** (`tests/unit/`, Vitest + Testing Library): lógica pura, componentes e actions com dependências injetadas, no mesmo padrão de `criarApiFilmes(cliente)` e `definirReacao(..., buscarFilme)`.
+- **Integração** (`tests/integration/`): migrations e RLS contra o Supabase local. Toda tabela nova precisa de teste de RLS.
+- **E2E** (`tests/e2e/`, Playwright com TMDB falso em `tests/e2e/tmdb-falso/`): o fluxo principal de cada funcionalidade. Rotas novas do TMDB precisam de resposta no servidor falso.
+- **Portões antes de cada push** (todos com saída 0):
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm check:secrets
+```
+
+- **Sem Docker na máquina do Leonardo:** integração e E2E só rodam no CI. Depois de cada push, acompanhe com `gh run watch` e corrija na hora se ficar vermelho.
+
+## 7. Banco de dados (Supabase)
+
+- Só **migrations novas** em `supabase/migrations/<timestamp>_<nome>.sql`. Nunca edite uma migration já existente.
+- **Nunca** use `drop table` nem recrie tabelas, porque a produção tem dados reais. Para mudar chave, use `alter table ... drop constraint` / `add primary key` dentro da mesma migration, preservando as linhas.
+- **RLS em toda tabela nova**, com políticas mínimas. Os eventos são **só insert** para `authenticated`.
+- Atualize `src/lib/supabase/database.types.ts`. Com Docker, use `pnpm db:types`. Sem Docker, edite à mão seguindo o formato gerado. O CI valida migrations e tipos nos testes de integração e no typecheck.
+- Comente tabelas e colunas na migration, como na AP1.
+
+## 8. Registro das sessões e custo
+
+- Ao fim de **cada** sessão com agente, a exportação bruta vai para `prompts/sessoes/AAAA-MM-DD-HHMM-<ferramenta>.<ext>` (data e hora de início da sessão).
+  - Claude Code: o `.jsonl` da sessão em `~/.claude/projects/<pasta-do-projeto>/`. Para este projeto na máquina do Leonardo: `~/.claude/projects/c--Users-Leonardo-programacoes-Faculdade-dsai-ap2-FilmeCerto/`.
+  - Outras ferramentas: a exportação da conversa. Se não houver, a conversa inteira num `.md`.
+  - Acima de 50 MB, compacte com `gzip`.
+- **Todo dia com commit de agente precisa de uma sessão registrada.**
+- **Custo:** cada sessão tem uma linha em `prompts/custos.md` (arquivo, ferramenta, modelo, tokens de entrada e saída, custo estimado). Antes de encerrar uma sessão do Claude Code, rode `/cost` e anote o valor.
+- **Segredos:** antes de commitar uma exportação, procure chaves (`sb_secret_`, `eyJhbGciOi`, `TMDB_READ_TOKEN=`, `ghp_`, `sk-`). **Nunca peça ao agente para ler o `.env.local`.** Uma chave exposta tem que ser revogada, não só apagada.
+- Prompts entram como foram escritos, inclusive os que falharam e os de uma palavra. Nunca reescreva prompts depois.
+
+## 9. Segurança
+
+- Nenhum segredo no repositório. O `gitleaks` roda sobre o histórico, e o `pnpm check:secrets` verifica o bundle.
+- `.env.local` fica no `.gitignore`. Variáveis novas são documentadas no `.env.example`, com valores falsos.
+- Tokens do TMDB e chaves do Supabase só no servidor (`server-only`), exceto as `NEXT_PUBLIC_*`.
+- Não pode haver alertas críticos de dependência (`pnpm audit --audit-level critical`).
+
+## 10. As métricas da avaliação
+
+**Volume e processo (27 pts)**
+
+| Critério | Mínimo | Pts |
+|---|---|---|
+| Linhas novas (`cloc --diff` contra `4ac8b98`) | 100 mil | 8 |
+| Duplicação (`jscpd`) | até 5% | 3 |
+| Spec antes do código, para cada funcionalidade nova | 100% | 5 |
+| Commits com `Agent:` e `Spec:` | 80% | 3 |
+| Dias com commit / mediana do tamanho do commit | 2 dias por semana / < 400 linhas | 3 |
+| Sessão registrada para cada dia com commit de agente | 100% | 3 |
+| Parcela de commits de cada integrante | 30% cada | 2 |
+
+**Qualidade e entrega (23 pts)**
+
+| Critério | Mínimo | Pts |
+|---|---|---|
+| Cobertura de linhas do código novo | 70% | 5 |
+| Testes novos que falham quando a mudança é revertida | amostra de 5, todos falham | 4 |
+| CI verde no último commit da `main` / builds verdes | verde / 80% | 3 |
+| Merges na `main` por PR aprovado pela dupla | 100% | 3 |
+| Segredos no histórico e alertas críticos | zero | 3 |
+| URL pública servindo o último commit da `main` | no ar no dia | 3 |
+| Tokens ou custo registrados em cada sessão | 100% | 2 |
+
+Critério abaixo do mínimo vale zero.
+
+Contagem de linhas novas (o executável do `cloc` está em `../reservei/cloc-1.98.exe`):
+
+```bash
+cloc --git --diff 4ac8b98 HEAD \
+  --exclude-dir=node_modules,vendor,dist,build,prompts \
+  --exclude-lang=Markdown,JSON,YAML,CSV,Text,SVG \
+  --not-match-f='(lock|\.min\.)'
+```
+
+## 11. Ambiente local (Windows)
+
+- Node 22.12+ (a máquina tem o 24) e pnpm 10.
+- Neste terminal sem TTY, o `pnpm install` precisa de `CI=true` (`CI=true pnpm install --frozen-lockfile`).
+- Comandos: `pnpm dev` (http://localhost:3000), `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:secrets`. Integração e E2E precisam de Docker (`pnpm db:start`).
+- `gh` (GitHub CLI) e `vercel` (CLI, logado como `leogribeiro`) estão instalados.
+
+## 12. Postura esperada do agente
+
+- **Leia antes de mudar:** a spec da AP1 da área, o código e os testes existentes. Reaproveite.
+- **Siga o filtro do cliente:** ajuda a decidir mais rápido? Nada de catálogo, carrossel novo ou gamificação.
+- **Não infle linhas.** Escreva o código que a funcionalidade precisa, com testes de verdade.
+- **Não peça confirmação para o que estas regras já decidem.** Pergunte só decisões de produto que o pedido do cliente não resolve.
+- **Ao fim de cada sessão:** portões verdes, commits feitos, push, PR aberto ou atualizado e [TASKS.md](TASKS.md) atualizado com o próximo passo.
