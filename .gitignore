@@ -50,3 +50,6 @@ next-env.d.ts
 # supabase
 supabase/.branches
 supabase/.temp
+
+# materiais da disciplina, fora do repositório
+pdfs_trabalhos/
