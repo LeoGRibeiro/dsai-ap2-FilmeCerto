@@ -1,0 +1,21 @@
+#!/bin/sh
+# Regra da AP2 (AGENTS.md, seção 5): todo commit, inclusive merge local, termina com
+# os trailers "Agent:" e "Spec:", e a spec citada precisa existir no repositório.
+# Ativado por `git config core.hooksPath .githooks` (o `pnpm install` já faz).
+
+mensagem="$1"
+
+recusar() {
+  echo "commit recusado: $1" >&2
+  echo "  A mensagem precisa terminar com:" >&2
+  echo "    Agent: <ferramenta>/<modelo>   (ou: none)" >&2
+  echo "    Spec: SPEC/AAAA-MM-DD-<parte>.md" >&2
+  echo "  Veja AGENTS.md, seção 5." >&2
+  exit 1
+}
+
+grep -qE '^Agent: .+' "$mensagem" || recusar "falta o trailer Agent:"
+spec=$(grep -m1 -E '^Spec: .+' "$mensagem" | sed -E 's/^Spec: *//; s/[[:space:]]+$//')
+[ -n "$spec" ] || recusar "falta o trailer Spec:"
+[ -f "$spec" ] || recusar "a spec \"$spec\" não existe no repositório"
+exit 0

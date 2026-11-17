@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Hooks de git rodam em sh: sempre LF, inclusive no Windows.
+.githooks/* text eol=lf
