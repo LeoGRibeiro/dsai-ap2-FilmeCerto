@@ -1,0 +1,22 @@
+# Configuração do gitleaks (CI: varre o histórico inteiro do commit testado).
+# Regras padrão, mais os falsos positivos conhecidos, todos da regra `generic-api-key`.
+# Só entra aqui o que não é credencial. Um segredo real não vai para esta lista: a chave é
+# revogada (o histórico não é reescrito).
+# Sem `paths`: um caminho na lista faz o gitleaks pular o arquivo inteiro, e as sessões em
+# prompts/sessoes/ são justamente onde um segredo real pode aparecer.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Chave publishable fixa do Supabase local (`supabase start`): pública e igual em toda instalação da CLI. Aparece no ci.yml e nas sessões."
+regexes = ['''^sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH$''']
+
+[[allowlists]]
+description = "Nomes de cabeçalho beta da API da Anthropic (ex.: interleaved-thinking-2025-05-14), gravados nas sessões do Claude Code. Nenhuma credencial tem essa forma."
+regexes = ['''^[a-z]+(-[a-z]+)*-20\d{2}-\d{2}-\d{2}$''']
+
+[[allowlists]]
+description = "turnAttributionKey: UUID interno das sessões do Claude Code, não é credencial."
+regexTarget = "match"
+regexes = ['''(?i)turnAttributionKey":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"''']

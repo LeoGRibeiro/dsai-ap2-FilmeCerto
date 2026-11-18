@@ -20,7 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Histórico completo: a cobertura das linhas novas usa o git diff contra a main e o 4ac8b98.
+          # Histórico completo: o gitleaks varre todo o histórico, e a cobertura das linhas novas
+          # usa o git diff contra a main e contra o 4ac8b98.
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -35,6 +36,21 @@ jobs:
       - run: pnpm typecheck
       # Duplicação do código (critério da AP2: até 5%). Configuração em .jscpd.json.
       - run: pnpm check:duplicacao
+      # Segredos em todo o histórico do commit testado (critério da AP2: zero). Binário oficial,
+      # com versão e checksum fixos. Falsos positivos conhecidos em .gitleaks.toml.
+      - name: gitleaks
+        env:
+          VERSAO: 8.30.1
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          arquivo="gitleaks_${VERSAO}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$arquivo" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSAO}/${arquivo}"
+          echo "${SHA256}  $RUNNER_TEMP/$arquivo" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$arquivo" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --redact --no-banner --log-opts="HEAD" .
+      # Alertas críticos de dependência (critério da AP2: zero).
+      - run: pnpm audit --audit-level critical
       - run: pnpm test:coverage
       # Cobertura das linhas novas deste PR e de toda a AP2 (desde o 4ac8b98), no resumo do job.
       # Só avisa abaixo de 70%, sem reprovar: a medição só enxerga os testes unitários.
