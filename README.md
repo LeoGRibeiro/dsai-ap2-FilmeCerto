@@ -110,6 +110,7 @@ pnpm dev                     # http://localhost:3000
 | `pnpm typecheck`            | Checagem de tipos (`tsc --noEmit`)                                             |
 | `pnpm test`                 | Testes unitários e de componentes (Vitest)                                     |
 | `pnpm test:coverage`        | Os mesmos testes, com cobertura em `coverage/` (`lcov.info` e relatório HTML)  |
+| `pnpm coverage:diff <base>` | Cobertura das linhas novas contra a base (ex.: `origin/main`, `4ac8b98`)       |
 | `pnpm test:integration`     | Testes contra o Supabase local: trigger e RLS (requer `pnpm db:start`)         |
 | `pnpm test:e2e`             | Testes ponta a ponta (Playwright; faz o build apontando para o Supabase local) |
 | `pnpm check:secrets`        | Garante que segredos não vazaram para o bundle do navegador                    |

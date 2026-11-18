@@ -19,6 +19,9 @@ jobs:
       IMAGENS_SEM_OTIMIZACAO: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Histórico completo: a cobertura das linhas novas usa o git diff contra a main e o 4ac8b98.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -31,6 +34,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:coverage
+      # Cobertura das linhas novas deste PR e de toda a AP2 (desde o 4ac8b98), no resumo do job.
+      # Só avisa abaixo de 70%, sem reprovar: a medição só enxerga os testes unitários.
+      - run: pnpm coverage:diff origin/main 4ac8b98
       # Só os serviços que o app usa, para subir mais rápido.
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,mailpit,supavisor
       - run: pnpm test:integration

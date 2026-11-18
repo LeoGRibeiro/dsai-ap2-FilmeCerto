@@ -1,6 +1,9 @@
 // Cobertura das linhas novas: cruza o `lcov.info` do `pnpm test:coverage` com o `git diff`
 // contra uma base. Só lógica pura; a leitura de arquivos e o git ficam em scripts/cobertura-diff.mjs.
 
+/** Mínimo da avaliação da AP2 para a cobertura do código novo, em %. */
+export const COBERTURA_MINIMA = 70;
+
 /** @typedef {Map<string, Map<number, number>>} Cobertura arquivo -> (linha -> execuções) */
 
 /**
@@ -112,4 +115,99 @@ export function cruzarCobertura(cobertura, linhasNovas) {
   const total = arquivos.reduce((soma, { total }) => soma + total, 0);
   const cobertas = arquivos.reduce((soma, { cobertas }) => soma + cobertas, 0);
   return { arquivos, total, cobertas, percentual: total === 0 ? null : (cobertas / total) * 100 };
+}
+
+/** @param {number} valor */
+function formatarPercentual(valor) {
+  return `${valor.toFixed(1).replace(".", ",")}%`;
+}
+
+/**
+ * Agrupa números em ordem crescente em faixas: [3, 4, 5, 9] -> "3-5, 9".
+ * @param {number[]} numeros
+ */
+export function agruparFaixas(numeros) {
+  /** @type {string[]} */
+  const faixas = [];
+  let inicio = numeros[0];
+  for (let i = 1; i <= numeros.length; i++) {
+    if (numeros[i] === numeros[i - 1] + 1) continue;
+    const fim = numeros[i - 1];
+    faixas.push(inicio === fim ? `${inicio}` : `${inicio}-${fim}`);
+    inicio = numeros[i];
+  }
+  return faixas.join(", ");
+}
+
+/**
+ * Resumo em Markdown, para o terminal e para o resumo do job no GitHub Actions.
+ * @param {Resultado} resultado
+ * @param {string} base
+ */
+export function formatarResumo(resultado, base) {
+  const titulo = `### Cobertura das linhas novas contra \`${base}\``;
+  if (resultado.percentual === null) {
+    return `${titulo}\n\nNenhuma linha nova de código medido (src/ e scripts/).\n`;
+  }
+  const situacao =
+    resultado.percentual < COBERTURA_MINIMA
+      ? `**Abaixo do mínimo de ${COBERTURA_MINIMA}%.**`
+      : `Mínimo: ${COBERTURA_MINIMA}%.`;
+  const linhas = resultado.arquivos.map(
+    ({ arquivo, total, cobertas, descobertas }) =>
+      `| \`${arquivo}\` | ${total} | ${cobertas} | ${formatarPercentual((cobertas / total) * 100)} | ${agruparFaixas(descobertas) || "—"} |`,
+  );
+  return [
+    titulo,
+    "",
+    `**${formatarPercentual(resultado.percentual)}** das ${resultado.total} linhas novas medidas rodam nos testes unitários (${resultado.cobertas} cobertas). ${situacao}`,
+    "",
+    "| arquivo | linhas novas | cobertas | % | linhas sem teste |",
+    "|---|---:|---:|---:|---|",
+    ...linhas,
+    "",
+  ].join("\n");
+}
+
+/**
+ * @typedef {object} Dependencias
+ * @property {() => string} lerLcov conteúdo do `coverage/lcov.info`
+ * @property {(base: string, arquivos: string[]) => string} diff `git diff --unified=0` de `base...HEAD`
+ * @property {(texto: string) => void} escrever saída padrão
+ * @property {(texto: string) => void} erro saída de erro
+ * @property {((texto: string) => void) | undefined} [resumo] resumo do job no GitHub Actions
+ * @property {((mensagem: string) => void) | undefined} [avisar] aviso no GitHub Actions
+ */
+
+/**
+ * Mede a cobertura das linhas novas contra cada base. Nunca reprova: só avisa abaixo do mínimo,
+ * porque a medição só enxerga os testes unitários. Devolve o código de saída.
+ * @param {string[]} bases
+ * @param {Dependencias} dependencias
+ */
+export function executar(bases, { lerLcov: lerArquivoLcov, diff, escrever, erro, resumo, avisar }) {
+  if (bases.length === 0) {
+    erro("Uso: pnpm coverage:diff <base> [<base> ...]\n");
+    return 1;
+  }
+  let lcov;
+  try {
+    lcov = lerArquivoLcov();
+  } catch {
+    erro("coverage/lcov.info não encontrado. Rode `pnpm test:coverage` antes.\n");
+    return 1;
+  }
+  const cobertura = lerLcov(lcov);
+  for (const base of bases) {
+    const resultado = cruzarCobertura(cobertura, lerLinhasNovas(diff(base, [...cobertura.keys()])));
+    const texto = formatarResumo(resultado, base);
+    escrever(`${texto}\n`);
+    resumo?.(`${texto}\n`);
+    if (resultado.percentual !== null && resultado.percentual < COBERTURA_MINIMA) {
+      avisar?.(
+        `Cobertura das linhas novas contra ${base}: ${formatarPercentual(resultado.percentual)} (mínimo: ${COBERTURA_MINIMA}%).`,
+      );
+    }
+  }
+  return 0;
 }

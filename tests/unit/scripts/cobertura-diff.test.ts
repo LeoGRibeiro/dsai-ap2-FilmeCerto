@@ -1,7 +1,14 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { cruzarCobertura, lerLcov, lerLinhasNovas } from "../../../scripts/lib/cobertura-diff.mjs";
+import {
+  agruparFaixas,
+  cruzarCobertura,
+  executar,
+  formatarResumo,
+  lerLcov,
+  lerLinhasNovas,
+} from "../../../scripts/lib/cobertura-diff.mjs";
 
 // No Windows o vitest grava o caminho com barra invertida.
 const LCOV = `TN:
@@ -114,5 +121,98 @@ describe("cruzarCobertura", () => {
     const resultado = cruzarCobertura(lerLcov(LCOV), new Map([["README.md", new Set([1])]]));
 
     expect(resultado).toEqual({ arquivos: [], total: 0, cobertas: 0, percentual: null });
+  });
+});
+
+describe("agruparFaixas", () => {
+  it("agrupa números seguidos em faixas", () => {
+    expect(agruparFaixas([3, 4, 5, 9, 11, 12])).toBe("3-5, 9, 11-12");
+    expect(agruparFaixas([])).toBe("");
+  });
+});
+
+describe("formatarResumo", () => {
+  it("mostra o percentual, as linhas sem teste e o aviso abaixo do mínimo", () => {
+    const texto = formatarResumo(
+      cruzarCobertura(lerLcov(LCOV), lerLinhasNovas(DIFF)),
+      "origin/main",
+    );
+
+    expect(texto).toContain("### Cobertura das linhas novas contra `origin/main`");
+    expect(texto).toContain("**50,0%** das 4 linhas novas medidas");
+    expect(texto).toContain("**Abaixo do mínimo de 70%.**");
+    expect(texto).toContain("| `src/features/noite/estado.ts` | 4 | 2 | 50,0% | 5, 9 |");
+  });
+
+  it("não acusa nada quando passa do mínimo", () => {
+    const resultado = cruzarCobertura(
+      lerLcov("SF:a.ts\nDA:1,1\nDA:2,1\nDA:3,0\nDA:4,1\n"),
+      new Map([["a.ts", new Set([1, 2, 3, 4])]]),
+    );
+    const texto = formatarResumo(resultado, "4ac8b98");
+
+    expect(texto).toContain("**75,0%**");
+    expect(texto).toContain("Mínimo: 70%.");
+    expect(texto).not.toContain("Abaixo");
+  });
+
+  it("explica quando não há linha nova medida", () => {
+    const texto = formatarResumo(cruzarCobertura(new Map(), new Map()), "origin/main");
+
+    expect(texto).toContain("Nenhuma linha nova de código medido");
+  });
+});
+
+describe("executar", () => {
+  function dependencias(lcov = LCOV) {
+    return {
+      lerLcov: vi.fn(() => lcov),
+      diff: vi.fn((base: string) => (base === "origin/main" ? DIFF : "")),
+      escrever: vi.fn(),
+      erro: vi.fn(),
+      resumo: vi.fn(),
+      avisar: vi.fn(),
+    };
+  }
+
+  it("mede cada base, publica o resumo e avisa só a que ficou abaixo do mínimo", () => {
+    const deps = dependencias();
+
+    expect(executar(["origin/main", "4ac8b98"], deps)).toBe(0);
+
+    expect(deps.diff).toHaveBeenCalledWith("origin/main", [
+      "src/features/noite/estado.ts",
+      "src/proxy.ts",
+    ]);
+    expect(deps.diff).toHaveBeenCalledWith("4ac8b98", expect.any(Array));
+    expect(deps.escrever).toHaveBeenCalledTimes(2);
+    expect(deps.resumo).toHaveBeenCalledTimes(2);
+    expect(deps.resumo.mock.calls[1][0]).toContain("contra `4ac8b98`");
+    expect(deps.avisar).toHaveBeenCalledOnce();
+    expect(deps.avisar).toHaveBeenCalledWith(
+      "Cobertura das linhas novas contra origin/main: 50,0% (mínimo: 70%).",
+    );
+  });
+
+  it("funciona fora do GitHub Actions, sem resumo nem aviso", () => {
+    const { resumo, avisar, ...deps } = dependencias();
+
+    expect(executar(["origin/main"], deps)).toBe(0);
+    expect(deps.escrever).toHaveBeenCalledOnce();
+    expect(resumo).not.toHaveBeenCalled();
+    expect(avisar).not.toHaveBeenCalled();
+  });
+
+  it("falha sem base ou sem lcov.info", () => {
+    const deps = dependencias();
+    deps.lerLcov.mockImplementation(() => {
+      throw new Error("ENOENT");
+    });
+
+    expect(executar([], deps)).toBe(1);
+    expect(deps.erro).toHaveBeenLastCalledWith(expect.stringContaining("Uso:"));
+    expect(executar(["origin/main"], deps)).toBe(1);
+    expect(deps.erro).toHaveBeenLastCalledWith(expect.stringContaining("pnpm test:coverage"));
+    expect(deps.escrever).not.toHaveBeenCalled();
   });
 });
