@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { criarUsuario } from "../../support/supabase-local";
+import { criarUsuario, novoCliente } from "../../support/supabase-local";
 
 describe("RLS das métricas", () => {
   let a: Awaited<ReturnType<typeof criarUsuario>>;
@@ -63,5 +63,17 @@ describe("RLS das métricas", () => {
 
     const climas = await b.cliente.rpc("metricas_climas");
     expect(climas.error?.code).toBe("42501");
+  });
+
+  it("os detalhes dos eventos só respondem a quem está na equipe", async () => {
+    await a.cliente.from("eventos").insert({ nome: "wizard_troca", dados: { motivo: "ja-vi" } });
+
+    const logado = await a.cliente.rpc("metricas_detalhes");
+    expect(logado.error?.code).toBe("42501");
+    expect(logado.data).toBeNull();
+
+    const anonimo = await novoCliente().rpc("metricas_detalhes");
+    expect(anonimo.error).not.toBeNull();
+    expect(anonimo.data).toBeNull();
   });
 });
