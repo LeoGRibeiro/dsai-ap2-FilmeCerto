@@ -104,6 +104,7 @@ export type Database = {
           generos: number[];
           poster_path: string | null;
           status: Database["public"]["Enums"]["status_lista"];
+          tipo: Database["public"]["Enums"]["tipo_midia"];
           titulo: string;
           tmdb_id: number;
           usuario_id: string;
@@ -115,6 +116,7 @@ export type Database = {
           generos?: number[];
           poster_path?: string | null;
           status: Database["public"]["Enums"]["status_lista"];
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
           titulo: string;
           tmdb_id: number;
           usuario_id: string;
@@ -126,6 +128,7 @@ export type Database = {
           generos?: number[];
           poster_path?: string | null;
           status?: Database["public"]["Enums"]["status_lista"];
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
           titulo?: string;
           tmdb_id?: number;
           usuario_id?: string;
@@ -192,6 +195,7 @@ export type Database = {
           criado_em: string;
           generos: number[];
           reacao: Database["public"]["Enums"]["reacao_filme"];
+          tipo: Database["public"]["Enums"]["tipo_midia"];
           titulo: string;
           tmdb_id: number;
           usuario_id: string;
@@ -201,6 +205,7 @@ export type Database = {
           criado_em?: string;
           generos?: number[];
           reacao: Database["public"]["Enums"]["reacao_filme"];
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
           titulo: string;
           tmdb_id: number;
           usuario_id: string;
@@ -210,6 +215,7 @@ export type Database = {
           criado_em?: string;
           generos?: number[];
           reacao?: Database["public"]["Enums"]["reacao_filme"];
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
           titulo?: string;
           tmdb_id?: number;
           usuario_id?: string;
