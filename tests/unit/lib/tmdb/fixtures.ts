@@ -1,4 +1,26 @@
+import { vi } from "vitest";
+
+import { criarClienteTmdb, type ClienteTmdb } from "@/lib/tmdb/cliente";
+
 /** Respostas reduzidas no formato da API do TMDB, para os testes. */
+
+/** API do TMDB (filmes ou séries) sobre um `fetch` falso que sempre responde `corpo`. */
+export function montarApi<A>(criarApi: (cliente: ClienteTmdb) => A, corpo: unknown, status = 200) {
+  const fetchFalso = vi.fn(async () => new Response(JSON.stringify(corpo), { status }));
+  const cliente = criarClienteTmdb({
+    token: "t",
+    baseUrl: "https://tmdb.falso/3",
+    fetch: fetchFalso as unknown as typeof fetch,
+    esperar: async () => {},
+  });
+  return { api: criarApi(cliente), fetchFalso };
+}
+
+/** URL e `revalidate` da chamada de número `indice` ao `fetch` falso. */
+export function chamada(fetchFalso: ReturnType<typeof vi.fn>, indice = 0) {
+  const [url, init] = fetchFalso.mock.calls[indice] as [string, { next: { revalidate: number } }];
+  return { url: new URL(url), revalidate: init.next.revalidate };
+}
 
 export function filmeTmdb(sobrescrever: Record<string, unknown> = {}) {
   return {

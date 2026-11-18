@@ -1,25 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { criarClienteTmdb, TmdbErro } from "@/lib/tmdb/cliente";
+import { TmdbErro } from "@/lib/tmdb/cliente";
 import { criarApiFilmes } from "@/lib/tmdb/filmes";
 
-import { detalhesTmdb, filmeTmdb, paginaTmdb } from "./fixtures";
+import { chamada, detalhesTmdb, filmeTmdb, montarApi, paginaTmdb } from "./fixtures";
 
-function montar(corpo: unknown, status = 200) {
-  const fetchFalso = vi.fn(async () => new Response(JSON.stringify(corpo), { status }));
-  const cliente = criarClienteTmdb({
-    token: "t",
-    baseUrl: "https://tmdb.falso/3",
-    fetch: fetchFalso as unknown as typeof fetch,
-    esperar: async () => {},
-  });
-  return { api: criarApiFilmes(cliente), fetchFalso };
-}
-
-function chamada(fetchFalso: ReturnType<typeof vi.fn>, indice = 0) {
-  const [url, init] = fetchFalso.mock.calls[indice] as [string, { next: { revalidate: number } }];
-  return { url: new URL(url), revalidate: init.next.revalidate };
-}
+const montar = (corpo: unknown, status?: number) => montarApi(criarApiFilmes, corpo, status);
 
 describe("descobrirFilmes", () => {
   it("traduz todos os filtros para os parâmetros do TMDB", async () => {
