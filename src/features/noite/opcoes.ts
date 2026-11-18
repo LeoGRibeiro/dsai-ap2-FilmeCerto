@@ -1,4 +1,5 @@
 import type { Clima, Pergunta } from "@/features/metricas/eventos";
+import type { MotivoTroca } from "@/features/noite/estado";
 
 export type Humor = Clima["humor"];
 export type Experiencia = Clima["experiencia"];
@@ -13,6 +14,14 @@ export const PERGUNTAS = [
   { chave: "experiencia", parametro: "exp", titulo: "Que tipo de experiência você quer?" },
   { chave: "companhia", parametro: "com", titulo: "Com quem vai assistir?" },
 ] as const satisfies { chave: Pergunta; parametro: string; titulo: string }[];
+
+/** Motivos de "Esse não", na ordem do pedido do cliente (3.2). */
+export const ROTULOS_MOTIVO: Record<MotivoTroca, string> = {
+  "ja-vi": "Já vi",
+  "nao-e-o-clima": "Não é o clima",
+  "muito-longo": "Muito longo",
+  outro: "Outro",
+};
 
 /** Trechos do motivo: "Você está cansado, quer rir e vai ver a dois". */
 export const TRECHOS: { [P in Pergunta]: Record<Clima[P], string> } = {
