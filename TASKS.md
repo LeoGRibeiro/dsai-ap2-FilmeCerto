@@ -36,6 +36,12 @@
   - `src/features/noite/`: `filtrosDaNoite`, estado na URL (`lerEstado`, `urlDaNoite`, `urlComResposta`, `proximaPergunta`, `respostasCompletas`, `proximaRodada`), `motivoDaNoite`/`provedorDaNoite`, `terminaAs`, `recomendarNoite`, `obterNoite` e a action `concluirNoite`.
   - **Falta (Lucas, telas):** ver o passo 5 abaixo.
 
+- [x] **Passo 6 (#7):** "Como foi?" no PR #15 (branch `feat/como-foi`, criada a partir da `feat/wizard-noite`), com a spec [2026-11-18-como-foi.md](SPEC/2026-11-18-como-foi.md). O PR **depende do #14 e do #13**; a ordem de merge é #13 → #14 → #15.
+  - Migration `20261118180000_escolhas_noite.sql`: enum `tipo_midia` (`filme`, `serie`) e a tabela `escolhas_noite` com RLS de select/insert/update do dono. SQL validado no PGlite; a RLS é testada no CI (`tests/integration/como-foi/`).
+  - `src/features/como-foi/`: regras (pergunta 3 h depois da escolha, no máximo em 2 visitas, uma visita = exibições a menos de 1 h), `gravarEscolha`, `contarExibicao`, `gravarResposta` (reaproveita `definirReacao` e `definirLista`), `obterComoFoi` (só a escolha mais recente), as actions e os componentes `VouVerEsse` e `PerguntaComoFoi`. O cartão já aparece no dashboard.
+  - E2E `tests/e2e/como-foi.spec.ts` cria a escolha pela API, porque as telas do wizard ainda não existem.
+  - **Falta:** aprovação do Lucas, merge pelo terminal depois do #14 e `pnpm exec supabase db push`. As telas do wizard precisam usar o `<VouVerEsse>` (passo 5, item 5).
+
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**` (sem isso o login não volta para o site).
@@ -51,7 +57,7 @@
 | #5 Métricas de uso | Leonardo |
 | #6 Wizard: lógica e filtros | Leonardo |
 | #6 Wizard: telas | Lucas |
-| #7 "Como foi?" | Lucas |
+| #7 "Como foi?" | Leonardo (feito no PR #15; revisão: Lucas) |
 | #8 Séries: migration e TMDB | Leonardo |
 | #8 Séries: página `/serie/[id]` | Lucas |
 | README e entrega | os dois |
@@ -60,7 +66,9 @@ Cada PR é revisado e aprovado pelo outro integrante.
 
 ## Passos
 
-> **Próximos:** passo 3 (Lucas, #4); revisão e merge do PR #13 (passo 4) e depois o PR do wizard; passo 5, telas (Lucas, numa branch a partir da `feat/wizard-noite`); passo 7, migration e TMDB de séries (Leonardo).
+> **Próximos:** passo 3 (Lucas, #4); revisão e merge, nesta ordem, dos PRs #13, #14 e #15; passo 5, telas (Lucas, numa branch a partir da `feat/como-foi`, para já ter o `VouVerEsse`); passo 7, migration e TMDB de séries (Leonardo).
+>
+> **Atenção à autoria (mínimo de 30% cada):** o #7 passou para o Leonardo. Para equilibrar, as telas do wizard e a página `/serie/[id]` ficam com o Lucas, e vale ele assumir também parte das séries.
 
 ### Passo 1: documentos da AP2, PR #1 (concluído)
 
@@ -109,7 +117,7 @@ Spec [`SPEC/2026-11-18-metricas.md`](SPEC/2026-11-18-metricas.md). Desenho origi
 2. Botão de destaque "O que ver hoje?" no topo do dashboard, link para `/noite` (1 clique + 3 respostas = 4).
 3. Resultado (componente do navegador): pôster, título, ano, `formatarDuracao`, motivo, provedor, "Começando agora, termina às {terminaAs(new Date(), duracaoMin)}" (só no navegador), `<Trailer origem="noite">`. Na rodada 0, chamar `concluirNoite(respostas)` uma vez (`useEffect` com ref).
 4. "Esse não" → escolha do motivo (`MOTIVOS_TROCA`) → `enviarEvento({ nome: "wizard_troca", dados: { motivo } })` e `router.push(urlDaNoite(proximaRodada(estado, motivo, mostrados)))`, com `mostrados` = destaque primeiro + opções (`{ id, duracaoMin }`). `null` (limite) troca o botão por "Refazer as perguntas". "Já vi" oferece marcar "Já assisti" (`alternarLista` de `src/features/listas/actions.ts`). Mostrar "trocas restantes: {MAX_TROCAS - trocas}".
-5. "Vou ver esse!" (no destaque e em cada opção) → `enviarEvento({ nome: "wizard_escolheu", dados: { trocas } })` e mensagem de fim com link para `/filme/{id}`. A gravação da escolha vem no passo 6.
+5. "Vou ver esse!" (no destaque e em cada opção): usar `<VouVerEsse tmdbId titulo trocas aoEscolher />` de `src/features/como-foi/components/vou-ver-esse.tsx` (PR #15). Ele já grava a escolha, envia `wizard_escolheu` e mostra o link para `/filme/{id}`; o `aoEscolher` serve para não registrar `wizard_abandonado` depois da escolha.
 6. `wizard_iniciado` ao abrir `/noite` sem respostas; `wizard_abandonado` no `pagehide` sem escolha (`etapa`: `perguntas` ou `resultado`).
 7. Testes: unitários dos componentes (Testing Library) e `tests/e2e/noite.spec.ts` (critério 7 da spec): 4 cliques, "Voltar", troca com 3 opções sem repetir, limite de trocas, família só com "Para a família", `/perfil` igual depois.
 
@@ -150,13 +158,13 @@ Implementação:
 - "Esse não" mostra o motivo (Já vi / Não é o clima / Muito longo / Outro) e depois 1 destaque + 2 opções menores. "Já vi" oferece marcar "Já assisti" com a action de `src/features/listas/`.
 - Eventos do #5: `enviarEvento` no navegador e `registrarEvento`/`registrarClima` no servidor, com os slugs de clima e os motivos de troca da spec de métricas. `Trailer` com `origem="noite"`. E2E: dashboard → resultado em 4 cliques, troca, limite de trocas e "família" sem filme acima da classificação.
 
-### Passo 6: "Como foi?", #7
+### Passo 6: "Como foi?", #7 (PR #15, aguardando o #13 e o #14)
 
-Spec `SPEC/AAAA-MM-DD-como-foi.md`. Migration `escolhas_noite (usuario_id, tipo tipo_midia default 'filme', tmdb_id, titulo, escolhido_em, respondido_em, vezes_perguntado)`, com RLS por `usuario_id`. "Vou ver esse!" grava a escolha. O dashboard pergunta só pela mais recente não respondida com `vezes_perguntado < 2`. A resposta usa `definirReacao` + marca "Já assisti". "Não cheguei a ver" só marca como respondida. Eventos `como_foi_exibido` e `como_foi_respondido`.
+Feito conforme a spec [2026-11-18-como-foi.md](SPEC/2026-11-18-como-foi.md), que é a referência. Rascunho original: spec `SPEC/AAAA-MM-DD-como-foi.md`. Migration `escolhas_noite (usuario_id, tipo tipo_midia default 'filme', tmdb_id, titulo, escolhido_em, respondido_em, vezes_perguntado)`, com RLS por `usuario_id`. "Vou ver esse!" grava a escolha. O dashboard pergunta só pela mais recente não respondida com `vezes_perguntado < 2`. A resposta usa `definirReacao` + marca "Já assisti". "Não cheguei a ver" só marca como respondida. Eventos `como_foi_exibido` e `como_foi_respondido`.
 
 ### Passo 7: séries, #8
 
-Spec `SPEC/AAAA-MM-DD-series.md`. Migration nova: enum `tipo_midia`, coluna `tipo` com valor padrão `filme` em `reacoes` e `lista_itens`, e troca da PK para `(usuario_id, tipo, tmdb_id)` **sem recriar as tabelas**. Revisar cada leitura (motor, dashboard, surpresa, listas, MCP) com `tipo = 'filme'`, com testes de integração. TMDB: `obterSerie`, `descobrirSeries` e gêneros de TV (`/genre/tv/list`). Página `/serie/[id]`. Reações, listas e "Como foi?" com séries. "Série" no wizard.
+Spec `SPEC/AAAA-MM-DD-series.md`. Migration nova: o enum `tipo_midia` **já existe** (criado pela migration do "Como foi?"), então só a coluna `tipo` com valor padrão `filme` em `reacoes` e `lista_itens`, e troca da PK para `(usuario_id, tipo, tmdb_id)` **sem recriar as tabelas**. Revisar cada leitura (motor, dashboard, surpresa, listas, MCP) com `tipo = 'filme'`, com testes de integração. TMDB: `obterSerie`, `descobrirSeries` e gêneros de TV (`/genre/tv/list`). Página `/serie/[id]`. Reações, listas e "Como foi?" com séries. "Série" no wizard.
 
 ### Passo 8: README e entrega
 

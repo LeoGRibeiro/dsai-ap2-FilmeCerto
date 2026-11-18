@@ -36,6 +36,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      escolhas_noite: {
+        Row: {
+          escolhido_em: string;
+          id: number;
+          perguntado_em: string | null;
+          respondido_em: string | null;
+          tipo: Database["public"]["Enums"]["tipo_midia"];
+          titulo: string;
+          tmdb_id: number;
+          usuario_id: string;
+          vezes_perguntado: number;
+        };
+        Insert: {
+          escolhido_em?: string;
+          id?: never;
+          perguntado_em?: string | null;
+          respondido_em?: string | null;
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
+          titulo: string;
+          tmdb_id: number;
+          usuario_id?: string;
+          vezes_perguntado?: number;
+        };
+        Update: {
+          escolhido_em?: string;
+          id?: never;
+          perguntado_em?: string | null;
+          respondido_em?: string | null;
+          tipo?: Database["public"]["Enums"]["tipo_midia"];
+          titulo?: string;
+          tmdb_id?: number;
+          usuario_id?: string;
+          vezes_perguntado?: number;
+        };
+        Relationships: [];
+      };
       eventos: {
         Row: {
           criado_em: string;
@@ -212,6 +248,7 @@ export type Database = {
       frequencia_assistir: "raramente" | "mensal" | "semanal" | "diaria";
       reacao_filme: "nao-gostei" | "gostei" | "amei";
       status_lista: "quero_assistir" | "assistido";
+      tipo_midia: "filme" | "serie";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -327,6 +364,7 @@ export const Constants = {
       frequencia_assistir: ["raramente", "mensal", "semanal", "diaria"],
       reacao_filme: ["nao-gostei", "gostei", "amei"],
       status_lista: ["quero_assistir", "assistido"],
+      tipo_midia: ["filme", "serie"],
     },
   },
 } as const;
