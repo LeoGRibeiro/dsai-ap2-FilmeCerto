@@ -48,7 +48,10 @@ describe("enviarEvento", () => {
     expect(() => enviarEvento(evento)).not.toThrow();
 
     vi.stubGlobal("navigator", {});
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("offline"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Promise.reject(new Error("offline"))),
+    );
     expect(() => enviarEvento(evento)).not.toThrow();
     await Promise.resolve();
   });

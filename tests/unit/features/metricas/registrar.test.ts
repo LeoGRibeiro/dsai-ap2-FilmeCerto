@@ -62,7 +62,10 @@ describe("registrarEvento", () => {
   it("insere nome e dados em eventos, sem usuario_id (o banco usa auth.uid())", async () => {
     const { cliente, from, responder } = clienteFalso();
 
-    const gravou = await registrarEvento(cliente, { nome: "trailer_aberto", dados: { origem: "filme" } });
+    const gravou = await registrarEvento(cliente, {
+      nome: "trailer_aberto",
+      dados: { origem: "filme" },
+    });
 
     expect(gravou).toBe(true);
     expect(from).toHaveBeenCalledWith("eventos");

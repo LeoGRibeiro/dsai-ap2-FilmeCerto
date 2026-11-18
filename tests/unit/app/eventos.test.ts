@@ -7,7 +7,10 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 const insert = vi.fn();
 
-function sessao(usuario: { id: string } | null, erroBanco: { code: string; message: string } | null = null) {
+function sessao(
+  usuario: { id: string } | null,
+  erroBanco: { code: string; message: string } | null = null,
+) {
   insert.mockResolvedValue({ error: erroBanco });
   vi.mocked(createClient).mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: usuario } }) },
@@ -30,7 +33,9 @@ describe("POST /api/eventos", () => {
   it("grava o evento do usuário logado e responde 204", async () => {
     sessao({ id: "u-1" });
 
-    const resposta = await postar(JSON.stringify({ nome: "trailer_aberto", dados: { origem: "filme" } }));
+    const resposta = await postar(
+      JSON.stringify({ nome: "trailer_aberto", dados: { origem: "filme" } }),
+    );
 
     expect(resposta.status).toBe(204);
     expect(insert).toHaveBeenCalledWith({ nome: "trailer_aberto", dados: { origem: "filme" } });
