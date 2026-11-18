@@ -15,9 +15,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 type Rpc = { data: unknown; error: { code: string; message: string } | null };
+type Funcao = "metricas_eventos" | "metricas_climas" | "metricas_detalhes";
 
-function clienteFalso(eventos: Rpc, climas: Rpc) {
-  const rpc = vi.fn(async (nome: string) => (nome === "metricas_eventos" ? eventos : climas));
+/** Cliente com a resposta de cada função; as que faltam respondem uma lista vazia. */
+function clienteFalso(respostas: Partial<Record<Funcao, Rpc>> = {}) {
+  const rpc = vi.fn(async (nome: Funcao) => respostas[nome] ?? { data: [], error: null });
   return { rpc } as unknown as ClienteSupabase;
 }
 
@@ -26,6 +28,13 @@ const semPermissao: Rpc = {
   error: { code: "42501", message: "acesso só para a equipe" },
 };
 
+const foraDaEquipe = () =>
+  clienteFalso({
+    metricas_eventos: semPermissao,
+    metricas_climas: semPermissao,
+    metricas_detalhes: semPermissao,
+  });
+
 const totais: Metricas = {
   eventos: [{ nome: "trailer_aberto", total: 12, pessoas: 5, semEquipe: 9 }],
   climas: [
@@ -33,27 +42,42 @@ const totais: Metricas = {
     { pergunta: "humor", resposta: "cansado", total: 7 },
     { pergunta: "companhia", resposta: "familia", total: 2 },
   ],
+  detalhes: [{ nome: "trailer_aberto", chave: "origem", valor: "filme", total: 12, semEquipe: 9 }],
 };
 
 describe("obterMetricas", () => {
   it("devolve null para quem não está na equipe", async () => {
-    const cliente = clienteFalso(semPermissao, semPermissao);
-    expect(await obterMetricas(cliente)).toBeNull();
+    expect(await obterMetricas(foraDaEquipe())).toBeNull();
   });
 
+  it.each<Funcao>(["metricas_eventos", "metricas_climas", "metricas_detalhes"])(
+    "devolve null quando %s recusa o acesso",
+    async (funcao) => {
+      expect(await obterMetricas(clienteFalso({ [funcao]: semPermissao }))).toBeNull();
+    },
+  );
+
   it("converte os totais do banco", async () => {
-    const cliente = clienteFalso(
-      { data: [{ nome: "trailer_aberto", total: 12, pessoas: 5, sem_equipe: 9 }], error: null },
-      { data: totais.climas, error: null },
-    );
+    const cliente = clienteFalso({
+      metricas_eventos: {
+        data: [{ nome: "trailer_aberto", total: 12, pessoas: 5, sem_equipe: 9 }],
+        error: null,
+      },
+      metricas_climas: { data: totais.climas, error: null },
+      metricas_detalhes: {
+        data: [
+          { nome: "trailer_aberto", chave: "origem", valor: "filme", total: 12, sem_equipe: 9 },
+        ],
+        error: null,
+      },
+    });
     expect(await obterMetricas(cliente)).toEqual(totais);
   });
 
   it("deixa subir outros erros do banco", async () => {
-    const cliente = clienteFalso(
-      { data: null, error: { code: "57014", message: "timeout" } },
-      semPermissao,
-    );
+    const cliente = clienteFalso({
+      metricas_detalhes: { data: null, error: { code: "57014", message: "timeout" } },
+    });
     await expect(obterMetricas(cliente)).rejects.toThrow("57014");
   });
 });
@@ -100,14 +124,12 @@ describe("página /metricas", () => {
   });
 
   it("responde 404 para quem não é da equipe", async () => {
-    vi.mocked(createClient).mockResolvedValue(clienteFalso(semPermissao, semPermissao) as never);
+    vi.mocked(createClient).mockResolvedValue(foraDaEquipe() as never);
     await expect(MetricasPage()).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
   it("mostra os totais para a equipe", async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      clienteFalso({ data: [], error: null }, { data: [], error: null }) as never,
-    );
+    vi.mocked(createClient).mockResolvedValue(clienteFalso() as never);
     render(await MetricasPage());
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Métricas de uso");
     expect(screen.getByRole("table", { name: "Eventos de uso" })).toBeInTheDocument();
