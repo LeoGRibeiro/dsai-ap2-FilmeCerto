@@ -99,17 +99,31 @@ A nota sai com uma casa decimal e vírgula. O motivo nunca cita gênero favorito
 | "Termina às" | `terminaAs(inicio, duracaoMin)` devolve "23h40" no fuso do navegador. É chamado **no componente do navegador**, nunca no servidor (que roda em UTC) |
 | Trailer | O componente `Trailer` da AP1, com `origem="noite"` |
 | Determinismo | Sem sorteio: a mesma URL dá o mesmo resultado (recarregar a página não troca o filme). A variedade vem de `vistos` e do `tom` |
-| Erros do TMDB | Uma consulta que falha vira lista vazia com log, como no "Me surpreenda". Sem filme, a tela oferece refazer as perguntas |
+| Erros do TMDB | Uma consulta que falha vira lista vazia com log, como no "Me surpreenda": se a outra consulta traz filmes, a rodada segue. Se alguma consulta falhou **e** nenhum filme sobrou, `recomendarNoite` lança, e a página mostra o erro amigável (`error.tsx`) com "Tentar de novo", porque refazer as perguntas não resolveria. Sem filme e sem falha, a tela diz "Não achamos nada para essa noite" e oferece refazer as perguntas |
+
+### Telas
+
+| Tema | Decisão |
+|---|---|
+| Rota | `src/app/(app)/noite/page.tsx` com `exigirUsuario` e preferências (sem elas, `/onboarding`). Um `layout.tsx` próprio guarda a sessão do wizard no navegador, porque ele não é remontado entre as telas (só a página muda com a URL) |
+| Perguntas | Título da pergunta, "1 de 3" e um cartão grande por resposta (rótulos de `ROTULOS_CLIMA`), cada um um `Link` para `urlComResposta(...)`. Em 390 px, duas colunas. "Voltar" usa `router.back()`; sem histórico (a pessoa abriu `/noite` direto), vai para o dashboard |
+| Botão no dashboard | "O que ver hoje?", link de destaque no topo do dashboard |
+| Destaque | Pôster, título, ano, `formatarDuracao`, sinopse curta (3 linhas), motivo, streaming (`provedor`), "Começando agora, termina às 23h40" (só no navegador, atualizado a cada 30 s) e o `Trailer` |
+| Carregamento | O resultado fica num `Suspense` com esqueleto ("Procurando o filme da sua noite…"); as perguntas não esperam o TMDB |
+| "Esse não" | Abre a escolha do motivo (rótulos em `ROTULOS_MOTIVO`). As URLs das próximas rodadas são calculadas no servidor com `proximaRodada` e `urlDaNoite`, uma por motivo; o navegador só envia `wizard_troca` e navega. "Trocas restantes: N" fica ao lado do botão |
+| "Já vi" | Pergunta se a pessoa quer marcar o **destaque** como "Já assisti" (`alternarLista`) antes de trocar: "Marcar e trocar" ou "Só trocar" |
+| Limite | Na 5ª troca, "Esse não" dá lugar a "Você chegou ao limite de trocas" e ao link "Refazer as perguntas" (`/noite`) |
+| "Vou ver esse!" | O `VouVerEsse` do "Como foi?" no destaque e em cada opção. Depois da escolha, somem "Esse não" e os botões das outras opções |
 
 ### Eventos (spec de métricas)
 
 | Evento | Onde é emitido |
 |---|---|
-| `wizard_iniciado` | navegador, ao abrir `/noite` sem respostas |
-| `wizard_concluido` | servidor, pela action `concluirNoite(respostas)`, chamada uma vez pelo navegador ao mostrar a primeira recomendação (`trocas = 0`). A mesma action chama `registrarClima` com as três respostas, que só ficam na contagem anônima |
+| `wizard_iniciado` | navegador, ao abrir `/noite` sem respostas. Conta uma vez por rodada de perguntas: voltar à 1ª pergunta sem ter chegado ao resultado não conta de novo; "Refazer as perguntas" depois do resultado conta |
+| `wizard_concluido` | servidor, pela action `concluirNoite(respostas)`, chamada uma vez pelo navegador ao mostrar a primeira recomendação (`trocas = 0`). Voltar no histórico até essa tela não chama de novo. A mesma action chama `registrarClima` com as três respostas, que só ficam na contagem anônima |
 | `wizard_troca` | navegador, ao escolher o motivo de "Esse não" |
 | `wizard_escolheu` | navegador, em "Vou ver esse!", com `trocas` |
-| `wizard_abandonado` | navegador, no `pagehide` sem escolha, com a etapa (`perguntas` ou `resultado`) |
+| `wizard_abandonado` | navegador, sem escolha, no `pagehide` (fechar a aba, sair do site) **ou** ao sair de `/noite` pelo próprio app (o layout do wizard é desmontado), com a etapa (`perguntas` ou `resultado`). Uma vez por sessão do wizard |
 | `trailer_aberto` | `Trailer` com `origem="noite"` |
 
 Os slugs de motivo da troca já estão em `MOTIVOS_TROCA` (`src/features/metricas/eventos.ts`). Esta spec não muda a lista de eventos.
@@ -132,12 +146,18 @@ src/features/noite/
   recomendar.ts    recomendarNoite({ estado, perfil, excluir, api })  (API injetável)
   consultas.ts     obterNoite(estado, preferencias): exclusões do banco + recomendarNoite  (server-only)
   actions.ts       concluirNoite(respostas): wizard_concluido + registrarClima
-  components/      perguntas, resultado, "Esse não" e opções  (telas)
-src/app/(app)/noite/page.tsx       rota do wizard
+  components/
+    pergunta-noite.tsx      cartões de uma pergunta, com "Voltar" (botao-voltar.tsx)
+    botao-noite.tsx         "O que ver hoje?" do dashboard
+    sessao-noite.tsx        contexto do layout: wizard_iniciado, wizard_abandonado, concluir uma vez
+    recomendacao-noite.tsx  servidor: obterNoite + URLs das próximas rodadas
+    resultado-noite.tsx     destaque, opções, "Vou ver esse!" e "Esse não"
+    filme-destaque.tsx, opcao-noite.tsx, termina-as.tsx, esse-nao.tsx, sem-noite.tsx
+src/app/(app)/noite/      layout.tsx (sessão), page.tsx (rota) e error.tsx ("Tentar de novo")
 ```
 
 - `/noite` entra em `ROTAS_PROTEGIDAS` do `proxy.ts`. Sem preferências, redireciona para `/onboarding`, como o dashboard.
-- O TMDB falso dos E2E responde à classificação: com `certification.lte`, devolve filmes "Para a família".
+- O TMDB falso dos E2E responde à classificação: com `certification.lte`, devolve filmes "Para a família", e os detalhes desses IDs (`/movie/{id}`, que o resultado usa) também trazem o título "Para a família".
 
 ## Critérios de aceitação
 
@@ -151,10 +171,12 @@ src/app/(app)/noite/page.tsx       rota do wizard
    6. o limite do "Muito longo" e o do `cansado` se combinam pelo menor.
 3. **Estado**: `lerEstado` aceita os slugs e números válidos e ignora o resto (slug desconhecido, `trocas` acima de 5, IDs não inteiros); `urlDaNoite` faz o caminho inverso; `proximaRodada` soma os mostrados a `vistos`, avança o tom em "Não é o clima", reduz a duração em "Muito longo" (com piso de 80) e devolve `null` na 6ª troca.
 4. **Motivo e horário**: `motivoDaNoite` produz a frase do exemplo do cliente para cansado + rir + a dois + Netflix, usa o artigo certo, prefere o streaming da pessoa e diz "não está nos seus streamings" sem assinatura; `terminaAs` soma a duração e passa da meia-noite ("0h40").
-5. **Recomendação** (`recomendarNoite` com API falsa): busca primeiro nos streamings e completa sem eles; nunca devolve filme excluído, já visto ou com gênero evitado (mesmo se o TMDB devolver); devolve 1 filme na rodada 0 e 3 depois de uma troca; devolve `null` sem candidatos e não lança quando o TMDB falha.
+5. **Recomendação** (`recomendarNoite` com API falsa): busca primeiro nos streamings e completa sem eles; nunca devolve filme excluído, já visto ou com gênero evitado (mesmo se o TMDB devolver); devolve 1 filme na rodada 0 e 3 depois de uma troca; devolve `null` sem candidatos; segue quando só uma das consultas falha e lança quando o TMDB falha e nenhum filme sobra.
 6. **Action e consultas**: `concluirNoite` registra `wizard_concluido` e a contagem de climas para o usuário logado, e nada sem sessão ou com resposta inválida; `obterNoite` exclui "Já assisti" e todas as reações, mas não "Quero assistir".
-7. **Telas** (unitários dos componentes e E2E em `tests/e2e/noite.spec.ts`): do dashboard à primeira recomendação em 4 cliques; "Voltar" volta à pergunta anterior; o resultado mostra motivo, "termina às" e trailer; "Esse não" mostra 3 opções sem repetir; no limite de trocas, aparece "Refazer as perguntas"; "família" só traz filmes "Para a família"; o `/perfil` não muda depois do wizard.
-8. `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm check:secrets` sem erros, e o CI verde.
+7. **Telas** (unitários dos componentes e E2E em `tests/e2e/noite.spec.ts`): do dashboard à primeira recomendação em 4 cliques; "Voltar" volta à pergunta anterior; o resultado mostra motivo, "termina às" e trailer; "Esse não" mostra 3 opções sem repetir; no limite de trocas, aparece "Refazer as perguntas"; "família" só traz filmes "Para a família"; o `/perfil` não muda depois do wizard; o fluxo funciona em 390 × 844, com os botões principais visíveis e clicáveis; sem sessão, `/noite` leva ao login.
+8. **Casos ruins** (unitários): sem preferências, `/noite` redireciona para `/onboarding`; resposta inválida na URL é ignorada (volta à pergunta que falta); sem filme, "Não achamos nada para essa noite" com "Refazer as perguntas"; TMDB fora do ar, o `error.tsx` com "Tentar de novo".
+9. **Eventos** (unitários da sessão do wizard): `wizard_iniciado` uma vez por rodada de perguntas; `wizard_concluido` uma vez por sessão; `wizard_troca` com o motivo; `wizard_abandonado` no `pagehide` e ao sair de `/noite`, com a etapa, e nunca depois de "Vou ver esse!".
+10. `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm check:secrets` sem erros, e o CI verde.
 
 ## Fora do escopo
 
