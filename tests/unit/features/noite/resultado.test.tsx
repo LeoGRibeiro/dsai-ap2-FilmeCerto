@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ErroNoite from "@/app/(app)/noite/error";
+import { escolherFilme } from "@/features/como-foi/actions";
 import { enviarEvento } from "@/features/metricas/enviar";
 import type { Clima } from "@/features/metricas/eventos";
 import { FilmeDestaque, type FilmeNaTela } from "@/features/noite/components/filme-destaque";
@@ -22,6 +23,7 @@ const { sessao, router } = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
 vi.mock("@/features/noite/consultas", () => ({ obterNoite: vi.fn() }));
+vi.mock("@/features/como-foi/actions", () => ({ escolherFilme: vi.fn(async () => ({})) }));
 vi.mock("@/features/noite/components/sessao-noite", () => ({ useSessaoNoite: () => sessao }));
 
 const NETFLIX = { id: 8, nome: "Netflix", logoPath: null };
@@ -117,13 +119,15 @@ describe("FilmeDestaque", () => {
 });
 
 describe("ResultadoNoite", () => {
-  const resultado = (trocas: number, opcoes: FilmeNaTela[] = []) => (
+  const PROXIMAS = { "ja-vi": "/a", "nao-e-o-clima": "/b", "muito-longo": "/c", outro: "/d" };
+  const opcoesBC = [naTela({ id: 11, titulo: "Opção B" }), naTela({ id: 12, titulo: "Opção C" })];
+  const resultado = (trocas: number, opcoes: FilmeNaTela[] = [], proximas = PROXIMAS) => (
     <ResultadoNoite
       respostas={respostas}
       trocas={trocas}
       destaque={naTela()}
       opcoes={opcoes}
-      proximas={null}
+      proximas={proximas}
     />
   );
 
@@ -135,9 +139,7 @@ describe("ResultadoNoite", () => {
   });
 
   it("depois de uma troca, não conclui de novo e mostra as 2 opções menores", () => {
-    render(
-      resultado(1, [naTela({ id: 11, titulo: "Opção B" }), naTela({ id: 12, titulo: "Opção C" })]),
-    );
+    render(resultado(1, opcoesBC));
 
     expect(sessao.concluir).not.toHaveBeenCalled();
     const opcoes = screen.getByRole("region", { name: "Ou talvez" });
@@ -146,6 +148,31 @@ describe("ResultadoNoite", () => {
         .getAllByRole("heading", { level: 3 })
         .map((h) => h.textContent),
     ).toEqual(["Opção B", "Opção C"]);
+  });
+
+  it("'Vou ver esse!' no destaque guarda a escolha e tira 'Esse não' e as outras opções", async () => {
+    render(resultado(2, opcoesBC));
+    expect(screen.getAllByRole("button", { name: "Vou ver esse!" })).toHaveLength(3);
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Vou ver esse!" })[0]!);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Boa sessão!");
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(10);
+    expect(enviarEvento).toHaveBeenCalledWith({ nome: "wizard_escolheu", dados: { trocas: 2 } });
+    expect(sessao.marcarEscolha).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Esse não" })).not.toBeInTheDocument();
+  });
+
+  it("dá para escolher uma das opções menores", async () => {
+    render(resultado(1, opcoesBC));
+    const opcao = screen.getByRole("article", { name: "Opção C" });
+
+    await userEvent.click(within(opcao).getByRole("button", { name: "Vou ver esse!" }));
+
+    expect(await within(opcao).findByRole("status")).toHaveTextContent("Boa sessão!");
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12);
+    expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
   });
 });
 
