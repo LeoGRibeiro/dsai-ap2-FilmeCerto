@@ -4,6 +4,14 @@ import type { ClienteSupabase } from "@/lib/supabase/token";
 
 export type TotalEvento = { nome: string; total: number; pessoas: number; semEquipe: number };
 export type TotalClima = { pergunta: string; resposta: string; total: number };
+/** Ocorrências de um evento com um valor numa chave de `dados` (ex.: `wizard_troca`, `motivo`, `ja-vi`). */
+export type TotalDetalhe = {
+  nome: string;
+  chave: string;
+  valor: string;
+  total: number;
+  semEquipe: number;
+};
 export type Metricas = { eventos: TotalEvento[]; climas: TotalClima[] };
 
 /** Código do Postgres para "sem permissão": quem não está em `equipe_metricas`. */
