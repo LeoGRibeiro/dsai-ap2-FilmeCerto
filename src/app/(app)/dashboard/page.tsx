@@ -5,6 +5,8 @@ import { Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { exigirUsuario } from "@/features/auth/sessao";
+import { PerguntaComoFoi } from "@/features/como-foi/components/pergunta-como-foi";
+import { obterComoFoi } from "@/features/como-foi/consultas";
 import { EsqueletoSecoes } from "@/features/dashboard/components/esqueleto-secoes";
 import { SecoesRecomendadas } from "@/features/dashboard/components/secoes-recomendadas";
 import { lerRodada } from "@/features/dashboard/rodada";
@@ -25,7 +27,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   if (!preferencias) redirect("/onboarding");
 
   const rodada = lerRodada((await searchParams).rodada);
-  const [reacoes, excluir] = await Promise.all([obterReacoes(), idsNasListas()]);
+  const [reacoes, excluir, comoFoi] = await Promise.all([
+    obterReacoes(),
+    idsNasListas(),
+    obterComoFoi(),
+  ]);
   const urlAtual = rodada ? `/dashboard?rodada=${rodada}` : "/dashboard";
   const proximaRodada = `/dashboard?rodada=${rodada + 1}`;
 
@@ -42,6 +48,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           Gerar outras recomendações
         </Link>
       </header>
+
+      {/* A chave troca o cartão quando outra escolha passa a ser a mais recente. */}
+      {comoFoi && <PerguntaComoFoi key={comoFoi.id} pergunta={comoFoi} />}
 
       {/* A chave por rodada mostra o esqueleto de novo a cada "Gerar outras recomendações". */}
       <Suspense key={rodada} fallback={<EsqueletoSecoes />}>
