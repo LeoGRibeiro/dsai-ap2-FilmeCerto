@@ -24,6 +24,12 @@
   - `prompts/custos.md` agora tem todas as sessões: a do Antigravity de 28/10 e as 7 da AP1.
   - **Merges só pelo terminal, com trailers** (AGENTS.md, seção 0). Os merges dos PRs #1, #10 e #11 foram feitos pelo botão do GitHub e ficaram sem trailers (10 de 13 commits, 77%). Os próximos commits e merges, todos com trailers, devolvem a taxa para acima de 80%.
 
+- [x] **Passo 4 (#5):** métricas de uso no PR #13 (branch `feat/metricas`), com a spec [2026-11-18-metricas.md](SPEC/2026-11-18-metricas.md).
+  - Migration `20261118120000_metricas.sql`: `eventos` (só insert), `contagem_climas` (anônima, por dia e por pergunta), `equipe_metricas` e as funções `registrar_clima`, `metricas_eventos` e `metricas_climas`. SQL validado no PGlite; a RLS é testada no CI (`tests/integration/metricas/`).
+  - `src/features/metricas/`: `eventoSchema`, `registrarEvento` e `registrarClima` (servidor, nunca lançam), `enviarEvento` (navegador, `sendBeacon` para `POST /api/eventos`), `obterMetricas` e a página `/metricas`.
+  - `trailer_aberto` já é emitido na página do filme (`<Trailer origem="filme">`).
+  - **Falta:** aprovação do Lucas, merge pelo terminal e, depois do merge, `pnpm exec supabase db push` e o `insert` em `equipe_metricas` com os e-mails da dupla e dos clientes (SQL na spec). Conferir `/metricas` em produção.
+
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**` (sem isso o login não volta para o site).
@@ -48,7 +54,7 @@ Cada PR é revisado e aprovado pelo outro integrante.
 
 ## Passos
 
-> **Próximos:** passo 3 (Lucas, #4) e passo 4 (Leonardo, #5), em paralelo.
+> **Próximos:** passo 3 (Lucas, #4); revisão e merge do PR #13 (passo 4); passo 5 (Leonardo: spec do wizard e a lógica de `src/features/noite/`).
 
 ### Passo 1: documentos da AP2, PR #1 (concluído)
 
@@ -78,9 +84,9 @@ Na branch `chore/medicao`:
 - `prompts/custos.md` já existe, com todas as sessões somadas à mão. Falta transformar essa soma em `scripts/custo-sessao.mjs`: ler o `.jsonl` do Claude Code (e os de subagentes, se houver), somar `message.usage` das mensagens do assistente (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`) contando cada `message.id` uma vez só, e imprimir a linha da tabela. Testar com um `.jsonl` de fixture que tenha `message.id` repetido.
 - A extensão do VS Code não tem `/cost`: a coluna de custo fica "não disponível (extensão VS Code)", e os tokens bastam para o critério.
 
-### Passo 4: métricas de uso, #5 (Leonardo, próximo)
+### Passo 4: métricas de uso, #5 (Leonardo, PR #13 em revisão)
 
-Spec `SPEC/AAAA-MM-DD-metricas.md`. Proposta de desenho, a confirmar na spec:
+Spec [`SPEC/2026-11-18-metricas.md`](SPEC/2026-11-18-metricas.md). Desenho original (a spec é a referência; mudanças: climas contados **por pergunta**, não pela combinação, e uma rota `POST /api/eventos` única para o navegador):
 
 - Migration `eventos`: `id bigint identity`, `usuario_id uuid not null default auth.uid()` (referência a `auth.users`, com cascade), `nome text` (com `check` na lista fechada de eventos), `dados jsonb default '{}'` e `criado_em`. RLS **só de insert** com `usuario_id = auth.uid()`, sem select.
 - **Climas anônimos:** tabela `contagem_climas (dia date, humor, experiencia, companhia, total int)`, sem `usuario_id`, incrementada por uma função `security definer` (`registrar_clima`). A granularidade é **diária**, para o horário não permitir cruzar com `wizard_concluido`.
@@ -126,7 +132,7 @@ Implementação:
 - Rota `/noite` em `src/app/(app)/noite/`. Estado na **URL** (`?humor=&exp=&com=&vistos=&trocas=`), com "Voltar" pelo histórico. Botão de destaque "O que ver hoje?" no topo do dashboard: 1 clique + 3 respostas = 4 cliques.
 - Resultado: o primeiro filme com `obterFilme(id)` (duração, trailer, onde assistir). O componente `Trailer` é reaproveitado. **"Termina às" é calculado no navegador** (fuso da pessoa), nunca no servidor.
 - "Esse não" mostra o motivo (Já vi / Não é o clima / Muito longo / Outro) e depois 1 destaque + 2 opções menores. "Já vi" oferece marcar "Já assisti" com a action de `src/features/listas/`.
-- Eventos do #5. E2E: dashboard → resultado em 4 cliques, troca, limite de trocas e "família" sem filme acima da classificação.
+- Eventos do #5: `enviarEvento` no navegador e `registrarEvento`/`registrarClima` no servidor, com os slugs de clima e os motivos de troca da spec de métricas. `Trailer` com `origem="noite"`. E2E: dashboard → resultado em 4 cliques, troca, limite de trocas e "família" sem filme acima da classificação.
 
 ### Passo 6: "Como foi?", #7
 
