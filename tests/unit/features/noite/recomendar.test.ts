@@ -194,6 +194,22 @@ describe("recomendarNoite", () => {
     expect(ids(resultado)).toEqual([2, 3]);
   });
 
+  it("usa as respostas recebidas mesmo quando o estado inteiro da URL é passado", async () => {
+    const { api, chamadas } = apiFalsa({ streaming: [[resumo(1)]] });
+    const estadoDaUrl = { ...rodada0, respostas: {} };
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: estadoDaUrl,
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(chamadas[0]?.todosGeneros).toEqual([35]);
+    expect(resultado?.destaque.motivo).toMatch(/^Você está cansado, quer rir/);
+  });
+
   it("devolve null sem candidatos", async () => {
     const { api } = apiFalsa({ streaming: [[resumo(1)]] });
 

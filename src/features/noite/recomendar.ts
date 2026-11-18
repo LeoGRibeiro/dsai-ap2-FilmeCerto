@@ -61,7 +61,8 @@ export async function recomendarNoite({
   api,
 }: Entrada): Promise<ResultadoNoite | null> {
   const evitados = perfil.generosEvitados;
-  const noite = filtrosDaNoite({ respostas, ...estado }, evitados);
+  const { tom, duracaoMax } = estado;
+  const noite = filtrosDaNoite({ respostas, tom, duracaoMax }, evitados);
   if (!noite) return null;
 
   const quantidade = estado.trocas === 0 ? 1 : 3;
