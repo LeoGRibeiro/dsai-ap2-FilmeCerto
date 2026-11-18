@@ -82,7 +82,7 @@ export default async function FilmePage({ params }: PageProps<"/filme/[id]">) {
 
       {filme.trailerYoutube && (
         <Secao titulo="Trailer">
-          <Trailer chave={filme.trailerYoutube} titulo={filme.titulo} />
+          <Trailer chave={filme.trailerYoutube} titulo={filme.titulo} origem="filme" />
         </Secao>
       )}
 

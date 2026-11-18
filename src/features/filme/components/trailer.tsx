@@ -4,9 +4,28 @@ import { Play } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
-/** Miniatura do YouTube; o player (sem cookies) só é carregado depois do clique. */
-export function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
+import { enviarEvento } from "@/features/metricas/enviar";
+import type { OrigemTrailer } from "@/features/metricas/eventos";
+
+/**
+ * Miniatura do YouTube; o player (sem cookies) só é carregado depois do clique.
+ * Com `origem`, o clique registra o evento `trailer_aberto` (SPEC/2026-11-18-metricas.md).
+ */
+export function Trailer({
+  chave,
+  titulo,
+  origem,
+}: {
+  chave: string;
+  titulo: string;
+  origem?: OrigemTrailer;
+}) {
   const [tocando, setTocando] = useState(false);
+
+  function abrir() {
+    setTocando(true);
+    if (origem) enviarEvento({ nome: "trailer_aberto", dados: { origem } });
+  }
 
   return (
     <div className="bg-muted relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl">
@@ -21,7 +40,7 @@ export function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
       ) : (
         <button
           type="button"
-          onClick={() => setTocando(true)}
+          onClick={abrir}
           className="group focus-visible:ring-ring/50 absolute inset-0 outline-none focus-visible:ring-3"
         >
           <Image
