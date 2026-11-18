@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import NoitePage from "@/app/(app)/noite/page";
 import { BotaoVoltar } from "@/features/noite/components/botao-voltar";
+import { RecomendacaoNoite } from "@/features/noite/components/recomendacao-noite";
 import { obterPreferencias } from "@/features/preferencias/consultas";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
 
@@ -18,6 +19,10 @@ vi.mock("@/features/auth/sessao", () => ({
   exigirUsuario: vi.fn(async () => ({ id: "u-1", email: "a@b.c", nome: "Ana" })),
 }));
 vi.mock("@/features/preferencias/consultas", () => ({ obterPreferencias: vi.fn() }));
+vi.mock("@/features/noite/components/recomendacao-noite", () => ({
+  RecomendacaoNoite: vi.fn(() => null),
+  EsqueletoNoite: () => null,
+}));
 
 const preferencias: PreferenciasInput = {
   generos: [28],
@@ -96,6 +101,17 @@ describe("página /noite: perguntas", () => {
       "Como você está se sentindo?",
     );
     expect(cartoes()).toContainEqual(["Cansado", "/noite?humor=cansado&exp=rir"]);
+  });
+
+  it("com as três respostas, pede a recomendação da rodada com o perfil", async () => {
+    await abrir({ humor: "cansado", exp: "rir", com: "a-dois", trocas: "2", vistos: "7,9" });
+
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    expect(vi.mocked(RecomendacaoNoite).mock.calls[0]![0]).toEqual({
+      respostas: { humor: "cansado", experiencia: "rir", companhia: "a-dois" },
+      estado: expect.objectContaining({ trocas: 2, vistos: [7, 9] }),
+      perfil: preferencias,
+    });
   });
 
   it("sem preferências, manda para o onboarding", async () => {

@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { exigirUsuario } from "@/features/auth/sessao";
 import { PerguntaNoite } from "@/features/noite/components/pergunta-noite";
-import { lerEstado, proximaPergunta } from "@/features/noite/estado";
+import { EsqueletoNoite, RecomendacaoNoite } from "@/features/noite/components/recomendacao-noite";
+import {
+  lerEstado,
+  proximaPergunta,
+  respostasCompletas,
+  urlDaNoite,
+} from "@/features/noite/estado";
 import { obterPreferencias } from "@/features/preferencias/consultas";
 
 export const metadata: Metadata = { title: "O que ver hoje?" };
@@ -19,10 +26,17 @@ export default async function NoitePage({ searchParams }: PageProps<"/noite">) {
 
   const estado = lerEstado(await searchParams);
   const pergunta = proximaPergunta(estado);
+  const respostas = respostasCompletas(estado);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8">
       {pergunta && <PerguntaNoite estado={estado} pergunta={pergunta} />}
+      {respostas && (
+        // A chave mostra o esqueleto de novo a cada troca, em vez da rodada anterior.
+        <Suspense key={urlDaNoite(estado)} fallback={<EsqueletoNoite />}>
+          <RecomendacaoNoite respostas={respostas} estado={estado} perfil={preferencias} />
+        </Suspense>
+      )}
     </div>
   );
 }

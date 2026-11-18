@@ -49,7 +49,9 @@ function navegar(rerender: (ui: ReactNode) => void, busca: string) {
   rerender(<Wizard />);
 }
 
-beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+});
 afterEach(() => {
   // Desmonta ainda com o relógio falso, para a saída de um teste não vazar para o seguinte.
   cleanup();
