@@ -111,6 +111,12 @@ function paraDetalhes(filme: DetalhesTmdb): FilmeDetalhes {
   };
 }
 
+/** `with_genres`: vírgula exige todos os gêneros; barra aceita qualquer um. */
+function generosDe({ generos, todosGeneros }: FiltrosDescoberta): string | undefined {
+  if (todosGeneros?.length) return todosGeneros.join(",");
+  return generos?.length ? generos.join("|") : undefined;
+}
+
 /** Funções de filmes sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
 export function criarApiFilmes(cliente: ClienteTmdb) {
   return {
@@ -120,13 +126,16 @@ export function criarApiFilmes(cliente: ClienteTmdb) {
         with_watch_providers: provedores,
         watch_region: provedores && "BR",
         with_watch_monetization_types: provedores && "flatrate",
-        with_genres: filtros.generos?.length ? filtros.generos.join("|") : undefined,
+        with_genres: generosDe(filtros),
         without_genres: filtros.semGeneros?.length ? filtros.semGeneros.join(",") : undefined,
         "with_runtime.gte": filtros.duracaoMin,
         "with_runtime.lte": filtros.duracaoMax,
         "vote_average.gte": filtros.notaMin,
         "vote_count.gte": filtros.votosMin,
         primary_release_year: filtros.ano,
+        "primary_release_date.lte": filtros.lancadoAte,
+        certification_country: filtros.classificacaoMax && "BR",
+        "certification.lte": filtros.classificacaoMax,
         sort_by: ORDENS[filtros.ordem ?? "popularidade"],
         page: limitarPagina(filtros.pagina),
         region: "BR",

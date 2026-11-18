@@ -72,10 +72,14 @@ const servidor = createServer((req, res) => {
     const nome = NOMES[genero] ?? `Gênero ${genero}`;
     // Com with_watch_providers, filmes só desta consulta ("Nos seus streamings").
     const streaming = url.searchParams.has("with_watch_providers");
+    // Com certification.lte (wizard em "família"), filmes que só essa consulta devolve.
+    const familia = url.searchParams.has("certification.lte");
     const filmes = Array.from({ length: 20 }, (_, i) =>
-      streaming
-        ? filme(800000 + numero * 20 + i, `No streaming ${numero}-${i + 1}`, genero, i)
-        : filme(genero * 1000 + numero * 20 + i, `${nome} ${numero}-${i + 1}`, genero, i),
+      familia
+        ? filme(700000 + numero * 20 + i, `Para a família ${numero}-${i + 1}`, genero, i)
+        : streaming
+          ? filme(800000 + numero * 20 + i, `No streaming ${numero}-${i + 1}`, genero, i)
+          : filme(genero * 1000 + numero * 20 + i, `${nome} ${numero}-${i + 1}`, genero, i),
     );
     return responder(res, 200, pagina(filmes, numero));
   }
