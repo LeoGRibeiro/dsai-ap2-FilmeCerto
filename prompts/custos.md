@@ -12,6 +12,7 @@ Como os números foram obtidos:
 | [2026-10-28-2235-antigravity.jsonl](sessoes/2026-10-28-2235-antigravity.jsonl) | antigravity | gemini-3-8-flash | 784.124 | 18.501 | — / 3.577.710 | US$ 2,15 (informado pela ferramenta) |
 | [2026-11-17-1455-claude-code.jsonl](sessoes/2026-11-17-1455-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 138 | 27.069 | 92.245 / 4.345.431 | não disponível (extensão VS Code) |
 | [2026-11-18-1006-claude-code.jsonl](sessoes/2026-11-18-1006-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 108 | 49.573 | 127.407 / 6.290.156 | não disponível (extensão VS Code) |
+| [2026-11-18-1037-claude-code.jsonl](sessoes/2026-11-18-1037-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 98 | 69.971 | 162.902 / 6.719.199 | não disponível (extensão VS Code) |
 
 ## AP1 (sessões dos autores originais, herdadas com o fork)
 
