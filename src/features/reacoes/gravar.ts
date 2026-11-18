@@ -8,7 +8,10 @@ import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
 
 type BuscarFilme = (id: number) => Promise<FilmeDetalhes | null>;
 
-/** Deixa a reação pedida (`null` apaga). Idempotente; título e gêneros vêm do TMDB. */
+/**
+ * Deixa a reação pedida ao filme (`null` apaga). Idempotente; título e gêneros vêm do TMDB.
+ * Lê, grava e apaga só a linha `tipo = 'filme'`: uma série de mesmo ID fica intacta.
+ */
 export async function definirReacao(
   supabase: ClienteSupabase,
   usuarioId: string,
@@ -19,6 +22,7 @@ export async function definirReacao(
   const { data: atual, error: erroLeitura } = await supabase
     .from("reacoes")
     .select("reacao, titulo")
+    .eq("tipo", "filme")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   if (erroLeitura) {
@@ -29,7 +33,11 @@ export async function definirReacao(
 
   if (reacao === null) {
     if (atual) {
-      const { error } = await supabase.from("reacoes").delete().eq("tmdb_id", tmdbId);
+      const { error } = await supabase
+        .from("reacoes")
+        .delete()
+        .eq("tipo", "filme")
+        .eq("tmdb_id", tmdbId);
       if (error) {
         console.error("[reacoes] falha ao remover:", error.code, error.message);
         return { ok: false, erro: "banco" };
@@ -50,6 +58,7 @@ export async function definirReacao(
 
   const { error } = await supabase.from("reacoes").upsert({
     usuario_id: usuarioId,
+    tipo: "filme",
     tmdb_id: tmdbId,
     reacao,
     titulo: filme.titulo,
