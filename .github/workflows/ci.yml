@@ -33,6 +33,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      # Duplicação do código (critério da AP2: até 5%). Configuração em .jscpd.json.
+      - run: pnpm check:duplicacao
       - run: pnpm test:coverage
       # Cobertura das linhas novas deste PR e de toda a AP2 (desde o 4ac8b98), no resumo do job.
       # Só avisa abaixo de 70%, sem reprovar: a medição só enxerga os testes unitários.

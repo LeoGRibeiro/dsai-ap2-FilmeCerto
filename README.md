@@ -114,6 +114,7 @@ pnpm dev                     # http://localhost:3000
 | `pnpm test:integration`     | Testes contra o Supabase local: trigger e RLS (requer `pnpm db:start`)         |
 | `pnpm test:e2e`             | Testes ponta a ponta (Playwright; faz o build apontando para o Supabase local) |
 | `pnpm check:secrets`        | Garante que segredos não vazaram para o bundle do navegador                    |
+| `pnpm check:duplicacao`     | Duplicação do código com o `jscpd` (falha acima de 5%; veja `.jscpd.json`)     |
 | `pnpm db:start`             | Sobe o Supabase local em Docker e aplica as migrations                         |
 | `pnpm db:types`             | Gera `src/lib/supabase/database.types.ts` a partir do banco local              |
 
