@@ -89,3 +89,21 @@ export function detalhesTmdb(sobrescrever: Record<string, unknown> = {}) {
     ...sobrescrever,
   };
 }
+
+export function serieTmdb(sobrescrever: Record<string, unknown> = {}) {
+  return {
+    id: 1399,
+    name: "A Guerra dos Tronos",
+    original_name: "Game of Thrones",
+    overview: "Nove famílias nobres lutam pelo controle de Westeros.",
+    poster_path: "/tronos.jpg",
+    backdrop_path: "/tronos-fundo.jpg",
+    genre_ids: [10765, 18],
+    first_air_date: "2011-04-17",
+    vote_average: 8.5,
+    vote_count: 25000,
+    popularity: 300.5,
+    origin_country: ["US"],
+    ...sobrescrever,
+  };
+}

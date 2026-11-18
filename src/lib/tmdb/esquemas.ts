@@ -16,20 +16,36 @@ const numero = z
   .nullish()
   .transform((valor) => valor ?? 0);
 
-const baseFilme = {
+/** Campos que filme e série têm com o mesmo nome. */
+const baseTitulo = {
   id: z.number().int(),
-  title: z.string(),
-  original_title: textoOuVazio,
   overview: textoOuVazio,
   poster_path: textoOpcional,
   backdrop_path: textoOpcional,
-  release_date: textoOpcional,
   vote_average: numero,
   vote_count: numero,
   popularity: numero,
 };
 
-export const filmeTmdb = z.object({ ...baseFilme, genre_ids: z.array(z.number()).default([]) });
+const baseFilme = {
+  ...baseTitulo,
+  title: z.string(),
+  original_title: textoOuVazio,
+  release_date: textoOpcional,
+};
+
+/** Na série, o título é `name` e a data é a da estreia. */
+const baseSerie = {
+  ...baseTitulo,
+  name: z.string(),
+  original_name: textoOuVazio,
+  first_air_date: textoOpcional,
+};
+
+const idsGeneros = z.array(z.number()).default([]);
+
+export const filmeTmdb = z.object({ ...baseFilme, genre_ids: idsGeneros });
+export const serieTmdb = z.object({ ...baseSerie, genre_ids: idsGeneros });
 
 export function paginaTmdb<T extends z.ZodType>(item: T) {
   return z.object({
@@ -100,8 +116,11 @@ export const detalhesTmdb = z.object({
   recommendations: paginaTmdb(filmeTmdb).optional(),
 });
 
+export const generosTmdb = z.object({ genres: z.array(generoTmdb) });
+
 export type FilmeTmdb = z.infer<typeof filmeTmdb>;
 export type DetalhesTmdb = z.infer<typeof detalhesTmdb>;
+export type SerieTmdb = z.infer<typeof serieTmdb>;
 export type GeneroTmdb = z.infer<typeof generoTmdb>;
 export type VideosTmdb = z.infer<typeof videosTmdb>;
 export type CreditosTmdb = z.infer<typeof creditosTmdb>;

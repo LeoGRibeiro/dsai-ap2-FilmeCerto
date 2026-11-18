@@ -69,3 +69,16 @@ export type FiltrosDescoberta = {
   ordem?: OrdemDescoberta;
   pagina?: number;
 };
+
+/**
+ * Série num resultado de lista, no mesmo formato de `FilmeResumo` para as telas reaproveitarem
+ * os cartões: `titulo` vem de `name` e `ano`, da estreia (`first_air_date`). Os `generos` são
+ * IDs de gênero de TV (`/genre/tv/list`), outra lista que a dos filmes.
+ */
+export type SerieResumo = FilmeResumo;
+
+/**
+ * Filtros do `/discover/tv`: os dos filmes, menos a classificação (o TMDB não filtra séries por
+ * ela). `duracaoMin` e `duracaoMax` valem para o episódio; `ano` e `lancadoAte`, para a estreia.
+ */
+export type FiltrosDescobertaSerie = Omit<FiltrosDescoberta, "classificacaoMax">;
