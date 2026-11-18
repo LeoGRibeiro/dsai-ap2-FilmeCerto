@@ -13,7 +13,8 @@ type BuscarFilme = (id: number) => Promise<FilmeDetalhes | null>;
 
 /**
  * Deixa o filme na lista pedida (`null` tira das listas). É idempotente: repetir não muda nada.
- * Os dados do filme vêm do TMDB no servidor, nunca de quem chama.
+ * Os dados do filme vêm do TMDB no servidor, nunca de quem chama. Lê, grava e apaga só a
+ * linha `tipo = 'filme'`: uma série de mesmo ID fica intacta.
  */
 export async function definirLista(
   supabase: ClienteSupabase,
@@ -25,6 +26,7 @@ export async function definirLista(
   const { data: atual, error: erroLeitura } = await supabase
     .from("lista_itens")
     .select("status, titulo")
+    .eq("tipo", "filme")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   if (erroLeitura) {
@@ -35,7 +37,11 @@ export async function definirLista(
 
   if (status === null) {
     if (atual) {
-      const { error } = await supabase.from("lista_itens").delete().eq("tmdb_id", tmdbId);
+      const { error } = await supabase
+        .from("lista_itens")
+        .delete()
+        .eq("tipo", "filme")
+        .eq("tmdb_id", tmdbId);
       if (error) {
         console.error("[listas] falha ao remover:", error.code, error.message);
         return { ok: false, erro: "banco" };
@@ -56,6 +62,7 @@ export async function definirLista(
 
   const { error } = await supabase.from("lista_itens").upsert({
     usuario_id: usuarioId,
+    tipo: "filme",
     tmdb_id: tmdbId,
     status,
     titulo: filme.titulo,
