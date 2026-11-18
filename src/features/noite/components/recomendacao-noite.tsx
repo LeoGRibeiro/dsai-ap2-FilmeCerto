@@ -3,7 +3,7 @@ import type { FilmeNaTela } from "@/features/noite/components/filme-destaque";
 import { ResultadoNoite } from "@/features/noite/components/resultado-noite";
 import { SemNoite } from "@/features/noite/components/sem-noite";
 import { obterNoite } from "@/features/noite/consultas";
-import type { EstadoNoite } from "@/features/noite/estado";
+import { urlsDaTroca, type EstadoNoite } from "@/features/noite/estado";
 import type { FilmeDaNoite, PerfilNoite } from "@/features/noite/recomendar";
 
 /** Só os campos que a tela usa: elenco, parecidos e o resto do TMDB ficam no servidor. */
@@ -25,11 +25,15 @@ export async function RecomendacaoNoite({
   const resultado = await obterNoite(respostas, estado, perfil);
   if (!resultado) return <SemNoite />;
 
+  // "Esse não" recusa tudo o que está na tela; o destaque vem primeiro ("Muito longo" usa a duração dele).
+  const mostrados = [resultado.destaque, ...resultado.opcoes].map(({ filme }) => filme);
   return (
     <ResultadoNoite
       respostas={respostas}
       trocas={estado.trocas}
       destaque={paraTela(resultado.destaque)}
+      opcoes={resultado.opcoes.map(paraTela)}
+      proximas={urlsDaTroca(estado, mostrados)}
     />
   );
 }

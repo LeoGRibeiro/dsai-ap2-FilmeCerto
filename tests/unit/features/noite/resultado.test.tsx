@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,8 +14,12 @@ import { ESTADO_INICIAL } from "@/features/noite/estado";
 import type { FilmeDaNoite } from "@/features/noite/recomendar";
 import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
 
-const sessao = vi.hoisted(() => ({ concluir: vi.fn(), marcarEscolha: vi.fn() }));
+const { sessao, router } = vi.hoisted(() => ({
+  sessao: { concluir: vi.fn(), marcarEscolha: vi.fn() },
+  router: { push: vi.fn() },
+}));
 
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
 vi.mock("@/features/noite/consultas", () => ({ obterNoite: vi.fn() }));
 vi.mock("@/features/noite/components/sessao-noite", () => ({ useSessaoNoite: () => sessao }));
@@ -113,16 +117,35 @@ describe("FilmeDestaque", () => {
 });
 
 describe("ResultadoNoite", () => {
+  const resultado = (trocas: number, opcoes: FilmeNaTela[] = []) => (
+    <ResultadoNoite
+      respostas={respostas}
+      trocas={trocas}
+      destaque={naTela()}
+      opcoes={opcoes}
+      proximas={null}
+    />
+  );
+
   it("na primeira rodada, conclui o wizard com as respostas", () => {
-    render(<ResultadoNoite respostas={respostas} trocas={0} destaque={naTela()} />);
+    render(resultado(0));
 
     expect(sessao.concluir).toHaveBeenCalledExactlyOnceWith(respostas);
+    expect(screen.queryByRole("region", { name: "Ou talvez" })).not.toBeInTheDocument();
   });
 
-  it("depois de uma troca, não conclui de novo", () => {
-    render(<ResultadoNoite respostas={respostas} trocas={1} destaque={naTela()} />);
+  it("depois de uma troca, não conclui de novo e mostra as 2 opções menores", () => {
+    render(
+      resultado(1, [naTela({ id: 11, titulo: "Opção B" }), naTela({ id: 12, titulo: "Opção C" })]),
+    );
 
     expect(sessao.concluir).not.toHaveBeenCalled();
+    const opcoes = screen.getByRole("region", { name: "Ou talvez" });
+    expect(
+      within(opcoes)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["Opção B", "Opção C"]);
   });
 });
 
@@ -138,6 +161,22 @@ describe("RecomendacaoNoite", () => {
 
     expect(obterNoite).toHaveBeenCalledExactlyOnceWith(respostas, ESTADO_INICIAL, perfil);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Filme 10");
+  });
+
+  it("'Esse não' recusa o destaque e as opções e passa para a próxima rodada", async () => {
+    vi.mocked(obterNoite).mockResolvedValue({
+      destaque: daNoite(10),
+      opcoes: [daNoite(11), daNoite(12)],
+    });
+    const estado = { ...ESTADO_INICIAL, respostas, vistos: [5], trocas: 1 };
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Esse não" }));
+    await userEvent.click(screen.getByRole("button", { name: "Outro" }));
+
+    expect(router.push).toHaveBeenCalledExactlyOnceWith(
+      "/noite?humor=cansado&exp=rir&com=a-dois&vistos=5,10,11,12&trocas=2",
+    );
   });
 
   it("sem filme, diz que não achou nada e oferece refazer as perguntas", async () => {
