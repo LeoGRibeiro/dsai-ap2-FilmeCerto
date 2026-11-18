@@ -30,6 +30,12 @@
   - `trailer_aberto` já é emitido na página do filme (`<Trailer origem="filme">`).
   - **Falta:** aprovação do Lucas, merge pelo terminal e, depois do merge, `pnpm exec supabase db push` e o `insert` em `equipe_metricas` com os e-mails da dupla e dos clientes (SQL na spec). Conferir `/metricas` em produção.
 
+- [x] **Passo 5 (#6), parte do Leonardo:** spec e lógica do wizard na branch `feat/wizard-noite`, criada a partir da `feat/metricas`. O PR **depende do #13** e só pode ser mesclado depois dele (enquanto o #13 não entra, o diff do PR mostra os commits das métricas também).
+  - Spec [2026-11-18-wizard-noite.md](SPEC/2026-11-18-wizard-noite.md), com as tabelas de mapeamento (tons por experiência, ajustes de humor e companhia, precedência). Família = classificação até 12 (proposta da #2, sem resposta ainda).
+  - `FiltrosDescoberta`: `todosGeneros` (AND), `classificacaoMax` e `lancadoAte`. O TMDB falso devolve "Para a família N" com `certification.lte`.
+  - `src/features/noite/`: `filtrosDaNoite`, estado na URL (`lerEstado`, `urlDaNoite`, `urlComResposta`, `proximaPergunta`, `respostasCompletas`, `proximaRodada`), `motivoDaNoite`/`provedorDaNoite`, `terminaAs`, `recomendarNoite`, `obterNoite` e a action `concluirNoite`.
+  - **Falta (Lucas, telas):** ver o passo 5 abaixo.
+
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**` (sem isso o login não volta para o site).
@@ -54,7 +60,7 @@ Cada PR é revisado e aprovado pelo outro integrante.
 
 ## Passos
 
-> **Próximos:** passo 3 (Lucas, #4); revisão e merge do PR #13 (passo 4); passo 5 (Leonardo: spec do wizard e a lógica de `src/features/noite/`).
+> **Próximos:** passo 3 (Lucas, #4); revisão e merge do PR #13 (passo 4) e depois o PR do wizard; passo 5, telas (Lucas, numa branch a partir da `feat/wizard-noite`); passo 7, migration e TMDB de séries (Leonardo).
 
 ### Passo 1: documentos da AP2, PR #1 (concluído)
 
@@ -97,7 +103,17 @@ Spec [`SPEC/2026-11-18-metricas.md`](SPEC/2026-11-18-metricas.md). Desenho origi
 
 ### Passo 5: wizard "O que ver hoje?" + trailer e "termina às", #6
 
-Spec `SPEC/AAAA-MM-DD-wizard-noite.md`, com a **tabela de mapeamento** (exigência do cliente). Ponto de partida para revisar:
+**Lógica concluída (Leonardo).** A spec [2026-11-18-wizard-noite.md](SPEC/2026-11-18-wizard-noite.md) é a referência; ela ajustou o rascunho abaixo (tons por experiência com "Não é o clima" avançando o tom, família sem excluir Terror porque a classificação já protege, todas as reações excluídas, "Quero assistir" não). **Falta, telas (Lucas)**, numa branch a partir da `feat/wizard-noite`, citando a mesma spec:
+
+1. `/noite` em `ROTAS_PROTEGIDAS` (`src/proxy.ts`) e `src/app/(app)/noite/page.tsx`: `exigirUsuario`, preferências (sem elas, `/onboarding`), `lerEstado(await searchParams)`. Sem as três respostas, mostra `proximaPergunta(estado)` com um cartão grande por opção (rótulos em `ROTULOS_CLIMA`), cada um um `Link` para `urlComResposta(...)`, e "Voltar" com `router.back()`. Com as três, `obterNoite(respostasCompletas(estado), estado, preferencias)`; `null` vira "Não achamos nada para essa noite" com "Refazer as perguntas" (`/noite`).
+2. Botão de destaque "O que ver hoje?" no topo do dashboard, link para `/noite` (1 clique + 3 respostas = 4).
+3. Resultado (componente do navegador): pôster, título, ano, `formatarDuracao`, motivo, provedor, "Começando agora, termina às {terminaAs(new Date(), duracaoMin)}" (só no navegador), `<Trailer origem="noite">`. Na rodada 0, chamar `concluirNoite(respostas)` uma vez (`useEffect` com ref).
+4. "Esse não" → escolha do motivo (`MOTIVOS_TROCA`) → `enviarEvento({ nome: "wizard_troca", dados: { motivo } })` e `router.push(urlDaNoite(proximaRodada(estado, motivo, mostrados)))`, com `mostrados` = destaque primeiro + opções (`{ id, duracaoMin }`). `null` (limite) troca o botão por "Refazer as perguntas". "Já vi" oferece marcar "Já assisti" (`alternarLista` de `src/features/listas/actions.ts`). Mostrar "trocas restantes: {MAX_TROCAS - trocas}".
+5. "Vou ver esse!" (no destaque e em cada opção) → `enviarEvento({ nome: "wizard_escolheu", dados: { trocas } })` e mensagem de fim com link para `/filme/{id}`. A gravação da escolha vem no passo 6.
+6. `wizard_iniciado` ao abrir `/noite` sem respostas; `wizard_abandonado` no `pagehide` sem escolha (`etapa`: `perguntas` ou `resultado`).
+7. Testes: unitários dos componentes (Testing Library) e `tests/e2e/noite.spec.ts` (critério 7 da spec): 4 cliques, "Voltar", troca com 3 opções sem repetir, limite de trocas, família só com "Para a família", `/perfil` igual depois.
+
+Rascunho original do mapeamento (substituído pela spec):
 
 | Experiência | Gêneros (IDs de filme do TMDB) |
 |---|---|
