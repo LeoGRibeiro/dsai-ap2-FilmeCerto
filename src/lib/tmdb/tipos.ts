@@ -45,9 +45,14 @@ export type FilmeDetalhes = Omit<FilmeResumo, "generos"> & {
 
 export type OrdemDescoberta = "popularidade" | "nota" | "lancamento";
 
+/** Classificação indicativa brasileira, na ordem do TMDB (`certification.lte` segue essa ordem). */
+export type ClassificacaoBR = "L" | "10" | "12" | "14" | "16" | "18";
+
 export type FiltrosDescoberta = {
   /** Qualquer um destes gêneros. */
   generos?: number[];
+  /** Todos estes gêneros juntos; quando presente, tem precedência sobre `generos`. */
+  todosGeneros?: number[];
   semGeneros?: number[];
   /** Disponível por assinatura em algum destes provedores (watch_region=BR). */
   provedores?: number[];
@@ -57,6 +62,10 @@ export type FiltrosDescoberta = {
   votosMin?: number;
   /** Ano de lançamento (primary_release_year). */
   ano?: number;
+  /** Lançado até esta data, `AAAA-MM-DD` (primary_release_date.lte). */
+  lancadoAte?: string;
+  /** Classificação indicativa brasileira máxima; filmes sem classificação BR ficam de fora. */
+  classificacaoMax?: ClassificacaoBR;
   ordem?: OrdemDescoberta;
   pagina?: number;
 };

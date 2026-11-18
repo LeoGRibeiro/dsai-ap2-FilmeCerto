@@ -60,6 +60,31 @@ describe("descobrirFilmes", () => {
     expect(chamada(fetchFalso).url.searchParams.get("primary_release_year")).toBe("2010");
   });
 
+  it("todosGeneros exige os gêneros juntos e tem precedência sobre generos", async () => {
+    const { api, fetchFalso } = montar(paginaTmdb([]));
+    await api.descobrirFilmes({ generos: [28], todosGeneros: [35, 10749] });
+    expect(chamada(fetchFalso).url.searchParams.get("with_genres")).toBe("35,10749");
+  });
+
+  it("classificacaoMax filtra pela classificação indicativa brasileira", async () => {
+    const { api, fetchFalso } = montar(paginaTmdb([]));
+    await api.descobrirFilmes({ classificacaoMax: "12" });
+    const { searchParams } = chamada(fetchFalso).url;
+    expect(searchParams.get("certification_country")).toBe("BR");
+    expect(searchParams.get("certification.lte")).toBe("12");
+  });
+
+  it("lancadoAte envia primary_release_date.lte; sem os filtros novos, nada é enviado", async () => {
+    const { api, fetchFalso } = montar(paginaTmdb([]));
+    await api.descobrirFilmes({ lancadoAte: "2005-12-31" });
+    await api.descobrirFilmes({});
+    expect(chamada(fetchFalso).url.searchParams.get("primary_release_date.lte")).toBe("2005-12-31");
+    const semFiltros = chamada(fetchFalso, 1).url.searchParams;
+    expect(semFiltros.has("certification_country")).toBe(false);
+    expect(semFiltros.has("certification.lte")).toBe(false);
+    expect(semFiltros.has("primary_release_date.lte")).toBe(false);
+  });
+
   it("com provedores, busca só o que está por assinatura nesses streamings no Brasil", async () => {
     const { api, fetchFalso } = montar(paginaTmdb([]));
     await api.descobrirFilmes({ provedores: [8, 119] });
