@@ -77,6 +77,32 @@ export type FiltrosDescoberta = {
  */
 export type SerieResumo = FilmeResumo;
 
+export type Temporada = {
+  numero: number;
+  nome: string;
+  episodios: number;
+  /** Ano de estreia da temporada. */
+  ano: number | null;
+  posterPath: string | null;
+};
+
+export type SerieDetalhes = Omit<SerieResumo, "generos"> & {
+  generos: { id: number; nome: string }[];
+  /** Duração média do episódio, em minutos. */
+  duracaoEpisodioMin: number | null;
+  /** Sem os especiais (temporada 0), em ordem. */
+  temporadas: Temporada[];
+  slogan: string | null;
+  /** Key do vídeo no YouTube. */
+  trailerYoutube: string | null;
+  elenco: MembroElenco[];
+  /** Quem criou a série. */
+  criacao: string[];
+  /** Classificação indicativa no Brasil. */
+  classificacao: ClassificacaoBR | null;
+  ondeAssistir: OndeAssistir | null;
+};
+
 /**
  * Filtros do `/discover/tv`: os dos filmes, menos a classificação (o TMDB não filtra séries por
  * ela). `duracaoMin` e `duracaoMax` valem para o episódio; `ano` e `lancadoAte`, para a estreia.

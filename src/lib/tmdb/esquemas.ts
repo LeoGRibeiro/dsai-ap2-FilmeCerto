@@ -116,11 +116,35 @@ export const detalhesTmdb = z.object({
   recommendations: paginaTmdb(filmeTmdb).optional(),
 });
 
+export const detalhesSerieTmdb = z.object({
+  ...baseSerie,
+  ...detalhesComuns,
+  /** O TMDB deixou de preencher em muitas séries; vem `[]`. */
+  episode_run_time: z.array(z.number()).default([]),
+  last_episode_to_air: z.object({ runtime: z.number().nullish() }).nullish(),
+  seasons: z
+    .array(
+      z.object({
+        season_number: z.number().int(),
+        name: textoOuVazio,
+        episode_count: numero,
+        air_date: textoOpcional,
+        poster_path: textoOpcional,
+      }),
+    )
+    .default([]),
+  created_by: z.array(z.object({ name: z.string() })).default([]),
+  content_ratings: z
+    .object({ results: z.array(z.object({ iso_3166_1: z.string(), rating: z.string() })) })
+    .default({ results: [] }),
+});
+
 export const generosTmdb = z.object({ genres: z.array(generoTmdb) });
 
 export type FilmeTmdb = z.infer<typeof filmeTmdb>;
 export type DetalhesTmdb = z.infer<typeof detalhesTmdb>;
 export type SerieTmdb = z.infer<typeof serieTmdb>;
+export type DetalhesSerieTmdb = z.infer<typeof detalhesSerieTmdb>;
 export type GeneroTmdb = z.infer<typeof generoTmdb>;
 export type VideosTmdb = z.infer<typeof videosTmdb>;
 export type CreditosTmdb = z.infer<typeof creditosTmdb>;

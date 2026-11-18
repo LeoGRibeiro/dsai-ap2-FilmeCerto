@@ -107,3 +107,48 @@ export function serieTmdb(sobrescrever: Record<string, unknown> = {}) {
     ...sobrescrever,
   };
 }
+
+/** Detalhes de série; vídeos, elenco e onde assistir vêm do mesmo formato dos filmes. */
+export function detalhesSerieTmdb(sobrescrever: Record<string, unknown> = {}) {
+  const base: Record<string, unknown> = serieTmdb();
+  delete base.genre_ids;
+  const { videos, credits, "watch/providers": ondeAssistir } = detalhesTmdb();
+  return {
+    ...base,
+    genres: [
+      { id: 10765, name: "Sci-Fi & Fantasy" },
+      { id: 18, name: "Drama" },
+    ],
+    episode_run_time: [50, 61],
+    last_episode_to_air: { runtime: 80 },
+    seasons: [
+      {
+        season_number: 2,
+        name: "Temporada 2",
+        episode_count: 10,
+        air_date: "2012-04-01",
+        poster_path: null,
+      },
+      { season_number: 0, name: "Especiais", episode_count: 14, air_date: null, poster_path: null },
+      {
+        season_number: 1,
+        name: "Temporada 1",
+        episode_count: 10,
+        air_date: "2011-04-17",
+        poster_path: "/t1.jpg",
+      },
+    ],
+    tagline: "",
+    created_by: [{ name: "David Benioff" }, { name: "D. B. Weiss" }],
+    videos,
+    credits,
+    "watch/providers": ondeAssistir,
+    content_ratings: {
+      results: [
+        { iso_3166_1: "US", rating: "TV-MA" },
+        { iso_3166_1: "BR", rating: "16" },
+      ],
+    },
+    ...sobrescrever,
+  };
+}

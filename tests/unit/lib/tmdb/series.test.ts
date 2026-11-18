@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { TmdbErro } from "@/lib/tmdb/cliente";
 import { criarApiSeries } from "@/lib/tmdb/series";
 
-import { chamada, montarApi, paginaTmdb, serieTmdb } from "./fixtures";
+import { chamada, detalhesSerieTmdb, montarApi, paginaTmdb, serieTmdb } from "./fixtures";
 
 const montar = (corpo: unknown, status?: number) => montarApi(criarApiSeries, corpo, status);
 
@@ -84,6 +85,102 @@ describe("descobrirSeries", () => {
         expect.objectContaining({ id: 2, ano: null, posterPath: null }),
       ],
     });
+  });
+});
+
+describe("obterSerie", () => {
+  it("pede os dados anexos numa chamada e converte os detalhes", async () => {
+    const { api, fetchFalso } = montar(detalhesSerieTmdb());
+
+    const serie = await api.obterSerie(1399);
+
+    const { url, revalidate } = chamada(fetchFalso);
+    expect(url.pathname).toBe("/3/tv/1399");
+    expect(url.searchParams.get("append_to_response")).toBe(
+      "videos,credits,watch/providers,content_ratings",
+    );
+    expect(url.searchParams.get("language")).toBe("pt-BR");
+    expect(revalidate).toBe(24 * 3600);
+
+    expect(serie).toMatchObject({
+      id: 1399,
+      titulo: "A Guerra dos Tronos",
+      ano: 2011,
+      generos: [
+        { id: 10765, nome: "Sci-Fi & Fantasy" },
+        { id: 18, nome: "Drama" },
+      ],
+      duracaoEpisodioMin: 56,
+      temporadas: [
+        { numero: 1, nome: "Temporada 1", episodios: 10, ano: 2011, posterPath: "/t1.jpg" },
+        { numero: 2, nome: "Temporada 2", episodios: 10, ano: 2012, posterPath: null },
+      ],
+      slogan: null,
+      trailerYoutube: "oficial",
+      criacao: ["David Benioff", "D. B. Weiss"],
+      classificacao: "16",
+      ondeAssistir: {
+        assinatura: [{ id: 8, nome: "Netflix", logoPath: "/netflix.jpg" }],
+        aluguel: [{ id: 2, nome: "Apple TV", logoPath: null }],
+        compra: [],
+      },
+    });
+    expect(serie?.elenco).toHaveLength(10);
+    expect(serie?.elenco[0]).toEqual({ nome: "Ator 1", personagem: "Papel 1", fotoPath: null });
+  });
+
+  it("sem episode_run_time, usa a duração do último episódio; sem as duas, null", async () => {
+    const ultimo = montar(detalhesSerieTmdb({ episode_run_time: [] }));
+    expect((await ultimo.api.obterSerie(1399))?.duracaoEpisodioMin).toBe(80);
+
+    const nenhuma = montar(detalhesSerieTmdb({ episode_run_time: [0], last_episode_to_air: null }));
+    expect((await nenhuma.api.obterSerie(1399))?.duracaoEpisodioMin).toBeNull();
+  });
+
+  it("classificação sem o Brasil ou fora da lista vira null", async () => {
+    const semBrasil = montar(
+      detalhesSerieTmdb({ content_ratings: { results: [{ iso_3166_1: "US", rating: "TV-14" }] } }),
+    );
+    expect((await semBrasil.api.obterSerie(1399))?.classificacao).toBeNull();
+
+    const desconhecida = montar(
+      detalhesSerieTmdb({ content_ratings: { results: [{ iso_3166_1: "BR", rating: "ER" }] } }),
+    );
+    expect((await desconhecida.api.obterSerie(1399))?.classificacao).toBeNull();
+  });
+
+  it("aceita os campos opcionais ausentes", async () => {
+    const corpo: Record<string, unknown> = detalhesSerieTmdb();
+    for (const campo of [
+      "episode_run_time",
+      "seasons",
+      "created_by",
+      "content_ratings",
+      "videos",
+    ]) {
+      delete corpo[campo];
+    }
+    const { api } = montar(corpo);
+
+    expect(await api.obterSerie(1399)).toMatchObject({
+      duracaoEpisodioMin: 80,
+      temporadas: [],
+      criacao: [],
+      classificacao: null,
+      trailerYoutube: null,
+    });
+  });
+
+  it("devolve null para 404", async () => {
+    const { api } = montar({ status_code: 34 }, 404);
+    expect(await api.obterSerie(1)).toBeNull();
+  });
+
+  it("resposta fora do formato vira TmdbErro", async () => {
+    const { api } = montar({ id: 1399, name: 42 });
+    await expect(api.obterSerie(1399)).rejects.toThrow(
+      new TmdbErro("Resposta inesperada do TMDB", null),
+    );
   });
 });
 
