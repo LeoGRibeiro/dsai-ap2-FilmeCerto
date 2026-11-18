@@ -46,46 +46,63 @@ const provedorTmdb = z.object({
   logo_path: textoOpcional,
 });
 
+const generoTmdb = z.object({ id: z.number().int(), name: z.string() });
+
+const videosTmdb = z
+  .object({
+    results: z.array(
+      z.object({
+        key: z.string(),
+        site: z.string(),
+        type: z.string(),
+        official: z.boolean().default(false),
+      }),
+    ),
+  })
+  .default({ results: [] });
+
+const creditosTmdb = z
+  .object({
+    cast: z.array(
+      z.object({ name: z.string(), character: textoOuVazio, profile_path: textoOpcional }),
+    ),
+    crew: z.array(z.object({ name: z.string(), job: z.string() })),
+  })
+  .default({ cast: [], crew: [] });
+
+const ondeAssistirTmdb = z
+  .object({
+    results: z.record(
+      z.string(),
+      z.object({
+        link: z.string(),
+        flatrate: z.array(provedorTmdb).default([]),
+        rent: z.array(provedorTmdb).default([]),
+        buy: z.array(provedorTmdb).default([]),
+      }),
+    ),
+  })
+  .default({ results: {} });
+
+/** Campos que os detalhes de filme e de série têm no mesmo formato. */
+const detalhesComuns = {
+  genres: z.array(generoTmdb).default([]),
+  tagline: textoOpcional,
+  videos: videosTmdb,
+  credits: creditosTmdb,
+  "watch/providers": ondeAssistirTmdb,
+};
+
 export const detalhesTmdb = z.object({
   ...baseFilme,
-  genres: z.array(z.object({ id: z.number().int(), name: z.string() })).default([]),
+  ...detalhesComuns,
   runtime: z.number().nullish(),
-  tagline: textoOpcional,
-  videos: z
-    .object({
-      results: z.array(
-        z.object({
-          key: z.string(),
-          site: z.string(),
-          type: z.string(),
-          official: z.boolean().default(false),
-        }),
-      ),
-    })
-    .default({ results: [] }),
-  credits: z
-    .object({
-      cast: z.array(
-        z.object({ name: z.string(), character: textoOuVazio, profile_path: textoOpcional }),
-      ),
-      crew: z.array(z.object({ name: z.string(), job: z.string() })),
-    })
-    .default({ cast: [], crew: [] }),
-  "watch/providers": z
-    .object({
-      results: z.record(
-        z.string(),
-        z.object({
-          link: z.string(),
-          flatrate: z.array(provedorTmdb).default([]),
-          rent: z.array(provedorTmdb).default([]),
-          buy: z.array(provedorTmdb).default([]),
-        }),
-      ),
-    })
-    .default({ results: {} }),
   recommendations: paginaTmdb(filmeTmdb).optional(),
 });
 
 export type FilmeTmdb = z.infer<typeof filmeTmdb>;
 export type DetalhesTmdb = z.infer<typeof detalhesTmdb>;
+export type GeneroTmdb = z.infer<typeof generoTmdb>;
+export type VideosTmdb = z.infer<typeof videosTmdb>;
+export type CreditosTmdb = z.infer<typeof creditosTmdb>;
+export type OndeAssistirTmdb = z.infer<typeof ondeAssistirTmdb>;
