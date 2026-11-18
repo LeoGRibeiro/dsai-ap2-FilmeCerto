@@ -22,7 +22,11 @@ describe("devePerguntar", () => {
     ["já respondida", { respondido_em: horasAtras(1) }, false],
     ["nunca perguntada", {}, true],
     ["perguntada uma vez, ontem", { vezes_perguntado: 1, perguntado_em: horasAtras(20) }, true],
-    ["perguntada duas vezes, há 30 min", { vezes_perguntado: 2, perguntado_em: horasAtras(0.5) }, true],
+    [
+      "perguntada duas vezes, há 30 min",
+      { vezes_perguntado: 2, perguntado_em: horasAtras(0.5) },
+      true,
+    ],
     ["perguntada duas vezes, há 1h", { vezes_perguntado: 2, perguntado_em: horasAtras(1) }, false],
     ["perguntada duas vezes, ontem", { vezes_perguntado: 2, perguntado_em: horasAtras(20) }, false],
   ] as const)("%s: %s", (_caso, dados, esperado) => {
