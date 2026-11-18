@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CartaoFilme } from "@/features/dashboard/components/cartao-filme";
 import { CabecalhoFilme } from "@/features/filme/components/cabecalho-filme";
@@ -8,7 +8,10 @@ import { Elenco } from "@/features/filme/components/elenco";
 import { OndeAssistir } from "@/features/filme/components/onde-assistir";
 import { Trailer } from "@/features/filme/components/trailer";
 import { formatarDuracao, formatarVotos } from "@/features/filme/formatar";
+import { enviarEvento } from "@/features/metricas/enviar";
 import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
+
+vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
 
 function detalhes(sobrescrever: Partial<FilmeDetalhes> = {}): FilmeDetalhes {
   return {
@@ -116,6 +119,34 @@ describe("Trailer", () => {
 
     const iframe = screen.getByTitle("Trailer de Clube da Luta");
     expect(iframe.getAttribute("src")).toContain("https://www.youtube-nocookie.com/embed/abc123");
+  });
+
+  describe("evento trailer_aberto", () => {
+    afterEach(() => {
+      vi.mocked(enviarEvento).mockClear();
+    });
+
+    it("registra o clique com a origem informada", async () => {
+      const usuario = userEvent.setup();
+      render(<Trailer chave="abc123" titulo="Clube da Luta" origem="filme" />);
+      expect(enviarEvento).not.toHaveBeenCalled();
+
+      await usuario.click(screen.getByRole("button", { name: "Assistir trailer" }));
+
+      expect(enviarEvento).toHaveBeenCalledExactlyOnceWith({
+        nome: "trailer_aberto",
+        dados: { origem: "filme" },
+      });
+    });
+
+    it("não registra nada sem origem", async () => {
+      const usuario = userEvent.setup();
+      render(<Trailer chave="abc123" titulo="Clube da Luta" />);
+
+      await usuario.click(screen.getByRole("button", { name: "Assistir trailer" }));
+
+      expect(enviarEvento).not.toHaveBeenCalled();
+    });
   });
 });
 

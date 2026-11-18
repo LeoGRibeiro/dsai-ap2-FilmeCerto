@@ -3,6 +3,63 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      contagem_climas: {
+        Row: {
+          dia: string;
+          pergunta: string;
+          resposta: string;
+          total: number;
+        };
+        Insert: {
+          dia: string;
+          pergunta: string;
+          resposta: string;
+          total?: number;
+        };
+        Update: {
+          dia?: string;
+          pergunta?: string;
+          resposta?: string;
+          total?: number;
+        };
+        Relationships: [];
+      };
+      equipe_metricas: {
+        Row: {
+          usuario_id: string;
+        };
+        Insert: {
+          usuario_id: string;
+        };
+        Update: {
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
+      eventos: {
+        Row: {
+          criado_em: string;
+          dados: Json;
+          id: number;
+          nome: string;
+          usuario_id: string;
+        };
+        Insert: {
+          criado_em?: string;
+          dados?: Json;
+          id?: never;
+          nome: string;
+          usuario_id?: string;
+        };
+        Update: {
+          criado_em?: string;
+          dados?: Json;
+          id?: never;
+          nome?: string;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
       lista_itens: {
         Row: {
           adicionado_em: string;
@@ -128,7 +185,27 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      metricas_climas: {
+        Args: never;
+        Returns: {
+          pergunta: string;
+          resposta: string;
+          total: number;
+        }[];
+      };
+      metricas_eventos: {
+        Args: never;
+        Returns: {
+          nome: string;
+          pessoas: number;
+          sem_equipe: number;
+          total: number;
+        }[];
+      };
+      registrar_clima: {
+        Args: { p_companhia: string; p_experiencia: string; p_humor: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       duracao_preferida: "curta" | "media" | "longa" | "indiferente";

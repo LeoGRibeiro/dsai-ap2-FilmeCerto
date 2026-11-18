@@ -4,7 +4,16 @@ import { DESTINO_PADRAO } from "@/features/auth/redirecionamento";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /** Rotas que exigem sessão: a área logada (grupo `(app)`) e o onboarding. */
-const ROTAS_PROTEGIDAS = ["/dashboard", "/onboarding", "/filme", "/listas", "/busca", "/perfil", "/oauth"];
+const ROTAS_PROTEGIDAS = [
+  "/dashboard",
+  "/onboarding",
+  "/filme",
+  "/listas",
+  "/busca",
+  "/perfil",
+  "/oauth",
+  "/metricas",
+];
 /** Rotas que só fazem sentido sem sessão. */
 const ROTAS_DE_VISITANTE = ["/", "/login", "/cadastro"];
 
