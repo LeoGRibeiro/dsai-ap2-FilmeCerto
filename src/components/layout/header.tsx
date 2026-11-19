@@ -42,14 +42,14 @@ export async function Header() {
               <Input
                 name="q"
                 type="search"
-                aria-label="Buscar filmes"
-                placeholder="Buscar filmes"
+                aria-label="Buscar filmes e séries"
+                placeholder="Buscar filmes e séries"
                 className="h-9 w-44 pl-8 lg:w-64"
               />
             </form>
             <Link
               href="/busca"
-              aria-label="Buscar filmes"
+              aria-label="Buscar filmes e séries"
               className="hover:text-foreground p-1 transition-colors sm:hidden"
             >
               <Search className="size-5" aria-hidden="true" />

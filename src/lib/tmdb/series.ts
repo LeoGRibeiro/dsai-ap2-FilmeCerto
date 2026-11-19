@@ -4,6 +4,7 @@ import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb
 import {
   anoDe,
   elencoDe,
+  limitarPagina,
   nuloSe404,
   ondeAssistirDe,
   paraGeneros,
@@ -31,6 +32,8 @@ import type {
 const HORA = 3600;
 const CACHE_LISTAS = 6 * HORA;
 const CACHE_SERIE = 24 * HORA;
+
+const PAGINA_VAZIA: Pagina<never> = { itens: [], pagina: 1, totalPaginas: 0, totalResultados: 0 };
 
 const ORDENS: Record<OrdemDescoberta, string> = {
   popularidade: "popularity.desc",
@@ -122,6 +125,18 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       const dados = await cliente.requisitar("/genre/tv/list", {}, CACHE_SERIE);
       return paraGeneros(validar(generosTmdb, dados).genres);
     },
+
+    /** Busca por nome (`/search/tv`), sem `region`: a busca de séries não filtra por país. */
+    async buscarSeries(texto: string, pagina = 1): Promise<Pagina<SerieResumo>> {
+      const consulta = texto.trim();
+      if (!consulta) return PAGINA_VAZIA;
+      const dados = await cliente.requisitar(
+        "/search/tv",
+        { query: consulta, page: limitarPagina(pagina), include_adult: false },
+        CACHE_LISTAS,
+      );
+      return paraPagina(serieTmdb, dados, paraResumo);
+    },
   };
 }
 
@@ -134,3 +149,4 @@ export const descobrirSeries: ApiSeries["descobrirSeries"] = (...args) =>
   api().descobrirSeries(...args);
 export const obterSerie: ApiSeries["obterSerie"] = (...args) => api().obterSerie(...args);
 export const generosSeries: ApiSeries["generosSeries"] = () => api().generosSeries();
+export const buscarSeries: ApiSeries["buscarSeries"] = (...args) => api().buscarSeries(...args);

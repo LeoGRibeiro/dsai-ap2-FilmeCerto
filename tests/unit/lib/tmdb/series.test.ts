@@ -202,3 +202,36 @@ describe("generosSeries", () => {
     expect(revalidate).toBe(24 * 3600);
   });
 });
+
+describe("buscarSeries", () => {
+  it("chama /search/tv com o texto sem espaços nas pontas e a página, e converte", async () => {
+    const { api, fetchFalso } = montar(paginaTmdb([serieTmdb()]));
+
+    const pagina = await api.buscarSeries("  guerra dos tronos ", 2);
+
+    const { url, revalidate } = chamada(fetchFalso);
+    expect(url.pathname).toBe("/3/search/tv");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      query: "guerra dos tronos",
+      page: "2",
+      include_adult: "false",
+      language: "pt-BR",
+    });
+    expect(revalidate).toBe(6 * 3600);
+    expect(pagina.itens).toEqual([
+      expect.objectContaining({ id: 1399, titulo: "A Guerra dos Tronos", ano: 2011 }),
+    ]);
+    expect(pagina.totalResultados).toBe(55);
+  });
+
+  it("devolve página vazia sem chamar a API quando o texto é vazio", async () => {
+    const { api, fetchFalso } = montar(paginaTmdb([]));
+    expect(await api.buscarSeries("   ")).toEqual({
+      itens: [],
+      pagina: 1,
+      totalPaginas: 0,
+      totalResultados: 0,
+    });
+    expect(fetchFalso).not.toHaveBeenCalled();
+  });
+});
