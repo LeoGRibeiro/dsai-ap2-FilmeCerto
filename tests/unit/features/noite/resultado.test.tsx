@@ -157,7 +157,7 @@ describe("ResultadoNoite", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "Vou ver esse!" })[0]!);
 
     expect(await screen.findByRole("status")).toHaveTextContent("Boa sessão!");
-    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(10);
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(10, "filme");
     expect(enviarEvento).toHaveBeenCalledWith({ nome: "wizard_escolheu", dados: { trocas: 2 } });
     expect(sessao.marcarEscolha).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("ResultadoNoite", () => {
     await userEvent.click(within(opcao).getByRole("button", { name: "Vou ver esse!" }));
 
     expect(await within(opcao).findByRole("status")).toHaveTextContent("Boa sessão!");
-    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12);
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12, "filme");
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
   });
 

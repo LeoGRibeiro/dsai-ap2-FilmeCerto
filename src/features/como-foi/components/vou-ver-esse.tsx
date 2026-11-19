@@ -7,17 +7,21 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { escolherFilme } from "@/features/como-foi/actions";
 import { enviarEvento } from "@/features/metricas/enviar";
+import { caminhoMidia, type TipoMidia } from "@/lib/midia";
 
 /**
  * "Vou ver esse!" do resultado do wizard: guarda a escolha para o "Como foi?"
  * (SPEC/2026-11-18-como-foi.md) e registra `wizard_escolheu` com as trocas feitas.
  */
 export function VouVerEsse({
+  tipo = "filme",
   tmdbId,
   titulo,
   trocas,
   aoEscolher,
 }: {
+  /** Filme (o padrão) ou série: a escolha e o link de detalhes seguem o tipo. */
+  tipo?: TipoMidia;
   tmdbId: number;
   titulo: string;
   trocas: number;
@@ -30,7 +34,7 @@ export function VouVerEsse({
 
   function escolher() {
     iniciar(async () => {
-      const resultado = await escolherFilme(tmdbId);
+      const resultado = await escolherFilme(tmdbId, tipo);
       if (resultado.mensagem) {
         setMensagem(resultado.mensagem);
         return;
@@ -49,7 +53,7 @@ export function VouVerEsse({
           Boa sessão! Na próxima visita, a gente pergunta como foi.
         </p>
         <Link
-          href={`/filme/${tmdbId}`}
+          href={caminhoMidia({ tipo, tmdbId })}
           className="text-primary text-sm underline-offset-4 hover:underline"
         >
           Ver detalhes de {titulo}
