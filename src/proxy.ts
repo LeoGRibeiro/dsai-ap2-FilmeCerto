@@ -8,6 +8,7 @@ const ROTAS_PROTEGIDAS = [
   "/dashboard",
   "/onboarding",
   "/filme",
+  "/serie",
   "/listas",
   "/busca",
   "/perfil",
