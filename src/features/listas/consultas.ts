@@ -57,10 +57,13 @@ export const obterItensLista = cache(
   },
 );
 
-/** IDs dos filmes nas duas listas, para o motor não recomendá-los. */
-export async function idsNasListas(cliente?: ClienteSupabase): Promise<number[]> {
+/** IDs dos títulos nas duas listas (sem `tipo`, filmes), para não recomendá-los. */
+export async function idsNasListas(
+  cliente?: ClienteSupabase,
+  tipo: TipoMidia = "filme",
+): Promise<number[]> {
   const supabase = cliente ?? (await createClient());
-  const { data, error } = await supabase.from("lista_itens").select("tmdb_id").eq("tipo", "filme");
+  const { data, error } = await supabase.from("lista_itens").select("tmdb_id").eq("tipo", tipo);
   if (error) {
     console.error("[listas] falha ao ler IDs:", error.code, error.message);
     return [];

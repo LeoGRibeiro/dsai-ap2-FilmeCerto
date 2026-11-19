@@ -82,6 +82,10 @@ describe("leituras das listas só veem filmes", () => {
     expect(await idsNasListas(banco().cliente)).toEqual([ID, 550]);
   });
 
+  it("idsNasListas com tipo serie devolve só as séries", async () => {
+    expect(await idsNasListas(banco().cliente, "serie")).toEqual([ID]);
+  });
+
   it("obterStatusLista devolve a lista do filme", async () => {
     expect(await obterStatusLista(ID, banco().cliente)).toBe("assistido");
   });

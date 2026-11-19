@@ -4,30 +4,35 @@ import { cache } from "react";
 
 import type { Reacao } from "@/features/reacoes/opcoes";
 import type { ReacaoMotor } from "@/features/recomendacao/tipos";
-import { lerMidia, type Midia } from "@/lib/midia";
+import { lerMidia, type Midia, type TipoMidia } from "@/lib/midia";
 import { createClient } from "@/lib/supabase/server";
 import type { ClienteSupabase } from "@/lib/supabase/token";
 
-/** Reações do usuário logado a filmes (a RLS limita às dele), no formato do motor. */
-export const obterReacoes = cache(async (cliente?: ClienteSupabase): Promise<ReacaoMotor[]> => {
-  const supabase = cliente ?? (await createClient());
-  const { data, error } = await supabase
-    .from("reacoes")
-    .select("tmdb_id, reacao, titulo, generos")
-    .eq("tipo", "filme")
-    .order("atualizado_em", { ascending: false });
+/**
+ * Reações do usuário logado (a RLS limita às dele), no formato do motor. Sem `tipo`, só as
+ * de filmes: o motor, o "Me surpreenda" e o MCP só lidam com filmes.
+ */
+export const obterReacoes = cache(
+  async (cliente?: ClienteSupabase, tipo: TipoMidia = "filme"): Promise<ReacaoMotor[]> => {
+    const supabase = cliente ?? (await createClient());
+    const { data, error } = await supabase
+      .from("reacoes")
+      .select("tmdb_id, reacao, titulo, generos")
+      .eq("tipo", tipo)
+      .order("atualizado_em", { ascending: false });
 
-  if (error) {
-    console.error("[reacoes] falha ao ler:", error.code, error.message);
-    return [];
-  }
-  return data.map((linha) => ({
-    tmdbId: linha.tmdb_id,
-    reacao: linha.reacao,
-    titulo: linha.titulo,
-    generos: linha.generos,
-  }));
-});
+    if (error) {
+      console.error("[reacoes] falha ao ler:", error.code, error.message);
+      return [];
+    }
+    return data.map((linha) => ({
+      tmdbId: linha.tmdb_id,
+      reacao: linha.reacao,
+      titulo: linha.titulo,
+      generos: linha.generos,
+    }));
+  },
+);
 
 /** Reação do usuário logado a um filme (o ID sozinho) ou a uma série, ou `null`. */
 export async function obterReacao(
