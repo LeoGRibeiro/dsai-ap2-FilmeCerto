@@ -15,6 +15,7 @@ Como os números foram obtidos:
 | [2026-11-18-1037-claude-code.jsonl](sessoes/2026-11-18-1037-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 98 | 69.971 | 162.902 / 6.719.199 | não disponível (extensão VS Code) |
 | [2026-11-18-1117-claude-code.jsonl](sessoes/2026-11-18-1117-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 122 | 65.266 | 162.175 / 8.654.754 | não disponível (extensão VS Code) |
 | [2026-11-18-1920-claude-code.jsonl](sessoes/2026-11-18-1920-claude-code.jsonl) (+ 9 subagentes em [`2026-11-18-1920-claude-code/subagents/`](sessoes/2026-11-18-1920-claude-code/subagents/)) | claude-code (VS Code), orquestração | claude-opus-5-5 | 1.942 | 988.217 | 4.082.325 / 171.670.376 | não disponível (extensão VS Code) |
+| [2026-11-19-1611-claude-code.jsonl](sessoes/2026-11-19-1611-claude-code.jsonl) (+ 3 subagentes em [`2026-11-19-1611-claude-code/subagents/`](sessoes/2026-11-19-1611-claude-code/subagents/)) | claude-code (VS Code), orquestração | claude-opus-5-5 | 388 | 157.549 | 508.813 / 19.161.744 | não disponível (extensão VS Code) |
 
 ## AP1 (sessões dos autores originais, herdadas com o fork)
 
