@@ -19,25 +19,14 @@ export const PERGUNTAS = [
 /** Cartões do "Filme ou série?" (SPEC/2026-11-18-series-noite.md). */
 export const ROTULOS_TIPO: Record<TipoMidia, string> = { filme: "Filme", serie: "Série" };
 
-/** Horários do "Até que horas?" (SPEC/2026-11-18-noite-ate-que-horas.md): meia-noite é 0. */
-export const HORAS_LIMITE = [22, 23, 0, 1] as const;
-export type HoraLimite = (typeof HORAS_LIMITE)[number];
+/** "Até que horas?" a partir de agora (SPEC/2026-11-19-noite-tempo-disponivel.md), em minutos. */
+export const JANELAS_MIN = [90, 120, 150, 180] as const;
 
-/** Rótulo de cada botão do "Até que horas?". */
-export const ROTULOS_HORA: Record<HoraLimite, string> = {
-  22: "22h",
-  23: "23h",
-  0: "Meia-noite",
-  1: "1h",
-};
-
-/** "Não dá tempo de ver um filme até as 23h". */
-export const ATE_A_HORA: Record<HoraLimite, string> = {
-  22: "até as 22h",
-  23: "até as 23h",
-  0: "até a meia-noite",
-  1: "até a 1h",
-};
+/** Rótulo de cada janela: "1h30", "2h". */
+export function rotuloJanela(minutos: number): string {
+  const resto = minutos % 60;
+  return `${Math.floor(minutos / 60)}h${resto ? String(resto).padStart(2, "0") : ""}`;
+}
 
 /** Motivos de "Esse não", na ordem do pedido do cliente (3.2). */
 export const ROTULOS_MOTIVO: Record<MotivoTroca, string> = {

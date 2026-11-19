@@ -300,7 +300,7 @@ describe("RecomendacaoNoite", () => {
   });
 
   it("para série, o mínimo do 'Até que horas?' é de 20 minutos de episódio", async () => {
-    const serie = { ...ESTADO_INICIAL, tipo: "serie" as const, respostas, ate: 23 as const };
+    const serie = { ...ESTADO_INICIAL, tipo: "serie" as const, respostas, ate: 23 * 60 };
 
     render(await RecomendacaoNoite({ respostas, estado: { ...serie, tempo: 15 }, perfil }));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
@@ -313,7 +313,7 @@ describe("RecomendacaoNoite", () => {
   });
 
   it("sem tempo até o horário escolhido, nem consulta o TMDB e oferece 'Tanto faz'", async () => {
-    const estado = { ...ESTADO_INICIAL, respostas, trocas: 2, ate: 23 as const, tempo: 0 };
+    const estado = { ...ESTADO_INICIAL, respostas, trocas: 2, ate: 23 * 60, tempo: 0 };
     render(await RecomendacaoNoite({ respostas, estado, perfil }));
 
     expect(obterNoite).not.toHaveBeenCalled();
@@ -333,7 +333,7 @@ describe("RecomendacaoNoite", () => {
 
   it.each([
     [30, 0, "até a meia-noite", /^Faltam só 30 minutos\./],
-    [1, 22, "até as 22h", /^Faltam só 1 minuto\./],
+    [1, 22 * 60, "até as 22h", /^Faltam só 1 minuto\./],
   ] as const)("com %i min, diz quanto falta", async (tempo, ate, trecho, falta) => {
     const estado = { ...ESTADO_INICIAL, respostas, ate, tempo };
     render(await RecomendacaoNoite({ respostas, estado, perfil }));
@@ -344,7 +344,7 @@ describe("RecomendacaoNoite", () => {
   });
 
   it("com tempo suficiente, busca a rodada com o horário", async () => {
-    const estado = { ...ESTADO_INICIAL, respostas, ate: 23 as const, tempo: 60 };
+    const estado = { ...ESTADO_INICIAL, respostas, ate: 23 * 60, tempo: 60 };
     render(await RecomendacaoNoite({ respostas, estado, perfil }));
 
     expect(obterNoite).toHaveBeenCalledExactlyOnceWith(respostas, estado, perfil);

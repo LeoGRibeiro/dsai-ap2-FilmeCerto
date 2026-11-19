@@ -32,9 +32,9 @@ export async function RecomendacaoNoite({
   estado: EstadoNoite;
   perfil: PerfilNoite;
 }) {
-  const { ate, tempo, tipo } = estado;
-  if (ate !== null && tempo !== null && tempo < MAPEAMENTOS[tipo].tempoMinimo) {
-    return <SemTempo estado={estado} ate={ate} tempo={tempo} />;
+  const { tempo, tipo } = estado;
+  if (tempo !== null && tempo < MAPEAMENTOS[tipo].tempoMinimo) {
+    return <SemTempo estado={estado} tempo={tempo} />;
   }
 
   const resultado = await obterNoite(respostas, estado, perfil);

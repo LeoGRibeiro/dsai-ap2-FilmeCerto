@@ -176,7 +176,7 @@ test.describe("'Até que horas?'", () => {
   // O horário que vale é o do navegador: fuso de São Paulo e relógio fixo em 23h30.
   test.use({ timezoneId: "America/Sao_Paulo" });
 
-  test("é opcional, avisa quando já passou e atravessa a meia-noite, no celular", async ({
+  test("é opcional, conta a partir de agora e aceita outro horário, no celular", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -196,19 +196,23 @@ test.describe("'Até que horas?'", () => {
       "true",
     );
 
-    // 23h já passou: nada de sugestão que estoura o horário.
-    await horario.getByRole("button", { name: "23h" }).click();
-    await expect(page).toHaveURL("/noite?humor=cansado&exp=rir&com=a-dois&ate=23&tempo=0");
-    await expect(titulo).toHaveText("Não dá tempo de ver um filme até as 23h");
-    await expect(main(page).getByText(/^Esse horário já passou\./)).toBeVisible();
-    await expect(main(page).getByRole("link", { name: "Refazer as perguntas" })).toBeVisible();
-
-    // Até 1h: 90 minutos, virando a meia-noite.
-    await horario.getByRole("button", { name: "1h" }).click();
-    await expect(page).toHaveURL(/&ate=1&tempo=90$/);
+    // 1h30 a partir das 23h30: o botão diz até a 1h, e o filme é curto.
+    const umaHoraEMeia = horario.getByRole("button", { name: /^1h30/ });
+    await expect(umaHoraEMeia).toHaveText("1h30 até a 1h");
+    await umaHoraEMeia.click();
+    await expect(page).toHaveURL(/&com=a-dois&tempo=90$/);
     await expect(titulo).toHaveText(/^Curto \d+$/);
     await expect(main(page).getByText("Começando agora, termina às 0h50")).toBeVisible();
     await expect(main(page).getByRole("button", { name: "Vou ver esse!" })).toBeInViewport();
+
+    // Outro horário que já passou: nada de sugestão que estoura o horário.
+    await horario.getByRole("button", { name: "Outro horário" }).click();
+    await main(page).getByLabel("Horário").fill("23:00");
+    await main(page).getByRole("button", { name: "Usar" }).click();
+    await expect(page).toHaveURL("/noite?humor=cansado&exp=rir&com=a-dois&ate=2300&tempo=0");
+    await expect(titulo).toHaveText("Não dá tempo de ver um filme até as 23h");
+    await expect(main(page).getByText(/^Esse horário já passou\./)).toBeVisible();
+    await expect(main(page).getByRole("link", { name: "Refazer as perguntas" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,
     );
