@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import type { StatusLista } from "@/features/listas/opcoes";
 import type { Reacao } from "@/features/reacoes/opcoes";
+import { lerMidia, type Midia } from "@/lib/midia";
 import { createClient } from "@/lib/supabase/server";
 import type { ClienteSupabase } from "@/lib/supabase/token";
 
@@ -56,13 +57,17 @@ export async function idsNasListas(cliente?: ClienteSupabase): Promise<number[]>
   return data.map((linha) => linha.tmdb_id);
 }
 
-/** Lista em que o filme está, ou `null`. */
-export async function obterStatusLista(tmdbId: number, cliente?: ClienteSupabase): Promise<StatusLista | null> {
+/** Lista em que o filme (o ID sozinho) ou a série está, ou `null`. */
+export async function obterStatusLista(
+  alvo: number | Midia,
+  cliente?: ClienteSupabase,
+): Promise<StatusLista | null> {
+  const { tipo, tmdbId } = lerMidia(alvo);
   const supabase = cliente ?? (await createClient());
   const { data } = await supabase
     .from("lista_itens")
     .select("status")
-    .eq("tipo", "filme")
+    .eq("tipo", tipo)
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   return data?.status ?? null;

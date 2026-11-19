@@ -71,3 +71,56 @@ describe("definirReacao só mexe na reação ao filme", () => {
     expect(b.tabelas.reacoes).toEqual([expect.objectContaining({ tipo: "serie", tmdb_id: ID })]);
   });
 });
+
+describe("reações à série, pelo tipo", () => {
+  const SERIE = { tipo: "serie", tmdbId: ID } as const;
+
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("obterReacao com tipo serie devolve a reação à série", async () => {
+    expect(await obterReacao(SERIE, banco().cliente)).toBe("nao-gostei");
+  });
+
+  it("definirReacao busca a série e grava tipo serie com os dados dela", async () => {
+    const b = banco();
+    const buscar = vi.fn(async (id: number) => ({
+      ...detalhes(id),
+      titulo: "Série 1399",
+      generos: [{ id: 10765, nome: "Sci-Fi & Fantasy" }],
+    }));
+
+    const resultado = await definirReacao(b.cliente, "u-1", SERIE, "amei", buscar);
+
+    expect(buscar).toHaveBeenCalledWith(ID);
+    expect(resultado).toEqual({ ok: true, titulo: "Série 1399", anterior: "nao-gostei", atual: "amei" });
+    expect(b.escritas).toEqual([
+      {
+        tabela: "reacoes",
+        op: "upsert",
+        filtros: [],
+        valor: {
+          usuario_id: "u-1",
+          tipo: "serie",
+          tmdb_id: ID,
+          reacao: "amei",
+          titulo: "Série 1399",
+          generos: [10765],
+        },
+      },
+    ]);
+  });
+
+  it("com null, apaga a reação à série e deixa a do filme", async () => {
+    const b = banco();
+
+    expect(await definirReacao(b.cliente, "u-1", SERIE, null)).toMatchObject({
+      ok: true,
+      titulo: "Série 1399",
+      anterior: "nao-gostei",
+    });
+    expect(b.tabelas.reacoes).toEqual([expect.objectContaining({ tipo: "filme", tmdb_id: ID })]);
+  });
+});

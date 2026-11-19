@@ -2,27 +2,27 @@ import "server-only";
 
 import type { ResultadoDefinir } from "@/features/listas/gravar";
 import type { Reacao } from "@/features/reacoes/opcoes";
+import { lerMidia, type Midia } from "@/lib/midia";
 import type { ClienteSupabase } from "@/lib/supabase/token";
-import { obterFilme } from "@/lib/tmdb/filmes";
-import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
-
-type BuscarFilme = (id: number) => Promise<FilmeDetalhes | null>;
+import { buscarTitulo, type BuscarTitulo, type DadosTitulo } from "@/lib/tmdb/titulo";
 
 /**
- * Deixa a reação pedida ao filme (`null` apaga). Idempotente; título e gêneros vêm do TMDB.
- * Lê, grava e apaga só a linha `tipo = 'filme'`: uma série de mesmo ID fica intacta.
+ * Deixa a reação pedida ao filme (o ID sozinho) ou à série (`null` apaga). Idempotente; título e
+ * gêneros vêm do TMDB. Lê, grava e apaga só a linha do tipo pedido: o título de outro tipo com o
+ * mesmo ID fica intacto.
  */
 export async function definirReacao(
   supabase: ClienteSupabase,
   usuarioId: string,
-  tmdbId: number,
+  alvo: number | Midia,
   reacao: Reacao | null,
-  buscarFilme: BuscarFilme = obterFilme,
+  buscar?: BuscarTitulo,
 ): Promise<ResultadoDefinir<Reacao>> {
+  const { tipo, tmdbId } = lerMidia(alvo);
   const { data: atual, error: erroLeitura } = await supabase
     .from("reacoes")
     .select("reacao, titulo")
-    .eq("tipo", "filme")
+    .eq("tipo", tipo)
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   if (erroLeitura) {
@@ -36,7 +36,7 @@ export async function definirReacao(
       const { error } = await supabase
         .from("reacoes")
         .delete()
-        .eq("tipo", "filme")
+        .eq("tipo", tipo)
         .eq("tmdb_id", tmdbId);
       if (error) {
         console.error("[reacoes] falha ao remover:", error.code, error.message);
@@ -48,25 +48,25 @@ export async function definirReacao(
 
   if (atual && anterior === reacao) return { ok: true, titulo: atual.titulo, anterior, atual: reacao };
 
-  let filme: FilmeDetalhes | null;
+  let dados: DadosTitulo | null;
   try {
-    filme = await buscarFilme(tmdbId);
+    dados = await (buscar ?? buscarTitulo(tipo))(tmdbId);
   } catch {
     return { ok: false, erro: "tmdb" };
   }
-  if (!filme) return { ok: false, erro: "filme-nao-encontrado" };
+  if (!dados) return { ok: false, erro: "filme-nao-encontrado" };
 
   const { error } = await supabase.from("reacoes").upsert({
     usuario_id: usuarioId,
-    tipo: "filme",
+    tipo,
     tmdb_id: tmdbId,
     reacao,
-    titulo: filme.titulo,
-    generos: filme.generos.map((genero) => genero.id),
+    titulo: dados.titulo,
+    generos: dados.generos.map((genero) => genero.id),
   });
   if (error) {
     console.error("[reacoes] falha ao salvar:", error.code, error.message);
     return { ok: false, erro: "banco" };
   }
-  return { ok: true, titulo: filme.titulo, anterior, atual: reacao };
+  return { ok: true, titulo: dados.titulo, anterior, atual: reacao };
 }

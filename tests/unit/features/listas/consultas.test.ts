@@ -114,3 +114,59 @@ describe("definirLista só mexe no item do filme", () => {
     ]);
   });
 });
+
+describe("listas da série, pelo tipo", () => {
+  const SERIE = { tipo: "serie", tmdbId: ID } as const;
+
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("obterStatusLista com tipo serie devolve a lista da série", async () => {
+    expect(await obterStatusLista(SERIE, banco().cliente)).toBe("quero_assistir");
+  });
+
+  it("definirLista busca a série e grava tipo serie com os dados dela", async () => {
+    const b = banco();
+    const buscar = vi.fn(async (id: number) => ({
+      ...detalhes(id),
+      titulo: "Série 1399",
+      posterPath: "/s.jpg",
+      ano: 2011,
+    }));
+
+    const resultado = await definirLista(b.cliente, "u-1", SERIE, "assistido", buscar);
+
+    expect(buscar).toHaveBeenCalledWith(ID);
+    expect(resultado).toMatchObject({ ok: true, anterior: "quero_assistir", atual: "assistido" });
+    expect(b.escritas).toEqual([
+      {
+        tabela: "lista_itens",
+        op: "upsert",
+        filtros: [],
+        valor: expect.objectContaining({
+          tipo: "serie",
+          tmdb_id: ID,
+          status: "assistido",
+          titulo: "Série 1399",
+          poster_path: "/s.jpg",
+          ano: 2011,
+        }),
+      },
+    ]);
+  });
+
+  it("com null, tira a série da lista e deixa o filme", async () => {
+    const b = banco();
+
+    expect(await definirLista(b.cliente, "u-1", SERIE, null)).toMatchObject({
+      ok: true,
+      titulo: "Série 1399",
+    });
+    expect(b.tabelas.lista_itens.map((l) => [l.tipo, l.tmdb_id])).toEqual([
+      ["filme", ID],
+      ["filme", 550],
+    ]);
+  });
+});
