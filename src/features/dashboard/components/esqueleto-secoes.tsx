@@ -1,9 +1,9 @@
-/** Esqueleto das seções enquanto o motor busca as recomendações. */
-export function EsqueletoSecoes() {
+/** Esqueleto das seções enquanto o motor (ou o TMDB de séries) busca as recomendações. */
+export function EsqueletoSecoes({ secoes = 3 }: { secoes?: number }) {
   return (
     <div aria-busy="true" className="flex flex-col gap-10">
       <span className="sr-only">Carregando recomendações</span>
-      {Array.from({ length: 3 }, (_, secao) => (
+      {Array.from({ length: secoes }, (_, secao) => (
         <div key={secao} className="flex flex-col gap-3">
           <div className="bg-muted h-7 w-56 animate-pulse rounded" />
           <div className="flex gap-4 overflow-hidden">
