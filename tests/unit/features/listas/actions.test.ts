@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { alternarLista } from "@/features/listas/actions";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { definirLista } from "@/features/listas/gravar";
-import { createClient } from "@/lib/supabase/server";
+
+import { formulario, logado } from "../../../support/actions";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
@@ -12,18 +13,6 @@ vi.mock("@/features/listas/consultas", () => ({ obterStatusLista: vi.fn() }));
 vi.mock("@/features/listas/gravar", () => ({ definirLista: vi.fn() }));
 
 const OK = { ok: true, titulo: "X", anterior: null, atual: "quero_assistir" } as const;
-
-function logado(usuario: { id: string } | null) {
-  vi.mocked(createClient).mockResolvedValue({
-    auth: { getUser: async () => ({ data: { user: usuario } }) },
-  } as never);
-}
-
-function formulario(campos: Record<string, string>) {
-  const form = new FormData();
-  for (const [nome, valor] of Object.entries(campos)) form.set(nome, valor);
-  return form;
-}
 
 beforeEach(() => {
   logado({ id: "u-1" });
