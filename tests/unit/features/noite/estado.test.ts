@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  comHorario,
   ESTADO_INICIAL,
   lerEstado,
   proximaPergunta,
@@ -8,6 +9,7 @@ import {
   respostasCompletas,
   urlComResposta,
   urlDaNoite,
+  urlsDaTroca,
   type EstadoNoite,
 } from "@/features/noite/estado";
 
@@ -17,6 +19,8 @@ const completo: EstadoNoite = {
   duracaoMax: 100,
   vistos: [10, 20],
   trocas: 2,
+  ate: null,
+  tempo: null,
 };
 
 describe("lerEstado", () => {
@@ -48,6 +52,11 @@ describe("lerEstado", () => {
     ["duração que não é número", { max: "longo" }],
     ["trocas acima do limite", { trocas: "6" }],
     ["trocas com decimal", { trocas: "1.5" }],
+    ["hora sem os minutos", { ate: "23" }],
+    ["minutos sem a hora", { tempo: "90" }],
+    ["hora fora da lista", { ate: "21", tempo: "90" }],
+    ["minutos acima de um dia", { ate: "23", tempo: "1441" }],
+    ["minutos negativos", { ate: "23", tempo: "-5" }],
   ])("ignora %s", (_caso, busca) => {
     expect(lerEstado(busca)).toEqual(ESTADO_INICIAL);
   });
@@ -59,6 +68,40 @@ describe("lerEstado", () => {
   it("guarda no máximo os 50 vistos mais recentes", () => {
     const ids = Array.from({ length: 60 }, (_, i) => i + 1);
     expect(lerEstado({ vistos: ids.join(",") }).vistos).toEqual(ids.slice(-50));
+  });
+});
+
+describe("'Até que horas?' no estado", () => {
+  it("lê a hora e os minutos juntos, inclusive meia-noite e 'já passou'", () => {
+    expect(lerEstado({ ate: "23", tempo: "90" })).toMatchObject({ ate: 23, tempo: 90 });
+    expect(lerEstado({ ate: "0", tempo: "0" })).toMatchObject({ ate: 0, tempo: 0 });
+  });
+
+  it("escreve a hora logo depois das respostas e volta pelo lerEstado", () => {
+    const estado = { ...completo, ate: 1 as const, tempo: 90 };
+    const url = urlDaNoite(estado);
+    expect(url).toBe(
+      "/noite?humor=cansado&exp=rir&com=a-dois&ate=1&tempo=90&tom=1&max=100&vistos=10,20&trocas=2",
+    );
+    expect(lerEstado(Object.fromEntries(new URL(url, "http://x").searchParams))).toEqual(estado);
+  });
+
+  it("comHorario calcula os minutos no relógio dado e mantém o resto do estado", () => {
+    const agora = new Date(2026, 10, 18, 21, 30);
+    expect(comHorario(completo, 23, agora)).toEqual({ ...completo, ate: 23, tempo: 90 });
+    expect(comHorario(completo, 0, agora)).toEqual({ ...completo, ate: 0, tempo: 150 });
+  });
+
+  it("comHorario com 'Tanto faz' tira a hora e os minutos", () => {
+    expect(comHorario({ ...completo, ate: 23, tempo: 90 }, null, new Date())).toEqual(completo);
+  });
+
+  it("a próxima rodada mantém o horário", () => {
+    const estado = { ...completo, ate: 23 as const, tempo: 90 };
+    expect(proximaRodada(estado, "muito-longo", [{ id: 1, duracaoMin: 95 }])).toMatchObject({
+      ate: 23,
+      tempo: 90,
+    });
   });
 });
 
@@ -135,5 +178,27 @@ describe("proximaRodada", () => {
   it("devolve null depois da 5ª troca", () => {
     expect(proximaRodada({ ...inicio, trocas: 4 }, "outro", mostrados)?.trocas).toBe(5);
     expect(proximaRodada({ ...inicio, trocas: 5 }, "outro", mostrados)).toBeNull();
+  });
+});
+
+describe("urlsDaTroca", () => {
+  const mostrados = [
+    { id: 30, duracaoMin: 95 },
+    { id: 40, duracaoMin: 90 },
+  ];
+
+  it("monta a URL da próxima rodada para cada motivo", () => {
+    const base = "/noite?humor=cansado&exp=rir&com=a-dois";
+    const resto = "vistos=10,20,30,40&trocas=3";
+    expect(urlsDaTroca(completo, mostrados)).toEqual({
+      "ja-vi": `${base}&tom=1&max=100&${resto}`,
+      "nao-e-o-clima": `${base}&tom=2&max=100&${resto}`,
+      "muito-longo": `${base}&tom=1&max=80&${resto}`,
+      outro: `${base}&tom=1&max=100&${resto}`,
+    });
+  });
+
+  it("devolve null quando não há mais trocas", () => {
+    expect(urlsDaTroca({ ...completo, trocas: 5 }, mostrados)).toBeNull();
   });
 });

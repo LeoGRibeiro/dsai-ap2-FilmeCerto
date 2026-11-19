@@ -14,6 +14,7 @@ const ROTAS_PROTEGIDAS = [
   "/perfil",
   "/oauth",
   "/metricas",
+  "/noite",
 ];
 /** Rotas que só fazem sentido sem sessão. */
 const ROTAS_DE_VISITANTE = ["/", "/login", "/cadastro"];

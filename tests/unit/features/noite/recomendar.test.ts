@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Clima } from "@/features/metricas/eventos";
-import { recomendarNoite, type ApiNoite, type PerfilNoite } from "@/features/noite/recomendar";
+import {
+  NoiteIndisponivel,
+  recomendarNoite,
+  type ApiNoite,
+  type PerfilNoite,
+} from "@/features/noite/recomendar";
 import { TmdbErro } from "@/lib/tmdb/cliente";
 import type { FilmeDetalhes, FilmeResumo, FiltrosDescoberta } from "@/lib/tmdb/tipos";
 
@@ -40,13 +45,24 @@ function detalhes(id: number): FilmeDetalhes {
 
 type Paginas = { streaming?: FilmeResumo[][]; geral?: FilmeResumo[][] };
 
+type Opcoes = {
+  /** `true`: toda busca falha; `"streaming"`: só a busca com provedores falha. */
+  falhar?: boolean | "streaming";
+  detalhesFalham?: boolean;
+  semDetalhes?: number[];
+  /** Duração nos detalhes por ID (o padrão é 100 min). */
+  duracoes?: Record<number, number | null>;
+};
+
 /** TMDB falso: a consulta com provedores lê `streaming`, a outra lê `geral`, por página. */
-function apiFalsa(paginas: Paginas, opcoes: { falhar?: boolean; semDetalhes?: number[] } = {}) {
+function apiFalsa(paginas: Paginas, opcoes: Opcoes = {}) {
   const chamadas: FiltrosDescoberta[] = [];
   const api: ApiNoite = {
     descobrirFilmes: vi.fn(async (filtros: FiltrosDescoberta = {}) => {
       chamadas.push(filtros);
-      if (opcoes.falhar) throw new TmdbErro("TMDB respondeu 503", 503);
+      if (opcoes.falhar === true || (opcoes.falhar === "streaming" && filtros.provedores)) {
+        throw new TmdbErro("TMDB respondeu 503", 503);
+      }
       const lista = (filtros.provedores ? paginas.streaming : paginas.geral) ?? [];
       return {
         itens: lista[(filtros.pagina ?? 1) - 1] ?? [],
@@ -55,9 +71,12 @@ function apiFalsa(paginas: Paginas, opcoes: { falhar?: boolean; semDetalhes?: nu
         totalResultados: lista.flat().length,
       };
     }),
-    obterFilme: vi.fn(async (id: number) =>
-      opcoes.semDetalhes?.includes(id) ? null : detalhes(id),
-    ),
+    obterFilme: vi.fn(async (id: number) => {
+      if (opcoes.detalhesFalham) throw new TmdbErro("Sem resposta do TMDB", null);
+      if (opcoes.semDetalhes?.includes(id)) return null;
+      const duracao = opcoes.duracoes?.[id];
+      return duracao === undefined ? detalhes(id) : { ...detalhes(id), duracaoMin: duracao };
+    }),
   };
   return { api, chamadas };
 }
@@ -210,6 +229,39 @@ describe("recomendarNoite", () => {
     expect(resultado?.destaque.motivo).toMatch(/^Você está cansado, quer rir/);
   });
 
+  it("com 'Até que horas?', limita a busca e nunca devolve filme que passa do horário", async () => {
+    const { api, chamadas } = apiFalsa(
+      { streaming: [[resumo(1), resumo(2), resumo(3), resumo(4)]] },
+      { duracoes: { 1: 95, 2: null, 3: 90 } },
+    );
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: { ...rodada1, tempo: 90 },
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(chamadas[0]).toMatchObject({ duracaoMax: 90 });
+    // 1 é mais longo que o tempo e 2 não tem duração conhecida: só 3 cabe até a hora.
+    expect(ids(resultado)).toEqual([3]);
+  });
+
+  it("sem 'Até que horas?', não confere a duração nos detalhes", async () => {
+    const { api } = apiFalsa({ streaming: [[resumo(1)]] }, { duracoes: { 1: 180 } });
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: rodada0,
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([1]);
+  });
+
   it("devolve null sem candidatos", async () => {
     const { api } = apiFalsa({ streaming: [[resumo(1)]] });
 
@@ -233,11 +285,33 @@ describe("recomendarNoite", () => {
     expect(api.descobrirFilmes).not.toHaveBeenCalled();
   });
 
-  it("não lança quando o TMDB falha", async () => {
+  it("segue com a busca geral quando só a dos streamings falha", async () => {
+    const { api } = apiFalsa({ geral: [[resumo(5)]] }, { falhar: "streaming" });
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: rodada0,
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([5]);
+  });
+
+  it("lança NoiteIndisponivel quando o TMDB falha e nenhum filme sobra", async () => {
     const { api } = apiFalsa({}, { falhar: true });
 
     await expect(
       recomendarNoite({ respostas, estado: rodada0, perfil, excluir: [], api }),
-    ).resolves.toBeNull();
+    ).rejects.toThrow(NoiteIndisponivel);
+  });
+
+  it("lança NoiteIndisponivel quando os detalhes de todos os filmes falham", async () => {
+    const { api } = apiFalsa({ streaming: [[resumo(1)]] }, { detalhesFalham: true });
+
+    await expect(
+      recomendarNoite({ respostas, estado: rodada0, perfil, excluir: [], api }),
+    ).rejects.toThrow(NoiteIndisponivel);
   });
 });

@@ -15,6 +15,8 @@ export type RodadaNoite = {
   tom: number;
   /** Limite de duração vindo de "Muito longo", se houver. */
   duracaoMax: number | null;
+  /** Minutos até a hora do "Até que horas?", se houver. */
+  tempo?: number | null;
 };
 
 export type FiltrosNoite = { filtros: FiltrosDescoberta; tom: Tom };
@@ -25,7 +27,7 @@ export type FiltrosNoite = { filtros: FiltrosDescoberta; tom: Tom };
  * são absolutos, e os favoritos não entram. `null` se todos os tons tiverem gênero evitado.
  */
 export function filtrosDaNoite(rodada: RodadaNoite, evitados: number[]): FiltrosNoite | null {
-  const { respostas, tom, duracaoMax } = rodada;
+  const { respostas, tom, duracaoMax, tempo } = rodada;
   const experiencia = TONS[respostas.experiencia];
   const disponiveis = experiencia.tons.filter((t) => !t.generos.some((g) => evitados.includes(g)));
   const escolhido = disponiveis[tom % disponiveis.length];
@@ -36,7 +38,8 @@ export function filtrosDaNoite(rodada: RodadaNoite, evitados: number[]): Filtros
   // A experiência manda mais que o humor: o humor não exclui o gênero do tom.
   const semDoHumor = (humor.sem ?? []).filter((g) => !escolhido.generos.includes(g));
   const semGeneros = [...new Set([...evitados, ...(experiencia.sem ?? []), ...semDoHumor])];
-  const limites = [humor.duracaoMax, duracaoMax ?? undefined].filter((n) => n !== undefined);
+  // "Cansado", "Muito longo" e "Até que horas?": vale o menor limite.
+  const limites = [humor.duracaoMax, duracaoMax, tempo].filter((n) => typeof n === "number");
 
   return {
     tom: escolhido,

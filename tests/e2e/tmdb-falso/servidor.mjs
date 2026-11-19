@@ -126,12 +126,18 @@ const servidor = createServer((req, res) => {
     const streaming = url.searchParams.has("with_watch_providers");
     // Com certification.lte (wizard em "família"), filmes que só essa consulta devolve.
     const familia = url.searchParams.has("certification.lte");
+    // Com with_runtime.lte abaixo de 100 ("Até que horas?" do wizard, "Curtos" da busca),
+    // filmes curtos, de 80 min nos detalhes ("Curto {id}"). Os limites de 105 e 110 dos outros
+    // testes do wizard continuam no caso geral.
+    const curto = Number(url.searchParams.get("with_runtime.lte") ?? Infinity) < 100;
     const filmes = Array.from({ length: 20 }, (_, i) =>
       familia
         ? filme(700000 + numero * 20 + i, `Para a família ${numero}-${i + 1}`, genero, i)
-        : streaming
-          ? filme(800000 + numero * 20 + i, `No streaming ${numero}-${i + 1}`, genero, i)
-          : filme(genero * 1000 + numero * 20 + i, `${nome} ${numero}-${i + 1}`, genero, i),
+        : curto
+          ? filme(600000 + numero * 20 + i, `${nome} curto ${numero}-${i + 1}`, genero, i)
+          : streaming
+            ? filme(800000 + numero * 20 + i, `No streaming ${numero}-${i + 1}`, genero, i)
+            : filme(genero * 1000 + numero * 20 + i, `${nome} ${numero}-${i + 1}`, genero, i),
     );
     return responder(res, 200, pagina(filmes, numero));
   }
@@ -157,7 +163,12 @@ const servidor = createServer((req, res) => {
   if (detalhes) {
     const id = Number(detalhes[1]);
     if (id >= 999000000) return responder(res, 404, { status_code: 34 });
-    const base = filme(id, `Filme ${id}`, 18, 0);
+    // Os filmes "Para a família" (IDs 700000+, só com certification.lte) mantêm o nome nos
+    // detalhes, que é o que o resultado do wizard mostra.
+    const familia = id >= 700000 && id < 800000;
+    const curto = id >= 600000 && id < 700000;
+    const titulo = familia ? `Para a família ${id}` : curto ? `Curto ${id}` : `Filme ${id}`;
+    const base = filme(id, titulo, 18, 0);
     delete base.genre_ids;
     return responder(res, 200, {
       ...base,
@@ -166,7 +177,7 @@ const servidor = createServer((req, res) => {
         { id: 18, name: "Drama" },
         { id: 28, name: "Ação" },
       ],
-      runtime: 125,
+      runtime: curto ? 80 : 125,
       tagline: "Um slogan de teste.",
       ...anexos("movie", id, "trailer-falso"),
       credits: { cast: ELENCO, crew: [{ name: "Diretora Teste", job: "Director" }] },

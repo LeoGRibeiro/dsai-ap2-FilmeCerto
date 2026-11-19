@@ -123,6 +123,24 @@ describe("filtrosDaNoite: perfil e regras fixas", () => {
     expect(filtrar({ humor: "animado" }, { duracaoMax: 130 })?.filtros.duracaoMax).toBe(130);
   });
 
+  it.each([
+    ["só o horário", "animado", null, 90, 90],
+    ["o horário é o menor", "cansado", 100, 90, 90],
+    ["o muito longo é o menor", "cansado", 100, 300, 100],
+    ["o cansado é o menor", "cansado", null, 300, 110],
+    ["sem horário, como antes", "animado", null, null, undefined],
+  ] as const)(
+    "'Até que horas?' combina com os outros limites: %s",
+    (_c, humor, max, tempo, esperado) => {
+      const resultado = filtrar({ humor }, { duracaoMax: max, tempo });
+      expect(resultado?.filtros.duracaoMax).toBe(esperado);
+    },
+  );
+
+  it("'já passou' (tempo 0) também é um limite", () => {
+    expect(filtrar({}, { tempo: 0 })?.filtros.duracaoMax).toBe(0);
+  });
+
   it("os gêneros favoritos não entram nos filtros: só o tom define os gêneros", () => {
     const { filtros } = filtrar({ experiencia: "rir" })!;
     expect(filtros.generos).toBeUndefined();

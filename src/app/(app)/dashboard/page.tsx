@@ -11,6 +11,7 @@ import { EsqueletoSecoes } from "@/features/dashboard/components/esqueleto-secoe
 import { SecoesRecomendadas } from "@/features/dashboard/components/secoes-recomendadas";
 import { lerRodada } from "@/features/dashboard/rodada";
 import { idsNasListas } from "@/features/listas/consultas";
+import { BotaoNoite } from "@/features/noite/components/botao-noite";
 import { obterPreferencias } from "@/features/preferencias/consultas";
 import { resumirPreferencias } from "@/features/preferencias/resumo";
 import { obterReacoes } from "@/features/reacoes/consultas";
@@ -44,9 +45,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             {resumirPreferencias(preferencias)}
           </p>
         </div>
-        <Link href={proximaRodada} className={buttonVariants({ variant: "outline", size: "lg" })}>
-          Gerar outras recomendações
-        </Link>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <BotaoNoite />
+          <Link href={proximaRodada} className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Gerar outras recomendações
+          </Link>
+        </div>
       </header>
 
       {/* A chave troca o cartão quando outra escolha passa a ser a mais recente. */}
