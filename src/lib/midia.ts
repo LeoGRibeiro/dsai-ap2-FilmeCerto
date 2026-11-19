@@ -15,6 +15,12 @@ export function lerMidia(alvo: number | Midia): Midia {
   return typeof alvo === "number" ? { tipo: "filme", tmdbId: alvo } : alvo;
 }
 
+/** Mensagem de quem grava quando o TMDB não conhece o título. */
+export const NAO_ENCONTRADO: Record<TipoMidia, string> = {
+  filme: "Filme não encontrado.",
+  serie: "Série não encontrada.",
+};
+
 /** Página de detalhes de cada tipo. */
 export function caminhoMidia({ tipo, tmdbId }: Midia): string {
   return `/${tipo}/${tmdbId}`;

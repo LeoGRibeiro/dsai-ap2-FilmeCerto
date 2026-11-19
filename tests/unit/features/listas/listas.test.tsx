@@ -27,7 +27,13 @@ describe("listaSchema", () => {
     expect(listaSchema.safeParse({ tmdbId: 550, status }).success).toBe(true);
   });
 
+  it("sem tipo é filme, e aceita série", () => {
+    expect(listaSchema.parse({ tmdbId: 550, status: "assistido" }).tipo).toBe("filme");
+    expect(listaSchema.parse({ tipo: "serie", tmdbId: 1, status: "assistido" }).tipo).toBe("serie");
+  });
+
   it.each([
+    { tipo: "anime", tmdbId: 550, status: "assistido" },
     { tmdbId: 550, status: "favorito" },
     { tmdbId: 0, status: "assistido" },
     { tmdbId: 2.5, status: "assistido" },
@@ -46,7 +52,21 @@ describe("lerAba", () => {
   });
 });
 
+/** Valores do campo `tipo` dos formulários dos botões. */
+function tiposEnviados(container: HTMLElement) {
+  return [...container.querySelectorAll<HTMLInputElement>('input[name="tipo"]')].map((i) => i.value);
+}
+
 describe("BotoesLista", () => {
+  it("envia o tipo recebido e filme sem ele", () => {
+    const serie = render(<BotoesLista tmdbId={1399} atual={null} tipo="serie" />);
+    expect(tiposEnviados(serie.container)).toEqual(["serie", "serie"]);
+    serie.unmount();
+
+    const filme = render(<BotoesLista tmdbId={550} atual={null} />);
+    expect(tiposEnviados(filme.container)).toEqual(["filme", "filme"]);
+  });
+
   it("mostra os 2 botões e marca só o status atual", () => {
     render(<BotoesLista tmdbId={550} atual="quero_assistir" />);
     expect(screen.getByRole("group", { name: "Minhas listas" })).toBeInTheDocument();

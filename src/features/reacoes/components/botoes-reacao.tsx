@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 
 import { alternarReacao } from "@/features/reacoes/actions";
 import { REACOES, ROTULOS_REACAO, type Reacao } from "@/features/reacoes/opcoes";
+import type { TipoMidia } from "@/lib/midia";
 
 const ICONES: Record<Reacao, LucideIcon> = {
   "nao-gostei": ThumbsDown,
@@ -17,7 +18,15 @@ const ICONES: Record<Reacao, LucideIcon> = {
  * "Não é pra mim", "Gostei" e "Amei". Cada botão envia um formulário (funciona sem JS);
  * com JS, o destaque muda na hora e volta atrás se a ação falhar.
  */
-export function BotoesReacao({ tmdbId, atual }: { tmdbId: number; atual: Reacao | null }) {
+export function BotoesReacao({
+  tmdbId,
+  atual,
+  tipo = "filme",
+}: {
+  tmdbId: number;
+  atual: Reacao | null;
+  tipo?: TipoMidia;
+}) {
   const [estado, formAction, enviando] = useActionState(alternarReacao, {});
   // Enquanto a ação roda, mostra o resultado esperado; depois, vale o que veio do servidor.
   const [palpite, setPalpite] = useState<Reacao | null>(atual);
@@ -35,6 +44,7 @@ export function BotoesReacao({ tmdbId, atual }: { tmdbId: number; atual: Reacao 
               action={formAction}
               onSubmit={() => setPalpite(atual === reacao ? null : reacao)}
             >
+              <input type="hidden" name="tipo" value={tipo} />
               <input type="hidden" name="tmdbId" value={tmdbId} />
               <input type="hidden" name="reacao" value={reacao} />
               <button
