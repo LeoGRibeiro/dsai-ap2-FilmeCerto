@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import TemporadaPage, { generateMetadata } from "@/app/(app)/serie/[id]/temporada/[numero]/page";
 import { lerId } from "@/features/filme/ler-id";
 import { Episodios } from "@/features/serie/components/episodios";
 import {
@@ -10,7 +11,15 @@ import {
   tempoDaTemporada,
   vizinhas,
 } from "@/features/serie/temporada";
-import type { Episodio } from "@/lib/tmdb/tipos";
+import { obterSerie, obterTemporada } from "@/lib/tmdb/series";
+import type { Episodio, SerieDetalhes, TemporadaDetalhes } from "@/lib/tmdb/tipos";
+
+vi.mock("@/lib/tmdb/series", () => ({ obterSerie: vi.fn(), obterTemporada: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  notFound: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
+  }),
+}));
 
 const HOJE = "2026-11-19";
 
@@ -34,6 +43,52 @@ const temporadas = [1, 2, 3].map((numero) => ({
   ano: 2020 + numero,
   posterPath: null,
 }));
+
+function serie(extra: Partial<SerieDetalhes> = {}): SerieDetalhes {
+  return {
+    id: 1399,
+    titulo: "A Guerra dos Tronos",
+    tituloOriginal: "Game of Thrones",
+    sinopse: "",
+    posterPath: "/serie.jpg",
+    backdropPath: null,
+    generos: [],
+    ano: 2011,
+    nota: 8.5,
+    votos: 100,
+    popularidade: 1,
+    duracaoEpisodioMin: 45,
+    temporadas,
+    slogan: null,
+    trailerYoutube: null,
+    elenco: [],
+    criacao: [],
+    classificacao: null,
+    ondeAssistir: null,
+    ...extra,
+  };
+}
+
+function temporada(numero: number, extra: Partial<TemporadaDetalhes> = {}): TemporadaDetalhes {
+  return {
+    numero,
+    nome: `Temporada ${numero}`,
+    sinopse: "O inverno está chegando.",
+    ano: 2022,
+    posterPath: null,
+    episodios: [
+      episodio(1),
+      episodio(2, { duracaoMin: null }),
+      episodio(3, { data: "2099-12-12", duracaoMin: null, nota: null }),
+    ],
+    ...extra,
+  };
+}
+
+const props = (id: string, numero: string) => ({
+  params: Promise.resolve({ id, numero }),
+  searchParams: Promise.resolve({}),
+});
 
 describe("formatação da temporada", () => {
   it("formatarData e cercaDe", () => {
@@ -102,5 +157,86 @@ describe("Episodios", () => {
     expect(within(segundo).queryByText(/★/)).toBeNull();
     expect(segundo.querySelector("img")).toBeNull();
     expect(within(segundo).getByText("2")).toBeInTheDocument();
+  });
+});
+
+describe("página da temporada", () => {
+  beforeEach(() => {
+    vi.mocked(obterSerie).mockResolvedValue(serie());
+    vi.mocked(obterTemporada).mockImplementation(async (_, numero) =>
+      numero <= 3 ? temporada(numero) : null,
+    );
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("mostra a temporada, os episódios, o tempo e as duas setas", async () => {
+    render(await TemporadaPage(props("1399", "2")));
+
+    expect(obterTemporada).toHaveBeenCalledWith(1399, 2);
+    expect(screen.getByRole("link", { name: "A Guerra dos Tronos" })).toHaveAttribute(
+      "href",
+      "/serie/1399",
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Temporada 2");
+    // 50 + 45 (sem duração) = 95; o não exibido não conta.
+    for (const dado of ["2022", "3 episódios", "cerca de 1h 35min"]) {
+      expect(screen.getByText(dado)).toBeInTheDocument();
+    }
+    expect(screen.getByText("O inverno está chegando.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Episódios" })).toBeInTheDocument();
+    expect(screen.getByText("Estreia em 12/12/2099")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Temporada anterior" })).toHaveAttribute(
+      "href",
+      "/serie/1399/temporada/1",
+    );
+    expect(screen.getByRole("link", { name: "Próxima temporada" })).toHaveAttribute(
+      "href",
+      "/serie/1399/temporada/3",
+    );
+  });
+
+  it("na primeira não há seta para trás; na última, para frente", async () => {
+    const { unmount } = render(await TemporadaPage(props("1399", "1")));
+    expect(screen.queryByRole("link", { name: "Temporada anterior" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Próxima temporada" })).toBeInTheDocument();
+    unmount();
+
+    render(await TemporadaPage(props("1399", "3")));
+    expect(screen.getByRole("link", { name: "Temporada anterior" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Próxima temporada" })).toBeNull();
+  });
+
+  it("sem pôster da temporada, usa o da série", async () => {
+    const { container } = render(await TemporadaPage(props("1399", "1")));
+    expect(container.querySelector('img[src*="serie.jpg"]')).not.toBeNull();
+  });
+
+  it.each([
+    ["temporada 0", "1399", "0"],
+    ["número inválido", "1399", "abc"],
+    ["número acima de 999", "1399", "1000"],
+    ["série inválida", "abc", "1"],
+  ])("%s dá notFound sem ir ao TMDB", async (_, id, numero) => {
+    await expect(TemporadaPage(props(id, numero))).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(obterTemporada).not.toHaveBeenCalled();
+    expect(obterSerie).not.toHaveBeenCalled();
+  });
+
+  it("série ou temporada inexistente dá notFound", async () => {
+    await expect(TemporadaPage(props("1399", "99"))).rejects.toThrow("NEXT_NOT_FOUND");
+    vi.mocked(obterSerie).mockResolvedValue(null);
+    await expect(TemporadaPage(props("999999999", "1"))).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("o título da aba é série e temporada, ou 'Temporada não encontrada'", async () => {
+    expect(await generateMetadata(props("1399", "2"))).toEqual({
+      title: "A Guerra dos Tronos: Temporada 2",
+    });
+    expect(await generateMetadata(props("1399", "0"))).toEqual({
+      title: "Temporada não encontrada",
+    });
   });
 });
