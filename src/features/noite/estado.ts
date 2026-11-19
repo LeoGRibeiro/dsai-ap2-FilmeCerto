@@ -7,7 +7,8 @@ import {
   type Pergunta,
 } from "@/features/metricas/eventos";
 import { DURACAO_TROCA, TOTAL_TONS } from "@/features/noite/mapeamento";
-import { PERGUNTAS } from "@/features/noite/opcoes";
+import { HORAS_LIMITE, PERGUNTAS, type HoraLimite } from "@/features/noite/opcoes";
+import { minutosAte } from "@/features/noite/termina";
 import { limparIds } from "@/features/surpresa/memoria";
 
 export type MotivoTroca = (typeof MOTIVOS_TROCA)[number];
@@ -21,11 +22,16 @@ export type EstadoNoite = {
   /** IDs já mostrados nesta sessão do wizard. */
   vistos: number[];
   trocas: number;
+  /** "Até que horas?": a hora escolhida, ou `null` para "Tanto faz". Sempre junto de `tempo`. */
+  ate: HoraLimite | null;
+  /** Minutos que faltavam até `ate`, calculados no navegador da pessoa. */
+  tempo: number | null;
 };
 
 export const ROTA_NOITE = "/noite";
 export const MAX_VISTOS_NOITE = 50;
 const DURACAO_MAXIMA_URL = 600;
+const TEMPO_MAXIMO_URL = 24 * 60;
 
 export const ESTADO_INICIAL: EstadoNoite = {
   respostas: {},
@@ -33,6 +39,8 @@ export const ESTADO_INICIAL: EstadoNoite = {
   duracaoMax: null,
   vistos: [],
   trocas: 0,
+  ate: null,
+  tempo: null,
 };
 
 type Busca = Record<string, string | string[] | undefined>;
@@ -62,6 +70,11 @@ export function lerEstado(busca: Busca): EstadoNoite {
     if (valor) Object.assign(respostas, { [chave]: valor });
   }
   const vistos = (texto(busca.vistos) ?? "").split(",").filter(Boolean).map(Number);
+  const hora = inteiro(busca.ate, 0, 23);
+  const ate = HORAS_LIMITE.find((h) => h === hora) ?? null;
+  const tempo = inteiro(busca.tempo, 0, TEMPO_MAXIMO_URL);
+  // A hora e os minutos só valem juntos: sem um deles, é "Tanto faz".
+  const horario = ate !== null && tempo !== null ? { ate, tempo } : { ate: null, tempo: null };
 
   return {
     respostas,
@@ -69,6 +82,7 @@ export function lerEstado(busca: Busca): EstadoNoite {
     duracaoMax: inteiro(busca.max, DURACAO_TROCA.minima, DURACAO_MAXIMA_URL),
     vistos: limparIds(vistos).slice(-MAX_VISTOS_NOITE),
     trocas: inteiro(busca.trocas, 0, MAX_TROCAS) ?? 0,
+    ...horario,
   };
 }
 
@@ -90,6 +104,10 @@ export function urlDaNoite(estado: EstadoNoite): string {
     const valor = estado.respostas[chave];
     if (valor) busca.set(parametro, valor);
   }
+  if (estado.ate !== null && estado.tempo !== null) {
+    busca.set("ate", String(estado.ate));
+    busca.set("tempo", String(estado.tempo));
+  }
   if (estado.tom > 0) busca.set("tom", String(estado.tom));
   if (estado.duracaoMax !== null) busca.set("max", String(estado.duracaoMax));
   if (estado.vistos.length > 0) busca.set("vistos", estado.vistos.join(","));
@@ -105,6 +123,15 @@ export function urlComResposta<P extends Pergunta>(
   valor: Clima[P],
 ): string {
   return urlDaNoite({ ...estado, respostas: { ...estado.respostas, [pergunta]: valor } });
+}
+
+/**
+ * "Até que horas?": o mesmo estado com a hora escolhida e os minutos que faltam no relógio
+ * `agora` (o do navegador). `null` é "Tanto faz". Não é troca: o resto do estado fica igual.
+ */
+export function comHorario(estado: EstadoNoite, hora: HoraLimite | null, agora: Date): EstadoNoite {
+  if (hora === null) return { ...estado, ate: null, tempo: null };
+  return { ...estado, ate: hora, tempo: minutosAte(hora, agora) };
 }
 
 /** Encurta o limite de duração depois de "Muito longo" (tabela de precedência da spec). */

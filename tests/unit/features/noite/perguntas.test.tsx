@@ -32,7 +32,7 @@ const preferencias: PreferenciasInput = {
   streamings: [],
 };
 
-const router = { back: vi.fn(), push: vi.fn() };
+const router = { back: vi.fn(), push: vi.fn(), replace: vi.fn() };
 
 beforeEach(() => {
   vi.mocked(obterPreferencias).mockResolvedValue(preferencias);
@@ -111,6 +111,22 @@ describe("página /noite: perguntas", () => {
       respostas: { humor: "cansado", experiencia: "rir", companhia: "a-dois" },
       estado: expect.objectContaining({ trocas: 2, vistos: [7, 9] }),
       perfil: preferencias,
+    });
+  });
+
+  it("só o resultado tem o 'Até que horas?', com o horário da URL marcado", async () => {
+    await abrir({ humor: "cansado", exp: "rir" });
+    expect(screen.queryByRole("group", { name: "Até que horas?" })).not.toBeInTheDocument();
+
+    await abrir({ humor: "cansado", exp: "rir", com: "a-dois", ate: "0", tempo: "150" });
+    const horario = screen.getByRole("group", { name: "Até que horas?" });
+    expect(within(horario).getByRole("button", { name: "Meia-noite" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(vi.mocked(RecomendacaoNoite).mock.calls[0]![0].estado).toMatchObject({
+      ate: 0,
+      tempo: 150,
     });
   });
 

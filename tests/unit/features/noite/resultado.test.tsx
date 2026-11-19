@@ -218,6 +218,44 @@ describe("RecomendacaoNoite", () => {
     );
   });
 
+  it("sem tempo até o horário escolhido, nem consulta o TMDB e oferece 'Tanto faz'", async () => {
+    const estado = { ...ESTADO_INICIAL, respostas, trocas: 2, ate: 23 as const, tempo: 0 };
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    expect(obterNoite).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Não dá tempo de ver um filme até as 23h",
+    );
+    expect(screen.getByText(/^Esse horário já passou\./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tanto faz o horário" })).toHaveAttribute(
+      "href",
+      "/noite?humor=cansado&exp=rir&com=a-dois&trocas=2",
+    );
+    expect(screen.getByRole("link", { name: "Refazer as perguntas" })).toHaveAttribute(
+      "href",
+      "/noite",
+    );
+  });
+
+  it.each([
+    [30, 0, "até a meia-noite", /^Faltam só 30 minutos\./],
+    [1, 22, "até as 22h", /^Faltam só 1 minuto\./],
+  ] as const)("com %i min, diz quanto falta", async (tempo, ate, trecho, falta) => {
+    const estado = { ...ESTADO_INICIAL, respostas, ate, tempo };
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(trecho);
+    expect(screen.getByText(falta)).toBeInTheDocument();
+    expect(obterNoite).not.toHaveBeenCalled();
+  });
+
+  it("com tempo suficiente, busca a rodada com o horário", async () => {
+    const estado = { ...ESTADO_INICIAL, respostas, ate: 23 as const, tempo: 60 };
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    expect(obterNoite).toHaveBeenCalledExactlyOnceWith(respostas, estado, perfil);
+  });
+
   it("deixa o erro do TMDB subir para a página de erro", async () => {
     vi.mocked(obterNoite).mockRejectedValue(new Error("TMDB fora"));
 

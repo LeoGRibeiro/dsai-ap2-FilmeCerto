@@ -15,6 +15,26 @@ export const PERGUNTAS = [
   { chave: "companhia", parametro: "com", titulo: "Com quem vai assistir?" },
 ] as const satisfies { chave: Pergunta; parametro: string; titulo: string }[];
 
+/** Horários do "Até que horas?" (SPEC/2026-11-18-noite-ate-que-horas.md): meia-noite é 0. */
+export const HORAS_LIMITE = [22, 23, 0, 1] as const;
+export type HoraLimite = (typeof HORAS_LIMITE)[number];
+
+/** Rótulo de cada botão do "Até que horas?". */
+export const ROTULOS_HORA: Record<HoraLimite, string> = {
+  22: "22h",
+  23: "23h",
+  0: "Meia-noite",
+  1: "1h",
+};
+
+/** "Não dá tempo de ver um filme até as 23h". */
+export const ATE_A_HORA: Record<HoraLimite, string> = {
+  22: "até as 22h",
+  23: "até as 23h",
+  0: "até a meia-noite",
+  1: "até a 1h",
+};
+
 /** Motivos de "Esse não", na ordem do pedido do cliente (3.2). */
 export const ROTULOS_MOTIVO: Record<MotivoTroca, string> = {
   "ja-vi": "Já vi",
