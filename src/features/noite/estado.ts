@@ -29,6 +29,8 @@ export type EstadoNoite = {
 };
 
 export const ROTA_NOITE = "/noite";
+/** A sala da "Noite a dois" (SPEC/2026-11-18-noite-a-dois.md). */
+export const rotaDaSala = (sala: string) => `${ROTA_NOITE}/juntos/${sala}`;
 export const MAX_VISTOS_NOITE = 50;
 const DURACAO_MAXIMA_URL = 600;
 const TEMPO_MAXIMO_URL = 24 * 60;
@@ -97,8 +99,8 @@ export function respostasCompletas(estado: EstadoNoite): Clima | null {
   return resultado.success ? resultado.data : null;
 }
 
-/** URL de `/noite` para o estado, só com os parâmetros que fogem do padrão. */
-export function urlDaNoite(estado: EstadoNoite): string {
+/** URL de `/noite` (ou de `rota`) para o estado, só com os parâmetros que fogem do padrão. */
+export function urlDaNoite(estado: EstadoNoite, rota = ROTA_NOITE): string {
   const busca = new URLSearchParams();
   for (const { chave, parametro } of PERGUNTAS) {
     const valor = estado.respostas[chave];
@@ -113,7 +115,7 @@ export function urlDaNoite(estado: EstadoNoite): string {
   if (estado.vistos.length > 0) busca.set("vistos", estado.vistos.join(","));
   if (estado.trocas > 0) busca.set("trocas", String(estado.trocas));
   const consulta = busca.toString().replaceAll("%2C", ",");
-  return consulta ? `${ROTA_NOITE}?${consulta}` : ROTA_NOITE;
+  return consulta ? `${rota}?${consulta}` : rota;
 }
 
 /** URL com mais uma resposta: o cartão de cada opção do wizard é um link para ela. */
@@ -121,8 +123,9 @@ export function urlComResposta<P extends Pergunta>(
   estado: EstadoNoite,
   pergunta: P,
   valor: Clima[P],
+  rota = ROTA_NOITE,
 ): string {
-  return urlDaNoite({ ...estado, respostas: { ...estado.respostas, [pergunta]: valor } });
+  return urlDaNoite({ ...estado, respostas: { ...estado.respostas, [pergunta]: valor } }, rota);
 }
 
 /**
