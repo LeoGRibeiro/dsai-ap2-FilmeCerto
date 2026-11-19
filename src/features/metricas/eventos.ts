@@ -5,7 +5,7 @@ export const MAX_TROCAS = 5;
 
 export const MOTIVOS_TROCA = ["ja-vi", "nao-e-o-clima", "muito-longo", "outro"] as const;
 export const RESPOSTAS_COMO_FOI = ["amei", "gostei", "nao-gostei", "nao-vi"] as const;
-export const ORIGENS_TRAILER = ["filme", "noite"] as const;
+export const ORIGENS_TRAILER = ["filme", "noite", "serie"] as const;
 export const ETAPAS_WIZARD = ["perguntas", "resultado"] as const;
 
 export type OrigemTrailer = (typeof ORIGENS_TRAILER)[number];

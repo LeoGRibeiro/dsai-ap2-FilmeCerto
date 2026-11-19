@@ -61,12 +61,45 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
       trailerYoutube: "trailer-serie-falso",
       classificacao: "12",
       ondeAssistir: { assinatura: [{ nome: "Netflix" }] },
+      situacao: "Returning Series",
+      proximoEpisodio: "2099-12-12",
     });
     expect(await series.obterSerie(999000001)).toBeNull();
   });
 
+  it("obterTemporada traz 8 episódios na 1, um sem duração e um não exibido; a 99 é 404", async () => {
+    const temporada = await series.obterTemporada(1399, 1);
+    expect(temporada).toMatchObject({ numero: 1, nome: "Temporada 1", ano: 2019 });
+    expect(temporada?.episodios).toHaveLength(8);
+    expect(temporada?.episodios[2]).toMatchObject({ numero: 3, duracaoMin: null });
+    expect(temporada?.episodios[7]).toMatchObject({
+      numero: 8,
+      duracaoMin: null,
+      data: "2099-12-12",
+      nota: null,
+    });
+    expect((await series.obterTemporada(1399, 2))?.episodios).toHaveLength(8);
+    expect(await series.obterTemporada(1399, 99)).toBeNull();
+    expect(await series.obterTemporada(999000001, 1)).toBeNull();
+  });
+
   it("generosSeries traz os gêneros de TV", async () => {
     expect(await series.generosSeries()).toContainEqual({ id: 10765, nome: "Sci-Fi & Fantasy" });
+  });
+
+  it('buscarSeries traz séries com o texto, que abrem nos detalhes; com "nada", vazio', async () => {
+    const pagina = await series.buscarSeries("dark");
+    expect(pagina).toMatchObject({ pagina: 1, totalPaginas: 3, totalResultados: 55 });
+    expect(pagina.itens).toHaveLength(20);
+    expect(pagina.itens[0]).toMatchObject({ titulo: "dark 1-1", generos: [10765] });
+    expect(await series.obterSerie(pagina.itens[0]!.id)).not.toBeNull();
+    expect((await series.buscarSeries("nada")).itens).toEqual([]);
+  });
+
+  it("a busca de filmes continua igual", async () => {
+    const pagina = await filmes.buscarFilmes("matrix", 2);
+    expect(pagina).toMatchObject({ pagina: 2, totalResultados: 55 });
+    expect(pagina.itens[0]).toMatchObject({ id: 500040, titulo: "matrix 2-1", generos: [878] });
   });
 
   it("o mesmo ID é um filme e uma série diferentes", async () => {

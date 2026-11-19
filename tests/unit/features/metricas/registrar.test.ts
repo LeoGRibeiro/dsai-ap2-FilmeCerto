@@ -26,6 +26,7 @@ describe("eventoSchema", () => {
     { nome: "como_foi_exibido" },
     { nome: "como_foi_respondido", dados: { resposta: "nao-vi" } },
     { nome: "trailer_aberto", dados: { origem: "noite" } },
+    { nome: "trailer_aberto", dados: { origem: "serie" } },
   ])("aceita $nome", (evento) => {
     expect(eventoSchema.safeParse(evento).success).toBe(true);
   });

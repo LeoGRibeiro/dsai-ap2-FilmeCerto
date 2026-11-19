@@ -15,7 +15,7 @@
 - [x] **Wizard, lógica (#6, PR #14):** spec [2026-11-18-wizard-noite.md](SPEC/2026-11-18-wizard-noite.md) com as tabelas de mapeamento e `src/features/noite/` (filtros, estado na URL, motivo, "termina às", `obterNoite`, `concluirNoite`). As telas estão no PR #20 (branch A).
 - [x] **"Como foi?" (#7, PR #15):** spec [2026-11-18-como-foi.md](SPEC/2026-11-18-como-foi.md), enum `tipo_midia`, tabela `escolhas_noite`, componentes `VouVerEsse` e `PerguntaComoFoi` (o cartão já aparece no dashboard).
 - [x] **Produção em dia:** as migrations `metricas` e `escolhas_noite` foram aplicadas com `supabase db push`. A conta do Leonardo está em `equipe_metricas`.
-- [x] **Plano até a entrega, implementado (18 e 19/11):** uma sessão orquestrou um agente por branch, cada um num worktree próprio. Todos os PRs abaixo estão abertos contra a `main`, com CI verde, na ordem de merge. **Nenhum foi mesclado ainda**: a revisão e o merge são do Lucas.
+- [x] **Plano até a entrega, implementado (18 e 19/11):** uma sessão orquestrou um agente por branch, cada um num worktree próprio. Os PRs abaixo foram mesclados na `main` em 19/11, na ordem da tabela (o F é o PR #30).
 
 | Ordem | Branch                     | PR       | Issue       | Spec                                                          | Migration nova                             |
 | ----- | -------------------------- | -------- | ----------- | ------------------------------------------------------------- | ------------------------------------------ |
@@ -34,12 +34,13 @@
 - A D já traz a H e a I por `git merge`, e a J já traz a D, então os PRs de cima não conflitam com os de baixo. A sequência completa (P a J) foi mesclada numa cópia local, na ordem: sem conflito, typecheck, lint e testes unitários verdes.
 - O que cada branch deixou de fora está na seção "Fora do escopo" da spec dela e no corpo do PR.
 
+- [x] **Séries, como chegar nelas (#33, PR #35, 19/11):** spec [2026-11-19-series-descoberta.md](SPEC/2026-11-19-series-descoberta.md). Seção "Séries para hoje à noite" no dashboard, aba "Séries" na busca por nome, página `/serie/{id}/temporada/{n}` com os episódios, situação da série, tempo de cada temporada e trailer de série no funil. Nenhuma migration. A parte A foi feita direto na branch e as partes B, C e D por um agente cada, em worktrees (`feat/series-descoberta-{dashboard,busca,episodios}`), mescladas na `feat/series-descoberta` com merge commits. **Aberto, esperando a revisão do Lucas.** Ampliou o escopo do pedido 3.5: a pergunta ao cliente está na #33.
+
 ### Próximo passo
 
-1. **Leonardo:** marcar como prontos os PRs #20 e #21 (`gh pr ready 20 && gh pr ready 21`); os agentes foram bloqueados pelas permissões nesse comando.
-2. **Lucas:** revisar e mesclar pelo terminal, um por vez, do menor número para o maior (seção "Como o Lucas mescla cada PR"). Antes de cada merge, conferir o CI verde do PR.
-3. **Logo depois dos merges com migration** (#18, #21 e #29): `pnpm exec supabase db push --dry-run` e depois `pnpm exec supabase db push`. Até isso, o `/metricas` (#18) e a "Noite a dois" (#29) dão erro na produção, e as reações e listas (#21) também, porque o código passa a gravar a coluna `tipo`.
-4. **Depois do último merge:** `curl -s https://dsai-ap2-filme-certo.vercel.app/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+1. **Lucas:** revisar e mesclar pelo terminal os PRs abertos, conferindo o CI verde de cada um: #32 (`feat/noite-tempo-relativo`) e #35 (`feat/series-descoberta`). Os dois não mexem nos mesmos arquivos de código.
+2. **Depois de cada merge:** `curl -s https://dsai-ap2-filme-certo.vercel.app/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+3. **Cliente:** responder a pergunta da #33 (séries no dashboard e na busca). Se não quiser a seção do dashboard, ela sai tirando o `Suspense` de `SecaoSeries` em `src/app/(app)/dashboard/page.tsx`.
 
 ### Pendente de configuração manual
 

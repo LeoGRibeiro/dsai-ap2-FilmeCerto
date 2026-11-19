@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ORDENS, type FiltrosBusca, type Modo } from "@/features/busca/parametros";
 import { GENEROS } from "@/features/preferencias/generos";
 import { ROTULOS_DURACAO, type Duracao } from "@/features/preferencias/opcoes";
+import type { TipoMidia } from "@/lib/midia";
 import type { OrdemDescoberta } from "@/lib/tmdb/tipos";
 
 const ROTULOS_ORDEM: Record<OrdemDescoberta, string> = {
@@ -20,21 +21,27 @@ const DURACOES_FILTRO: Duracao[] = ["indiferente", "curta", "media", "longa"];
 const estiloSelect =
   "border-input bg-background dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:ring-3";
 
-export function AbasBusca({ ativa }: { ativa: Modo }) {
-  const abas: { modo: Modo; rotulo: string; href: string }[] = [
-    { modo: "nome", rotulo: "Por nome", href: "/busca" },
-    { modo: "filtros", rotulo: "Por filtros", href: "/busca?modo=filtros" },
-  ];
+type Aba<T> = { valor: T; rotulo: string; href: string };
+
+function Abas<T extends string>({
+  rotulo,
+  ativa,
+  abas,
+}: {
+  rotulo: string;
+  ativa: T;
+  abas: Aba<T>[];
+}) {
   return (
-    <nav aria-label="Modo de busca" className="border-border flex gap-1 border-b">
-      {abas.map(({ modo, rotulo, href }) => (
+    <nav aria-label={rotulo} className="border-border flex gap-1 border-b">
+      {abas.map(({ valor, rotulo, href }) => (
         <Link
-          key={modo}
+          key={valor}
           href={href}
-          aria-current={modo === ativa ? "page" : undefined}
+          aria-current={valor === ativa ? "page" : undefined}
           className={cn(
             "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-            modo === ativa
+            valor === ativa
               ? "border-primary text-foreground"
               : "text-muted-foreground hover:text-foreground border-transparent",
           )}
@@ -46,11 +53,46 @@ export function AbasBusca({ ativa }: { ativa: Modo }) {
   );
 }
 
-export function FormularioNome({ texto }: { texto: string }) {
+export function AbasBusca({ ativa }: { ativa: Modo }) {
+  return (
+    <Abas
+      rotulo="Modo de busca"
+      ativa={ativa}
+      abas={[
+        { valor: "nome", rotulo: "Por nome", href: "/busca" },
+        { valor: "filtros", rotulo: "Por filtros", href: "/busca?modo=filtros" },
+      ]}
+    />
+  );
+}
+
+/** "Filmes | Séries" da busca por nome; os links mantêm o texto buscado. */
+export function AbasTipo({ ativa, texto }: { ativa: TipoMidia; texto: string }) {
+  const href = (tipo: TipoMidia) => {
+    const parametros = new URLSearchParams({
+      ...(texto && { q: texto }),
+      ...(tipo === "serie" && { tipo }),
+    }).toString();
+    return parametros ? `/busca?${parametros}` : "/busca";
+  };
+  return (
+    <Abas
+      rotulo="Tipo de título"
+      ativa={ativa}
+      abas={[
+        { valor: "filme", rotulo: "Filmes", href: href("filme") },
+        { valor: "serie", rotulo: "Séries", href: href("serie") },
+      ]}
+    />
+  );
+}
+
+export function FormularioNome({ texto, tipo = "filme" }: { texto: string; tipo?: TipoMidia }) {
   return (
     <form action="/busca" method="get" role="search" className="flex flex-wrap items-end gap-3">
+      {tipo === "serie" && <input type="hidden" name="tipo" value="serie" />}
       <div className="flex min-w-48 flex-1 flex-col gap-2">
-        <Label htmlFor="busca-q">Nome do filme</Label>
+        <Label htmlFor="busca-q">{tipo === "serie" ? "Nome da série" : "Nome do filme"}</Label>
         <Input id="busca-q" name="q" type="search" defaultValue={texto} className="h-10" />
       </div>
       <Button type="submit" size="lg" className="h-10 px-5">

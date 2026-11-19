@@ -93,6 +93,32 @@ function anexos(tipo, id, trailer) {
   };
 }
 
+/** Data em que nenhum teste vai chegar: episódio "ainda não exibido". */
+const DATA_FUTURA = "2099-12-12";
+
+/**
+ * Episódios de `/tv/{id}/season/{n}`. Na temporada 1, o 3 não tem duração e o 8 ainda não foi
+ * exibido (sem duração nem votos); na 2, todos de 45 min.
+ */
+function episodios(temporada) {
+  return Array.from({ length: 8 }, (_, i) => {
+    const numero = i + 1;
+    const futuro = temporada === 1 && numero === 8;
+    return {
+      episode_number: numero,
+      name: `Episódio ${temporada}x${numero}`,
+      overview: `Sinopse do episódio ${numero} da temporada ${temporada}.`,
+      runtime: futuro ? null : temporada === 1 && numero === 3 ? 0 : temporada === 1 ? 50 : 45,
+      air_date: futuro
+        ? DATA_FUTURA
+        : `${2017 + temporada * 2}-03-${String(numero).padStart(2, "0")}`,
+      still_path: null,
+      vote_average: futuro ? 0 : 7 + numero / 10,
+      vote_count: futuro ? 0 : 100,
+    };
+  });
+}
+
 function pagina(resultados, numero) {
   return { page: numero, results: resultados, total_pages: 50, total_results: 1000 };
 }
@@ -142,18 +168,21 @@ const servidor = createServer((req, res) => {
     return responder(res, 200, pagina(filmes, numero));
   }
 
-  if (url.pathname === "/3/search/movie") {
+  // Busca por nome de filmes e de séries: mesmos IDs e títulos, como na descoberta.
+  const busca = url.pathname.match(/^\/3\/search\/(movie|tv)$/);
+  if (busca) {
     const texto = url.searchParams.get("query") ?? "";
     const numero = Number(url.searchParams.get("page") ?? 1);
     if (texto.includes("nada")) {
       return responder(res, 200, { page: 1, results: [], total_pages: 0, total_results: 0 });
     }
-    const filmes = Array.from({ length: 20 }, (_, i) =>
-      filme(500000 + numero * 20 + i, `${texto} ${numero}-${i + 1}`, 878, i),
+    const [criar, genero] = busca[1] === "tv" ? [serie, 10765] : [filme, 878];
+    const itens = Array.from({ length: 20 }, (_, i) =>
+      criar(500000 + numero * 20 + i, `${texto} ${numero}-${i + 1}`, genero, i),
     );
     return responder(res, 200, {
       page: numero,
-      results: filmes,
+      results: itens,
       total_pages: 3,
       total_results: 55,
     });
@@ -259,6 +288,25 @@ const servidor = createServer((req, res) => {
       ...anexos("tv", id, "trailer-serie-falso"),
       credits: { cast: ELENCO, crew: [] },
       content_ratings: { results: [{ iso_3166_1: "BR", rating: "12" }] },
+      status: "Returning Series",
+      next_episode_to_air: { air_date: DATA_FUTURA, runtime: null },
+    });
+  }
+
+  // Temporadas 1 e 2 (as de /tv/{id}); qualquer outra, como a 99, é 404.
+  const temporada = url.pathname.match(/^\/3\/tv\/(\d+)\/season\/(\d+)$/);
+  if (temporada) {
+    const [id, numero] = [Number(temporada[1]), Number(temporada[2])];
+    if (id >= 999000000 || ![1, 2].includes(numero)) {
+      return responder(res, 404, { status_code: 34 });
+    }
+    return responder(res, 200, {
+      season_number: numero,
+      name: `Temporada ${numero}`,
+      overview: `Sinopse da temporada ${numero}.`,
+      air_date: `${2017 + numero * 2}-03-01`,
+      poster_path: null,
+      episodes: episodios(numero),
     });
   }
 

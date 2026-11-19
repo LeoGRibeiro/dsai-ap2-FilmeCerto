@@ -1,10 +1,13 @@
 import { cache } from "react";
 
-/** Só inteiros positivos de até 10 dígitos são IDs válidos do TMDB. */
-export function lerId(valor: string): number | null {
+/**
+ * Só inteiros positivos de até 10 dígitos são IDs válidos do TMDB. `maximo` limita mais, como o
+ * número da temporada (1 a 999).
+ */
+export function lerId(valor: string, maximo = Infinity): number | null {
   if (!/^\d{1,10}$/.test(valor)) return null;
   const id = Number(valor);
-  return id > 0 ? id : null;
+  return id > 0 && id <= maximo ? id : null;
 }
 
 /**

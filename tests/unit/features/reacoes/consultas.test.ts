@@ -25,6 +25,12 @@ describe("leituras de reações só veem filmes", () => {
     ]);
   });
 
+  it("obterReacoes com tipo serie traz só a reação à série", async () => {
+    expect(await obterReacoes(banco().cliente, "serie")).toEqual([
+      { tmdbId: ID, reacao: "nao-gostei", titulo: "Série 1399", generos: [10765] },
+    ]);
+  });
+
   it("obterReacao devolve a reação ao filme", async () => {
     expect(await obterReacao(ID, banco().cliente)).toBe("amei");
   });

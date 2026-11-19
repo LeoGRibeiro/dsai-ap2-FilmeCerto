@@ -8,6 +8,7 @@ import { exigirUsuario } from "@/features/auth/sessao";
 import { PerguntaComoFoi } from "@/features/como-foi/components/pergunta-como-foi";
 import { obterComoFoi } from "@/features/como-foi/consultas";
 import { EsqueletoSecoes } from "@/features/dashboard/components/esqueleto-secoes";
+import { SecaoSeries } from "@/features/dashboard/components/secao-series";
 import { SecoesRecomendadas } from "@/features/dashboard/components/secoes-recomendadas";
 import { lerRodada } from "@/features/dashboard/rodada";
 import { idsNasListas } from "@/features/listas/consultas";
@@ -78,6 +79,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             </Suspense>
           }
         />
+      </Suspense>
+
+      <Suspense key={`series-${rodada}`} fallback={<EsqueletoSecoes secoes={1} />}>
+        <SecaoSeries preferencias={preferencias} rodada={rodada} urlAtual={urlAtual} />
       </Suspense>
     </div>
   );

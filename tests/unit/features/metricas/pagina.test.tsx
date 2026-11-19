@@ -137,7 +137,8 @@ const comFunil: Metricas = {
     { nome: "como_foi_respondido", chave: "resposta", valor: "amei", total: 2, semEquipe: 0 },
     { nome: "como_foi_respondido", chave: "resposta", valor: "nao-vi", total: 1, semEquipe: 0 },
     { nome: "trailer_aberto", chave: "origem", valor: "filme", total: 15, semEquipe: 1 },
-    { nome: "trailer_aberto", chave: "origem", valor: "noite", total: 5, semEquipe: 3 },
+    { nome: "trailer_aberto", chave: "origem", valor: "noite", total: 3, semEquipe: 3 },
+    { nome: "trailer_aberto", chave: "origem", valor: "serie", total: 2, semEquipe: 0 },
   ],
 };
 
@@ -195,7 +196,8 @@ describe("FunilMetricas", () => {
     ]);
     expect(linhas("Trailers por origem")).toEqual([
       "Página do filme15 · 75%",
-      "Wizard da noite5 · 25%",
+      "Wizard da noite3 · 15%",
+      "Página da série2 · 10%",
     ]);
   });
 
@@ -206,7 +208,11 @@ describe("FunilMetricas", () => {
       "Chegou à recomendação0",
       "Clicou “Vou ver esse!”0",
     ]);
-    expect(linhas("Trailers por origem")).toEqual(["Página do filme0", "Wizard da noite0"]);
+    expect(linhas("Trailers por origem")).toEqual([
+      "Página do filme0",
+      "Wizard da noite0",
+      "Página da série0",
+    ]);
     const secao = screen.getByRole("region", { name: "Funil e detalhes" });
     expect(secao.textContent).not.toMatch(/NaN|%/);
   });
@@ -266,6 +272,7 @@ describe("página /metricas", () => {
     expect(linhas("Trailers por origem")).toEqual([
       "Página do filme1 · 25%",
       "Wizard da noite3 · 75%",
+      "Página da série0 · 0%",
     ]);
     expect(linhas("Respostas do “Como foi?”")).toEqual([
       "Amei0",

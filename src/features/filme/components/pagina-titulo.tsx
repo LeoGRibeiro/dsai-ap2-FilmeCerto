@@ -9,13 +9,20 @@ import type { Midia } from "@/lib/midia";
 
 /** Partes comuns às páginas de filme e de série. */
 
-export function Voltar() {
+/** "← Voltar" ao dashboard; a temporada volta à série, com o nome dela. */
+export function Voltar({
+  href = "/dashboard",
+  rotulo = "Voltar",
+}: {
+  href?: string;
+  rotulo?: string;
+}) {
   return (
     <Link
-      href="/dashboard"
+      href={href}
       className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
     >
-      <ArrowLeft className="size-4" aria-hidden="true" /> Voltar
+      <ArrowLeft className="size-4" aria-hidden="true" /> {rotulo}
     </Link>
   );
 }

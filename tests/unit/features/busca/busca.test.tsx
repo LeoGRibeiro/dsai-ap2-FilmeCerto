@@ -1,10 +1,17 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import BuscaPage, { generateMetadata } from "@/app/(app)/busca/page";
+import { AbasTipo } from "@/features/busca/components/formularios-busca";
 import { Paginacao } from "@/features/busca/components/paginacao";
 import { ResultadosBusca } from "@/features/busca/components/resultados-busca";
 import { filtrosParaDescoberta, lerBusca, parametrosDaBusca } from "@/features/busca/parametros";
+import { buscarFilmes, descobrirFilmes } from "@/lib/tmdb/filmes";
+import { buscarSeries } from "@/lib/tmdb/series";
 import type { FilmeResumo, Pagina } from "@/lib/tmdb/tipos";
+
+vi.mock("@/lib/tmdb/filmes", () => ({ buscarFilmes: vi.fn(), descobrirFilmes: vi.fn() }));
+vi.mock("@/lib/tmdb/series", () => ({ buscarSeries: vi.fn() }));
 
 function filme(id: number): FilmeResumo {
   return {
@@ -49,6 +56,14 @@ describe("lerBusca", () => {
     expect(lerBusca({ modo: "filtros" }).modo).toBe("filtros");
     expect(lerBusca({ modo: "outro" }).modo).toBe("nome");
     expect(lerBusca({}).modo).toBe("nome");
+  });
+
+  it("lê tipo=serie; ausente, inválido ou no modo filtros é filme", () => {
+    expect(lerBusca({ q: "dark", tipo: "serie" }).tipo).toBe("serie");
+    for (const tipo of [undefined, "filme", "outro", ["serie", "filme"]]) {
+      expect(lerBusca({ q: "dark", tipo }).tipo).toBe("filme");
+    }
+    expect(lerBusca({ modo: "filtros", tipo: "serie" }).tipo).toBe("filme");
   });
 
   it("valida os filtros e aplica os padrões", () => {
@@ -97,6 +112,14 @@ describe("parametrosDaBusca", () => {
     expect(
       parametrosDaBusca(lerBusca({ modo: "filtros", genero: "27", duracao: "curta" }, hoje)),
     ).toEqual({ modo: "filtros", genero: "27", duracao: "curta" });
+  });
+
+  it("mantém o tipo só quando é série", () => {
+    expect(parametrosDaBusca(lerBusca({ q: "dark", tipo: "serie", pagina: "2" }))).toEqual({
+      q: "dark",
+      tipo: "serie",
+    });
+    expect(parametrosDaBusca(lerBusca({ q: "dark", tipo: "filme" }))).toEqual({ q: "dark" });
   });
 });
 
@@ -148,6 +171,92 @@ describe("ResultadosBusca", () => {
     expect(screen.getByText("40 filmes encontrados")).toBeInTheDocument();
     rerender(<ResultadosBusca {...base} modo="filtros" texto="" resultado={pagina([], 0, 0)} />);
     expect(screen.getByText("Nenhum filme encontrado com esses filtros.")).toBeInTheDocument();
+  });
+});
+
+describe("ResultadosBusca de séries", () => {
+  const base = { parametros: { q: "dark", tipo: "serie" }, modo: "nome" as const };
+
+  it("os cartões levam a /serie/{id} e dizem Série", () => {
+    render(
+      <ResultadosBusca {...base} tipo="serie" texto="dark" resultado={pagina([filme(7)], 1)} />,
+    );
+    const cartao = screen.getByRole("link", { name: "Matrix 7 (1999), série" });
+    expect(cartao).toHaveAttribute("href", "/serie/7");
+    expect(within(cartao).getByText("Série · 1999 · ★ 8.2")).toBeInTheDocument();
+  });
+
+  it("sem resultado, a mensagem fala de série", () => {
+    render(<ResultadosBusca {...base} tipo="serie" texto="nada" resultado={pagina([], 0, 0)} />);
+    expect(screen.getByText("Nenhuma série encontrada para “nada”.")).toBeInTheDocument();
+    expect(screen.queryByText(/Nenhum filme/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AbasTipo", () => {
+  it("mantém o texto buscado e marca a aba ativa", () => {
+    render(<AbasTipo ativa="serie" texto="guerra dos tronos" />);
+    const filmes = screen.getByRole("link", { name: "Filmes" });
+    const series = screen.getByRole("link", { name: "Séries" });
+    expect(filmes).toHaveAttribute("href", "/busca?q=guerra+dos+tronos");
+    expect(series).toHaveAttribute("href", "/busca?q=guerra+dos+tronos&tipo=serie");
+    expect(series).toHaveAttribute("aria-current", "page");
+    expect(filmes).not.toHaveAttribute("aria-current");
+  });
+
+  it("sem texto, os links não levam q", () => {
+    render(<AbasTipo ativa="filme" texto="" />);
+    expect(screen.getByRole("link", { name: "Filmes" })).toHaveAttribute("href", "/busca");
+    expect(screen.getByRole("link", { name: "Séries" })).toHaveAttribute(
+      "href",
+      "/busca?tipo=serie",
+    );
+  });
+});
+
+describe("BuscaPage", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const abrir = async (parametros: Record<string, string>) =>
+    render(await BuscaPage({ searchParams: Promise.resolve(parametros) } as never));
+
+  it("com tipo=serie, procura séries e mostra as abas Filmes | Séries", async () => {
+    vi.mocked(buscarSeries).mockResolvedValueOnce(pagina([filme(7)], 1));
+    await abrir({ q: "dark", tipo: "serie" });
+
+    expect(buscarSeries).toHaveBeenCalledWith("dark", 1);
+    expect(buscarFilmes).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1, name: "Buscar" })).toBeInTheDocument();
+    const abas = screen.getByRole("navigation", { name: "Tipo de título" });
+    expect(within(abas).getByRole("link", { name: "Séries" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Matrix 7 (1999), série" })).toHaveAttribute(
+      "href",
+      "/serie/7",
+    );
+    expect(screen.getByLabelText("Nome da série")).toHaveValue("dark");
+  });
+
+  it("no modo Por filtros, só filmes e sem as abas", async () => {
+    vi.mocked(descobrirFilmes).mockResolvedValueOnce(pagina([filme(1)], 1));
+    await abrir({ modo: "filtros", tipo: "serie" });
+
+    expect(descobrirFilmes).toHaveBeenCalled();
+    expect(buscarSeries).not.toHaveBeenCalled();
+    expect(screen.queryByRole("navigation", { name: "Tipo de título" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Matrix 1 (1999)" })).toHaveAttribute(
+      "href",
+      "/filme/1",
+    );
+  });
+
+  it("o título da aba é Buscar sem texto e Busca: {texto} com ele", async () => {
+    const titulo = async (parametros: Record<string, string>) =>
+      (await generateMetadata({ searchParams: Promise.resolve(parametros) } as never)).title;
+    expect(await titulo({})).toBe("Buscar");
+    expect(await titulo({ q: "dark", tipo: "serie" })).toBe("Busca: dark");
   });
 });
 

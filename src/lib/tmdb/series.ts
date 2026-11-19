@@ -4,6 +4,7 @@ import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb
 import {
   anoDe,
   elencoDe,
+  limitarPagina,
   nuloSe404,
   ondeAssistirDe,
   paraGeneros,
@@ -16,8 +17,10 @@ import {
   detalhesSerieTmdb,
   generosTmdb,
   serieTmdb,
+  temporadaTmdb,
   type DetalhesSerieTmdb,
   type SerieTmdb,
+  type TemporadaTmdb,
 } from "@/lib/tmdb/esquemas";
 import type {
   ClassificacaoBR,
@@ -26,11 +29,14 @@ import type {
   Pagina,
   SerieDetalhes,
   SerieResumo,
+  TemporadaDetalhes,
 } from "@/lib/tmdb/tipos";
 
 const HORA = 3600;
 const CACHE_LISTAS = 6 * HORA;
 const CACHE_SERIE = 24 * HORA;
+
+const PAGINA_VAZIA: Pagina<never> = { itens: [], pagina: 1, totalPaginas: 0, totalResultados: 0 };
 
 const ORDENS: Record<OrdemDescoberta, string> = {
   popularidade: "popularity.desc",
@@ -90,6 +96,27 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     criacao: serie.created_by.map((pessoa) => pessoa.name),
     classificacao: classificacaoDe(serie),
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
+    situacao: serie.status,
+    proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,
+  };
+}
+
+function paraTemporada(temporada: TemporadaTmdb): TemporadaDetalhes {
+  return {
+    numero: temporada.season_number,
+    nome: temporada.name,
+    sinopse: temporada.overview,
+    ano: anoDe(temporada.air_date),
+    posterPath: temporada.poster_path,
+    episodios: temporada.episodes.map((episodio) => ({
+      numero: episodio.episode_number,
+      nome: episodio.name,
+      sinopse: episodio.overview,
+      duracaoMin: episodio.runtime || null,
+      data: episodio.air_date,
+      stillPath: episodio.still_path,
+      nota: episodio.vote_count > 0 ? episodio.vote_average : null,
+    })),
   };
 }
 
@@ -117,10 +144,30 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       });
     },
 
+    /** Temporada `numero` com os episódios; `null` se a série ou a temporada não existem. */
+    obterTemporada(serieId: number, numero: number): Promise<TemporadaDetalhes | null> {
+      return nuloSe404(async () => {
+        const dados = await cliente.requisitar(`/tv/${serieId}/season/${numero}`, {}, CACHE_SERIE);
+        return paraTemporada(validar(temporadaTmdb, dados));
+      });
+    },
+
     /** Gêneros de TV: outra lista que a dos filmes, com IDs próprios. */
     async generosSeries(): Promise<{ id: number; nome: string }[]> {
       const dados = await cliente.requisitar("/genre/tv/list", {}, CACHE_SERIE);
       return paraGeneros(validar(generosTmdb, dados).genres);
+    },
+
+    /** Busca por nome (`/search/tv`), sem `region`: a busca de séries não filtra por país. */
+    async buscarSeries(texto: string, pagina = 1): Promise<Pagina<SerieResumo>> {
+      const consulta = texto.trim();
+      if (!consulta) return PAGINA_VAZIA;
+      const dados = await cliente.requisitar(
+        "/search/tv",
+        { query: consulta, page: limitarPagina(pagina), include_adult: false },
+        CACHE_LISTAS,
+      );
+      return paraPagina(serieTmdb, dados, paraResumo);
     },
   };
 }
@@ -133,4 +180,7 @@ const api = () => (padrao ??= criarApiSeries(clienteTmdbPadrao()));
 export const descobrirSeries: ApiSeries["descobrirSeries"] = (...args) =>
   api().descobrirSeries(...args);
 export const obterSerie: ApiSeries["obterSerie"] = (...args) => api().obterSerie(...args);
+export const obterTemporada: ApiSeries["obterTemporada"] = (...args) =>
+  api().obterTemporada(...args);
 export const generosSeries: ApiSeries["generosSeries"] = () => api().generosSeries();
+export const buscarSeries: ApiSeries["buscarSeries"] = (...args) => api().buscarSeries(...args);

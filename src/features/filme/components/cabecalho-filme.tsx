@@ -13,15 +13,17 @@ export type DadosCabecalho = Pick<
 
 /**
  * Cabeçalho da página de um título: fundo, pôster, título, linha de dados (itens `null` são
- * omitidos), gêneros, slogan e ações. Filme e série mudam só a linha de dados.
+ * omitidos), um aviso abaixo dela (o próximo episódio da série), gêneros, slogan e ações.
  */
 export function Cabecalho({
   titulo: filme,
   dados: itens,
+  aviso,
   acoes,
 }: {
   titulo: DadosCabecalho;
   dados: (string | null)[];
+  aviso?: string | null;
   acoes?: ReactNode;
 }) {
   const fundo = urlImagem(filme.backdropPath, "w1280");
@@ -63,6 +65,7 @@ export function Cabecalho({
               </li>
             ))}
           </ul>
+          {aviso && <p className="text-sm font-medium">{aviso}</p>}
           {filme.generos.length > 0 && (
             <ul aria-label="Gêneros" className="flex flex-wrap gap-2">
               {filme.generos.map((genero) => (
