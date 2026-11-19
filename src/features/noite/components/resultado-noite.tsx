@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { VouVerEsse } from "@/features/como-foi/components/vou-ver-esse";
 import { MAX_TROCAS, type Clima } from "@/features/metricas/eventos";
+import { CompartilharNoite } from "@/features/noite/components/compartilhar-noite";
 import { EsseNao } from "@/features/noite/components/esse-nao";
 import { FilmeDestaque, type FilmeNaTela } from "@/features/noite/components/filme-destaque";
 import { OpcaoNoite } from "@/features/noite/components/opcao-noite";
@@ -23,7 +24,8 @@ type Props = {
 
 /**
  * Tela do resultado: o destaque e as opções, cada um com "Vou ver esse!", e "Esse não".
- * Na primeira rodada, conclui o wizard. Depois da escolha, só fica a confirmação do escolhido.
+ * Na primeira rodada, conclui o wizard. Depois da escolha, só fica a confirmação do escolhido,
+ * com o "Compartilhar".
  */
 export function ResultadoNoite({ respostas, trocas, destaque, opcoes, proximas }: Props) {
   const { concluir, marcarEscolha } = useSessaoNoite();
@@ -35,15 +37,24 @@ export function ResultadoNoite({ respostas, trocas, destaque, opcoes, proximas }
 
   const vouVer = (filme: FilmeNaTela) =>
     (escolhido === null || escolhido === filme.id) && (
-      <VouVerEsse
-        tmdbId={filme.id}
-        titulo={filme.titulo}
-        trocas={trocas}
-        aoEscolher={() => {
-          setEscolhido(filme.id);
-          marcarEscolha();
-        }}
-      />
+      <>
+        <VouVerEsse
+          tmdbId={filme.id}
+          titulo={filme.titulo}
+          trocas={trocas}
+          aoEscolher={() => {
+            setEscolhido(filme.id);
+            marcarEscolha();
+          }}
+        />
+        {escolhido === filme.id && (
+          <CompartilharNoite
+            tmdbId={filme.id}
+            titulo={filme.titulo}
+            duracaoMin={filme.duracaoMin}
+          />
+        )}
+      </>
     );
 
   return (
