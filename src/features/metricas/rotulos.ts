@@ -80,4 +80,5 @@ export const ROTULOS_COMO_FOI: Record<(typeof RESPOSTAS_COMO_FOI)[number], strin
 export const ROTULOS_ORIGEM: Record<OrigemTrailer, string> = {
   filme: "Página do filme",
   noite: "Wizard da noite",
+  serie: "Página da série",
 };

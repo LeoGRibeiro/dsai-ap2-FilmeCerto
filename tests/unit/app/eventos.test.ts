@@ -41,6 +41,17 @@ describe("POST /api/eventos", () => {
     expect(insert).toHaveBeenCalledWith({ nome: "trailer_aberto", dados: { origem: "filme" } });
   });
 
+  it("aceita o trailer aberto na página da série", async () => {
+    sessao({ id: "u-1" });
+
+    const resposta = await postar(
+      JSON.stringify({ nome: "trailer_aberto", dados: { origem: "serie" } }),
+    );
+
+    expect(resposta.status).toBe(204);
+    expect(insert).toHaveBeenCalledWith({ nome: "trailer_aberto", dados: { origem: "serie" } });
+  });
+
   it("responde 401 sem sessão e não grava", async () => {
     sessao(null);
 

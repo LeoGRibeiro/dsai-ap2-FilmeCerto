@@ -42,10 +42,9 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
 
       <Sinopse texto={serie.sinopse} rotulo="Criação" nomes={serie.criacao} />
 
-      {/* Sem `origem`: a origem "serie" do trailer_aberto fica para depois (spec series-pagina). */}
       {serie.trailerYoutube && (
         <Secao titulo="Trailer">
-          <Trailer chave={serie.trailerYoutube} titulo={serie.titulo} />
+          <Trailer chave={serie.trailerYoutube} titulo={serie.titulo} origem="serie" />
         </Secao>
       )}
 
