@@ -6,12 +6,7 @@ import { CartaoFilme } from "@/features/dashboard/components/cartao-filme";
 import { CabecalhoFilme } from "@/features/filme/components/cabecalho-filme";
 import { Elenco } from "@/features/filme/components/elenco";
 import { OndeAssistir } from "@/features/filme/components/onde-assistir";
-import {
-  AcoesTitulo,
-  Secao,
-  Sinopse,
-  Voltar,
-} from "@/features/filme/components/pagina-titulo";
+import { AcoesTitulo, Secao, Sinopse, Voltar } from "@/features/filme/components/pagina-titulo";
 import { Trailer } from "@/features/filme/components/trailer";
 import { tituloComAno } from "@/features/filme/formatar";
 import { buscaPorId } from "@/features/filme/ler-id";

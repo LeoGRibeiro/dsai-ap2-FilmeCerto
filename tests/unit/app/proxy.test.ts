@@ -14,16 +14,19 @@ function sessao(usuario: { id: string } | null) {
 }
 
 describe("proxy", () => {
-  it.each(["/serie/1399", "/filme/550"])("sem sessão, %s leva ao login com o destino", async (rota) => {
-    sessao(null);
+  it.each(["/serie/1399", "/filme/550"])(
+    "sem sessão, %s leva ao login com o destino",
+    async (rota) => {
+      sessao(null);
 
-    const resposta = await proxy(new NextRequest(`http://localhost${rota}`));
+      const resposta = await proxy(new NextRequest(`http://localhost${rota}`));
 
-    expect(resposta.status).toBe(307);
-    expect(resposta.headers.get("location")).toBe(
-      `http://localhost/login?next=${encodeURIComponent(rota)}`,
-    );
-  });
+      expect(resposta.status).toBe(307);
+      expect(resposta.headers.get("location")).toBe(
+        `http://localhost/login?next=${encodeURIComponent(rota)}`,
+      );
+    },
+  );
 
   it("com sessão, a página da série segue", async () => {
     sessao({ id: "u-1" });
