@@ -1,12 +1,49 @@
+import { cn } from "cn";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { CLIMAS } from "@/features/metricas/eventos";
 import { ROTULOS_CLIMA } from "@/features/metricas/rotulos";
 import { BotaoVoltar } from "@/features/noite/components/botao-voltar";
-import { urlComResposta, type EstadoNoite } from "@/features/noite/estado";
-import { PERGUNTAS } from "@/features/noite/opcoes";
+import { inicioDaNoite, urlComResposta, type EstadoNoite } from "@/features/noite/estado";
+import { PERGUNTAS, ROTULOS_TIPO } from "@/features/noite/opcoes";
+import { TIPOS_MIDIA } from "@/lib/midia";
 
 export type PerguntaDaNoite = (typeof PERGUNTAS)[number];
+
+/**
+ * "Filme ou série?" na 1ª tela, com o tipo atual marcado. Quem vem do dashboard já escolheu
+ * no botão; aqui dá para mudar de ideia (SPEC/2026-11-18-series-noite.md).
+ */
+function FilmeOuSerie({ estado }: { estado: EstadoNoite }) {
+  return (
+    <div
+      role="group"
+      aria-labelledby="filme-ou-serie"
+      className="flex flex-wrap items-center gap-2"
+    >
+      <p id="filme-ou-serie" className="text-muted-foreground mr-1 text-sm">
+        Filme ou série?
+      </p>
+      {TIPOS_MIDIA.map((tipo) => {
+        const atual = tipo === estado.tipo;
+        return (
+          <Link
+            key={tipo}
+            href={inicioDaNoite(tipo)}
+            aria-current={atual ? "true" : undefined}
+            className={cn(
+              buttonVariants({ variant: atual ? "default" : "outline" }),
+              "h-10 px-4 text-sm",
+            )}
+          >
+            {ROTULOS_TIPO[tipo]}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Uma tela do wizard: a pergunta e um cartão grande por resposta. Cada cartão é um link
@@ -30,6 +67,7 @@ export function PerguntaNoite({
           {posicao} de {PERGUNTAS.length}
         </p>
       </div>
+      {posicao === 1 && <FilmeOuSerie estado={estado} />}
       <h1 id="pergunta-noite" className="text-3xl tracking-tight text-balance sm:text-4xl">
         {pergunta.titulo}
       </h1>

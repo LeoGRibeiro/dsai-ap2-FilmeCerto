@@ -83,6 +83,16 @@ describe("TerminaAs", () => {
   });
 });
 
+describe("TerminaAs de série", () => {
+  it("diz que é o episódio que termina", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 18, 23, 30));
+    render(<TerminaAs duracaoMin={45} episodio />);
+
+    expect(screen.getByText("Começando agora, o episódio termina às 0h15")).toBeInTheDocument();
+  });
+});
+
 describe("FilmeDestaque", () => {
   it("mostra título, ano e duração, onde assistir, motivo, sinopse e o trailer da noite", async () => {
     render(<FilmeDestaque filme={naTela()} />);
@@ -99,6 +109,17 @@ describe("FilmeDestaque", () => {
       nome: "trailer_aberto",
       dados: { origem: "noite" },
     });
+  });
+
+  it("de uma série, mostra 'A série da sua noite' e a duração do episódio", () => {
+    render(<FilmeDestaque filme={naTela({ tipo: "serie", titulo: "Dark", duracaoMin: 45 })} />);
+
+    expect(screen.getByText("A série da sua noite")).toBeInTheDocument();
+    expect(screen.queryByText("O filme da sua noite")).not.toBeInTheDocument();
+    expect(screen.getByText("2019 · Episódios de ~45 min")).toBeInTheDocument();
+    expect(
+      screen.getByText(/^Começando agora, o episódio termina às \d{1,2}h\d{2}$/),
+    ).toBeInTheDocument();
   });
 
   it("sem duração, trailer, streaming e pôster, mostra só o que tem", () => {
@@ -157,7 +178,7 @@ describe("ResultadoNoite", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "Vou ver esse!" })[0]!);
 
     expect(await screen.findByRole("status")).toHaveTextContent("Boa sessão!");
-    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(10);
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(10, "filme");
     expect(enviarEvento).toHaveBeenCalledWith({ nome: "wizard_escolheu", dados: { trocas: 2 } });
     expect(sessao.marcarEscolha).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
@@ -171,8 +192,32 @@ describe("ResultadoNoite", () => {
     await userEvent.click(within(opcao).getByRole("button", { name: "Vou ver esse!" }));
 
     expect(await within(opcao).findByRole("status")).toHaveTextContent("Boa sessão!");
-    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12);
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12, "filme");
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
+  });
+
+  it("de uma série, escolhe a série e compartilha um episódio dela", async () => {
+    render(
+      <ResultadoNoite
+        respostas={respostas}
+        trocas={0}
+        destaque={naTela({ tipo: "serie", id: 77, titulo: "Dark", duracaoMin: 50 })}
+        opcoes={[]}
+        proximas={PROXIMAS}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Vou ver esse!" }));
+
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(77, "serie");
+    expect(await screen.findByRole("link", { name: "Ver detalhes de Dark" })).toHaveAttribute(
+      "href",
+      "/serie/77",
+    );
+    const link = screen.getByRole("link", { name: "Compartilhar no WhatsApp" });
+    const texto = new URL(link.getAttribute("href")!).searchParams.get("text");
+    expect(texto).toMatch(/^Hoje vamos ver um episódio de Dark, termina às \d{1,2}h\d{2}\n/);
+    expect(texto).toMatch(/\/serie\/77$/);
   });
 
   it("só depois do 'Vou ver esse!' oferece compartilhar o filme escolhido", async () => {
@@ -233,6 +278,40 @@ describe("RecomendacaoNoite", () => {
     );
   });
 
+  it("de uma série, mostra a série e manda o tipo para a tela", async () => {
+    vi.mocked(obterNoite).mockResolvedValue({ destaque: daNoite(10), opcoes: [] });
+    const estado = { ...ESTADO_INICIAL, tipo: "serie" as const, respostas };
+
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    expect(screen.getByText("A série da sua noite")).toBeInTheDocument();
+    expect(paraTela(daNoite(10), "serie").tipo).toBe("serie");
+  });
+
+  it("sem série, diz 'nenhuma série' e refaz as perguntas de série", async () => {
+    const estado = { ...ESTADO_INICIAL, tipo: "serie" as const, respostas };
+    render(await RecomendacaoNoite({ respostas, estado, perfil }));
+
+    expect(screen.getByText(/não sobrou nenhuma série/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Refazer as perguntas" })).toHaveAttribute(
+      "href",
+      "/noite?tipo=serie",
+    );
+  });
+
+  it("para série, o mínimo do 'Até que horas?' é de 20 minutos de episódio", async () => {
+    const serie = { ...ESTADO_INICIAL, tipo: "serie" as const, respostas, ate: 23 as const };
+
+    render(await RecomendacaoNoite({ respostas, estado: { ...serie, tempo: 15 }, perfil }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Não dá tempo de ver um episódio até as 23h",
+    );
+    expect(obterNoite).not.toHaveBeenCalled();
+
+    await RecomendacaoNoite({ respostas, estado: { ...serie, tempo: 30 }, perfil });
+    expect(obterNoite).toHaveBeenCalledOnce();
+  });
+
   it("sem tempo até o horário escolhido, nem consulta o TMDB e oferece 'Tanto faz'", async () => {
     const estado = { ...ESTADO_INICIAL, respostas, trocas: 2, ate: 23 as const, tempo: 0 };
     render(await RecomendacaoNoite({ respostas, estado, perfil }));
@@ -280,7 +359,7 @@ describe("RecomendacaoNoite", () => {
   });
 
   it("manda ao navegador só os campos da tela", () => {
-    expect(paraTela(daNoite(10))).toEqual(naTela({ titulo: "Filme 10" }));
+    expect(paraTela(daNoite(10))).toEqual(naTela({ tipo: "filme", titulo: "Filme 10" }));
   });
 });
 

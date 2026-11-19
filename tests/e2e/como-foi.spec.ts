@@ -7,7 +7,13 @@ import { cadastrar, concluirOnboarding } from "./helpers";
  * Cadastra uma pessoa e grava, em nome dela, uma escolha da noite feita há `horas` horas.
  * As telas do wizard ainda não existem; a escolha entra pela API, como o "Vou ver esse!" faria.
  */
-async function comEscolha(page: Page, nome: string, tmdbId: number, horas: number) {
+async function comEscolha(
+  page: Page,
+  nome: string,
+  tmdbId: number,
+  horas: number,
+  tipo: "filme" | "serie" = "filme",
+) {
   const email = emailAleatorio("e2e");
   await cadastrar(page, nome, email);
   await concluirOnboarding(page);
@@ -19,8 +25,9 @@ async function comEscolha(page: Page, nome: string, tmdbId: number, horas: numbe
   });
   expect(erroLogin).toBeNull();
   const { error } = await cliente.from("escolhas_noite").insert({
+    tipo,
     tmdb_id: tmdbId,
-    titulo: `Filme ${tmdbId}`,
+    titulo: `${tipo === "serie" ? "Série" : "Filme"} ${tmdbId}`,
     escolhido_em: new Date(Date.now() - horas * 3_600_000).toISOString(),
   });
   expect(error).toBeNull();
@@ -50,6 +57,32 @@ test("Amei grava a reação e 'Já assisti' e tira a pergunta", async ({ page })
   await page.goto("/dashboard");
   await expect(page.getByRole("region", { name: "Escolhidos para você" })).toBeVisible();
   await expect(cartao(page)).toHaveCount(0);
+});
+
+test("de uma série, Amei marca a série e não o filme de mesmo ID", async ({ page }) => {
+  await comEscolha(page, "Ivo Matos", 4545, 4, "serie");
+
+  await expect(cartao(page).getByRole("heading")).toHaveText("Como foi Série 4545?");
+  await expect(cartao(page).getByRole("link", { name: "Série 4545" })).toHaveAttribute(
+    "href",
+    "/serie/4545",
+  );
+  await cartao(page).getByRole("button", { name: "Amei" }).click();
+  await expect(cartao(page)).toHaveCount(0);
+
+  await page.goto("/serie/4545");
+  await expect(pressionado(page, "O que achou?", "Amei")).toHaveAttribute("aria-pressed", "true");
+  await expect(pressionado(page, "Minhas listas", "Já assisti")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.goto("/filme/4545");
+  await expect(pressionado(page, "O que achou?", "Amei")).toHaveAttribute("aria-pressed", "false");
+  await expect(pressionado(page, "Minhas listas", "Já assisti")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
 });
 
 test("'Não cheguei a ver' tira a pergunta sem marcar nada", async ({ page }) => {

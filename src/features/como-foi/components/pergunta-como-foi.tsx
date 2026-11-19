@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { exibirComoFoi, responderComoFoi } from "@/features/como-foi/actions";
+import { caminhoMidia } from "@/lib/midia";
 import type { PerguntaComoFoi as Pergunta } from "@/features/como-foi/consultas";
 import type { RESPOSTAS_COMO_FOI } from "@/features/metricas/eventos";
 import { ROTULOS_REACAO } from "@/features/reacoes/opcoes";
@@ -43,7 +44,7 @@ export function PerguntaComoFoi({ pergunta }: { pergunta: Pergunta }) {
     >
       <h2 id="como-foi-titulo" className="text-xl tracking-tight">
         Como foi{" "}
-        <Link href={`/filme/${pergunta.tmdbId}`} className="underline-offset-4 hover:underline">
+        <Link href={caminhoMidia(pergunta)} className="underline-offset-4 hover:underline">
           {pergunta.titulo}
         </Link>
         ?

@@ -22,7 +22,9 @@ export function OpcaoNoite({ filme, acao }: { filme: FilmeNaTela; acao?: ReactNo
         <p className="text-muted-foreground text-sm">
           {[anoEDuracao(filme), filme.provedor?.nome].filter(Boolean).join(" · ")}
         </p>
-        {filme.duracaoMin && <TerminaAs duracaoMin={filme.duracaoMin} />}
+        {filme.duracaoMin && (
+          <TerminaAs duracaoMin={filme.duracaoMin} episodio={filme.tipo === "serie"} />
+        )}
         {acao}
       </div>
     </article>

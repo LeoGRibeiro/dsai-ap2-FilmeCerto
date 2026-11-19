@@ -39,6 +39,7 @@ export function ResultadoNoite({ respostas, trocas, destaque, opcoes, proximas }
     (escolhido === null || escolhido === filme.id) && (
       <>
         <VouVerEsse
+          tipo={filme.tipo}
           tmdbId={filme.id}
           titulo={filme.titulo}
           trocas={trocas}
@@ -49,6 +50,7 @@ export function ResultadoNoite({ respostas, trocas, destaque, opcoes, proximas }
         />
         {escolhido === filme.id && (
           <CompartilharNoite
+            tipo={filme.tipo}
             tmdbId={filme.id}
             titulo={filme.titulo}
             duracaoMin={filme.duracaoMin}

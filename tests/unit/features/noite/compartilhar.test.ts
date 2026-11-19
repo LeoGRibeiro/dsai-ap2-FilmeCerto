@@ -17,6 +17,12 @@ describe("mensagemDaNoite", () => {
     );
   });
 
+  it("de uma série, diz que é um episódio e a hora em que ele termina", () => {
+    expect(mensagemDaNoite("Dark", 50, hora(23, 30), "serie")).toBe(
+      "Hoje vamos ver um episódio de Dark, termina às 0h20",
+    );
+  });
+
   it("sem duração conhecida, não inventa a hora", () => {
     expect(mensagemDaNoite("Sem Duração", null, hora(21, 45))).toBe("Hoje vamos ver Sem Duração");
   });
@@ -26,6 +32,12 @@ describe("urlDoFilme", () => {
   it("junta a origem do app e a página do filme", () => {
     expect(urlDoFilme("https://filme-certo.example", 603)).toBe(
       "https://filme-certo.example/filme/603",
+    );
+  });
+
+  it("de uma série, leva à página da série", () => {
+    expect(urlDoFilme("https://filme-certo.example", 603, "serie")).toBe(
+      "https://filme-certo.example/serie/603",
     );
   });
 });

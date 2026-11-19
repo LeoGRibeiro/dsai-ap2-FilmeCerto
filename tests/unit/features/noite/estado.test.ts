@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   comHorario,
   ESTADO_INICIAL,
+  inicioDaNoite,
   lerEstado,
   proximaPergunta,
   proximaRodada,
@@ -14,6 +15,7 @@ import {
 } from "@/features/noite/estado";
 
 const completo: EstadoNoite = {
+  tipo: "filme",
   respostas: { humor: "cansado", experiencia: "rir", companhia: "a-dois" },
   tom: 1,
   duracaoMax: 100,
@@ -68,6 +70,46 @@ describe("lerEstado", () => {
   it("guarda no máximo os 50 vistos mais recentes", () => {
     const ids = Array.from({ length: 60 }, (_, i) => i + 1);
     expect(lerEstado({ vistos: ids.join(",") }).vistos).toEqual(ids.slice(-50));
+  });
+});
+
+describe("'Filme ou série?' no estado", () => {
+  const serie: EstadoNoite = { ...completo, tipo: "serie", duracaoMax: 30 };
+
+  it("lê tipo=serie e trata qualquer outro valor como filme", () => {
+    expect(lerEstado({ tipo: "serie" })).toEqual({ ...ESTADO_INICIAL, tipo: "serie" });
+    expect(lerEstado({ tipo: "novela" })).toEqual(ESTADO_INICIAL);
+    expect(lerEstado({ tipo: ["serie", "serie"] })).toEqual(ESTADO_INICIAL);
+  });
+
+  it("escreve tipo=serie primeiro e volta pelo lerEstado", () => {
+    const url = urlDaNoite(serie);
+    expect(url).toBe(
+      "/noite?tipo=serie&humor=cansado&exp=rir&com=a-dois&tom=1&max=30&vistos=10,20&trocas=2",
+    );
+    expect(lerEstado(Object.fromEntries(new URL(url, "http://x").searchParams))).toEqual(serie);
+  });
+
+  it("aceita episódio de 30 min no max só para série", () => {
+    expect(lerEstado({ tipo: "serie", max: "30" }).duracaoMax).toBe(30);
+    expect(lerEstado({ max: "30" }).duracaoMax).toBeNull();
+    expect(lerEstado({ tipo: "serie", max: "15" }).duracaoMax).toBeNull();
+  });
+
+  it.each([
+    ["usa 15 min a menos que o episódio recusado", null, 45, 30],
+    ["sem duração nem limite, parte de 60 min", null, null, 45],
+    ["nunca fica abaixo de 20 min", 30, 25, 20],
+  ])("muito longo de série %s", (_caso, atual, recusado, esperado) => {
+    const estado = { ...serie, duracaoMax: atual };
+    const proximo = proximaRodada(estado, "muito-longo", [{ id: 1, duracaoMin: recusado }]);
+    expect(proximo?.duracaoMax).toBe(esperado);
+    expect(proximo?.tipo).toBe("serie");
+  });
+
+  it("inicioDaNoite refaz as perguntas mantendo o tipo", () => {
+    expect(inicioDaNoite("serie")).toBe("/noite?tipo=serie");
+    expect(inicioDaNoite("filme")).toBe("/noite");
   });
 });
 

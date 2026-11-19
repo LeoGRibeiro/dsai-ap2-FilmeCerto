@@ -38,7 +38,8 @@ const ORDENS: Record<OrdemDescoberta, string> = {
   lancamento: "first_air_date.desc",
 };
 
-const CLASSIFICACOES: readonly ClassificacaoBR[] = ["L", "10", "12", "14", "16", "18"];
+/** Classificações do Brasil, da mais leve à mais restrita. */
+export const CLASSIFICACOES_BR: readonly ClassificacaoBR[] = ["L", "10", "12", "14", "16", "18"];
 
 function paraResumo(serie: SerieTmdb): SerieResumo {
   return {
@@ -65,7 +66,7 @@ function duracaoEpisodio(serie: DetalhesSerieTmdb): number | null {
 
 function classificacaoDe(serie: DetalhesSerieTmdb): ClassificacaoBR | null {
   const doBrasil = serie.content_ratings.results.find((r) => r.iso_3166_1 === "BR")?.rating;
-  return CLASSIFICACOES.find((classificacao) => classificacao === doBrasil) ?? null;
+  return CLASSIFICACOES_BR.find((classificacao) => classificacao === doBrasil) ?? null;
 }
 
 function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {

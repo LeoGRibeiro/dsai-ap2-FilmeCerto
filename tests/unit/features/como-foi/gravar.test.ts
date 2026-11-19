@@ -19,7 +19,7 @@ describe("gravarEscolha", () => {
       detalhes(id, { titulo: "Clube da Luta" }),
     );
 
-    expect(resultado).toEqual({ ok: true, tmdbId: 550 });
+    expect(resultado).toEqual({ ok: true, tipo: "filme", tmdbId: 550 });
     expect(banco.escritas()).toEqual([
       {
         tabela: "escolhas_noite",
@@ -28,6 +28,17 @@ describe("gravarEscolha", () => {
         filtros: [],
       },
     ]);
+  });
+
+  it("grava a série com o título dela e tipo série", async () => {
+    const banco = bancoFalso();
+    const buscar = vi.fn(async (id: number) => detalhes(id, { titulo: "Dark" }));
+
+    const resultado = await gravarEscolha(banco.cliente, { tipo: "serie", tmdbId: 1399 }, buscar);
+
+    expect(resultado).toEqual({ ok: true, tipo: "serie", tmdbId: 1399 });
+    expect(buscar).toHaveBeenCalledWith(1399);
+    expect(banco.escritas()[0]?.valor).toEqual({ tipo: "serie", tmdb_id: 1399, titulo: "Dark" });
   });
 
   it.each([
@@ -53,6 +64,7 @@ describe("obterComoFoi", () => {
 
     expect(await obterComoFoi(banco.cliente)).toEqual({
       id: 7,
+      tipo: "filme",
       tmdbId: 550,
       titulo: "Clube da Luta",
     });
@@ -120,17 +132,34 @@ describe("gravarResposta", () => {
 
     expect(await gravarResposta(banco.cliente, "u-1", 7, "amei", g)).toEqual({
       ok: true,
+      tipo: "filme",
       tmdbId: 550,
     });
 
-    expect(g.definirReacao).toHaveBeenCalledWith(banco.cliente, "u-1", 550, "amei");
-    expect(g.definirLista).toHaveBeenCalledWith(banco.cliente, "u-1", 550, "assistido");
+    const filme = { tipo: "filme", tmdbId: 550 };
+    expect(g.definirReacao).toHaveBeenCalledWith(banco.cliente, "u-1", filme, "amei");
+    expect(g.definirLista).toHaveBeenCalledWith(banco.cliente, "u-1", filme, "assistido");
     const [update, evento] = banco.escritas();
     expect(update).toMatchObject({ tabela: "escolhas_noite", filtros: [["id", 7]] });
     expect(update!.valor).toHaveProperty("respondido_em");
     expect(evento).toMatchObject({
       valor: { nome: "como_foi_respondido", dados: { resposta: "amei" } },
     });
+  });
+
+  it("de uma série, grava a reação e 'Já assisti' da série, não do filme de mesmo ID", async () => {
+    const banco = bancoFalso({ linha: escolha({ tipo: "serie", titulo: "Dark" }) });
+    const g = gravacoes();
+
+    expect(await gravarResposta(banco.cliente, "u-1", 7, "gostei", g)).toEqual({
+      ok: true,
+      tipo: "serie",
+      tmdbId: 550,
+    });
+
+    const serie = { tipo: "serie", tmdbId: 550 };
+    expect(g.definirReacao).toHaveBeenCalledWith(banco.cliente, "u-1", serie, "gostei");
+    expect(g.definirLista).toHaveBeenCalledWith(banco.cliente, "u-1", serie, "assistido");
   });
 
   it("'Não cheguei a ver' só marca como respondida", async () => {
@@ -159,7 +188,11 @@ describe("gravarResposta", () => {
 
   it.each([
     ["escolha inexistente", null, { ok: false, erro: "nao-encontrada" }],
-    ["escolha já respondida", escolha({ respondido_em: horasAtras(1) }), { ok: true, tmdbId: 550 }],
+    [
+      "escolha já respondida",
+      escolha({ respondido_em: horasAtras(1) }),
+      { ok: true, tipo: "filme", tmdbId: 550 },
+    ],
   ])("%s não grava nada", async (_caso, linha, esperado) => {
     const banco = bancoFalso({ linha });
     const g = gravacoes();

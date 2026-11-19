@@ -16,7 +16,7 @@ vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
 
 afterEach(() => vi.clearAllMocks());
 
-const pergunta = { id: 7, tmdbId: 550, titulo: "Clube da Luta" };
+const pergunta = { id: 7, tipo: "filme" as const, tmdbId: 550, titulo: "Clube da Luta" };
 
 describe("PerguntaComoFoi", () => {
   it("pergunta pelo título, com as 4 respostas na ordem do cliente", () => {
@@ -34,6 +34,13 @@ describe("PerguntaComoFoi", () => {
       "Não é pra mim",
       "Não cheguei a ver",
     ]);
+  });
+
+  it("de uma série, leva à página da série", () => {
+    render(<PerguntaComoFoi pergunta={{ ...pergunta, tipo: "serie", titulo: "Dark" }} />);
+
+    expect(screen.getByRole("heading", { name: "Como foi Dark?" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dark" })).toHaveAttribute("href", "/serie/550");
   });
 
   it("conta a exibição uma vez, mesmo renderizando de novo", () => {
@@ -79,7 +86,7 @@ describe("VouVerEsse", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Vou ver esse!" }));
 
-    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(550);
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(550, "filme");
     expect(enviarEvento).toHaveBeenCalledExactlyOnceWith({
       nome: "wizard_escolheu",
       dados: { trocas: 2 },
@@ -89,6 +96,19 @@ describe("VouVerEsse", () => {
     expect(screen.getByRole("link", { name: "Ver detalhes de Clube da Luta" })).toHaveAttribute(
       "href",
       "/filme/550",
+    );
+  });
+
+  it("de uma série, guarda a série e leva à página dela", async () => {
+    vi.mocked(escolherFilme).mockResolvedValue({});
+    render(<VouVerEsse tipo="serie" tmdbId={1399} titulo="Dark" trocas={0} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Vou ver esse!" }));
+
+    expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(1399, "serie");
+    expect(await screen.findByRole("link", { name: "Ver detalhes de Dark" })).toHaveAttribute(
+      "href",
+      "/serie/1399",
     );
   });
 

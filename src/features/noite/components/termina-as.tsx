@@ -12,10 +12,17 @@ export function aCadaMeioMinuto(avisar: () => void) {
 }
 
 /**
- * "Começando agora, termina às 23h40", no fuso do navegador. No servidor (que roda em UTC)
- * não mostra nada; o horário aparece quando a página chega ao navegador.
+ * "Começando agora, termina às 23h40" (de uma série, "o episódio termina às"), no fuso do
+ * navegador. No servidor (que roda em UTC) não mostra nada; o horário aparece quando a página
+ * chega ao navegador.
  */
-export function TerminaAs({ duracaoMin }: { duracaoMin: number }) {
+export function TerminaAs({
+  duracaoMin,
+  episodio = false,
+}: {
+  duracaoMin: number;
+  episodio?: boolean;
+}) {
   const hora = useSyncExternalStore(
     aCadaMeioMinuto,
     () => terminaAs(new Date(), duracaoMin),
@@ -26,7 +33,7 @@ export function TerminaAs({ duracaoMin }: { duracaoMin: number }) {
   return (
     <p className="flex items-center gap-1.5 text-sm">
       <Clock className="size-4 shrink-0" aria-hidden="true" />
-      Começando agora, termina às {hora}
+      Começando agora, {episodio && "o episódio "}termina às {hora}
     </p>
   );
 }

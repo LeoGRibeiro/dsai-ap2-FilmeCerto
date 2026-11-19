@@ -8,15 +8,16 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { alternarLista } from "@/features/listas/actions";
 import { enviarEvento } from "@/features/metricas/enviar";
 import { MOTIVOS_TROCA } from "@/features/metricas/eventos";
-import { ROTA_NOITE, type MotivoTroca } from "@/features/noite/estado";
+import { inicioDaNoite, type MotivoTroca } from "@/features/noite/estado";
+import type { TipoMidia } from "@/lib/midia";
 import { ROTULOS_MOTIVO } from "@/features/noite/opcoes";
 
 type Props = {
   /** URL da próxima rodada por motivo (calculada no servidor), ou `null` no limite de trocas. */
   proximas: Record<MotivoTroca, string> | null;
   trocasRestantes: number;
-  /** O destaque da rodada, que "Já vi" pode marcar como "Já assisti". */
-  destaque: { id: number; titulo: string };
+  /** O destaque da rodada, que "Já vi" pode marcar como "Já assisti" (filme quando falta o tipo). */
+  destaque: { tipo?: TipoMidia; id: number; titulo: string };
 };
 
 /**
@@ -33,7 +34,10 @@ export function EsseNao({ proximas, trocasRestantes, destaque }: Props) {
     return (
       <div className="flex flex-col items-start gap-2">
         <p className="text-muted-foreground text-sm">Você chegou ao limite de trocas.</p>
-        <Link href={ROTA_NOITE} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        <Link
+          href={inicioDaNoite(destaque.tipo ?? "filme")}
+          className={buttonVariants({ variant: "outline", size: "lg" })}
+        >
           Refazer as perguntas
         </Link>
       </div>
@@ -51,6 +55,7 @@ export function EsseNao({ proximas, trocasRestantes, destaque }: Props) {
   const marcarETrocar = () =>
     iniciar(async () => {
       const dados = new FormData();
+      dados.set("tipo", destaque.tipo ?? "filme");
       dados.set("tmdbId", String(destaque.id));
       dados.set("status", "assistido");
       const { mensagem } = await alternarLista({}, dados);

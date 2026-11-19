@@ -1,5 +1,6 @@
 import type { Clima, Pergunta } from "@/features/metricas/eventos";
 import type { MotivoTroca } from "@/features/noite/estado";
+import type { TipoMidia } from "@/lib/midia";
 
 export type Humor = Clima["humor"];
 export type Experiencia = Clima["experiencia"];
@@ -14,6 +15,9 @@ export const PERGUNTAS = [
   { chave: "experiencia", parametro: "exp", titulo: "Que tipo de experiência você quer?" },
   { chave: "companhia", parametro: "com", titulo: "Com quem vai assistir?" },
 ] as const satisfies { chave: Pergunta; parametro: string; titulo: string }[];
+
+/** Cartões do "Filme ou série?" (SPEC/2026-11-18-series-noite.md). */
+export const ROTULOS_TIPO: Record<TipoMidia, string> = { filme: "Filme", serie: "Série" };
 
 /** Horários do "Até que horas?" (SPEC/2026-11-18-noite-ate-que-horas.md): meia-noite é 0. */
 export const HORAS_LIMITE = [22, 23, 0, 1] as const;
