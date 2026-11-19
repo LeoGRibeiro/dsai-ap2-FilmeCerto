@@ -1,7 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { emailAleatorio } from "../support/supabase-local";
-import { cadastrar, concluirOnboarding } from "./helpers";
+import { cadastrar, concluirOnboarding, titulosDasSecoes } from "./helpers";
+
+const SERIES = "Séries para hoje à noite";
+
+/** Links dos cartões da seção de séries, na ordem em que aparecem. */
+async function linksDasSeries(page: Page) {
+  return page
+    .getByRole("main")
+    .getByRole("region", { name: SERIES })
+    .getByRole("link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+}
 
 /** IDs de todos os filmes na página, na ordem em que aparecem. */
 async function idsDosFilmes(page: Page) {
@@ -55,4 +66,52 @@ test("uma seção que falha mostra o erro e as outras carregam", async ({ page }
 
   const drama = main.getByRole("region", { name: "Drama para você" });
   await expect(drama.getByRole("listitem").first()).toBeVisible();
+});
+
+test("o dashboard mostra 'Séries para hoje à noite', e o cartão leva à página da série", async ({
+  page,
+}) => {
+  await cadastrar(page, "Lia Campos", emailAleatorio("e2e"));
+  await concluirOnboarding(page);
+  const main = page.getByRole("main");
+
+  // Ação vira Action & Adventure em TV; a seção vem depois das seções de filmes.
+  await expect(main.getByRole("region", { name: "Escolhidos para você" })).toBeVisible();
+  const series = main.getByRole("region", { name: SERIES });
+  await expect(series.getByRole("listitem")).toHaveCount(12);
+  await expect(series.getByText("Porque você curte Action & Adventure").first()).toBeVisible();
+  expect((await titulosDasSecoes(page)).at(-1)).toBe(SERIES);
+
+  // "Gerar outras recomendações" troca as séries também.
+  const antes = await linksDasSeries(page);
+  expect(antes.every((href) => /^\/serie\/\d+$/.test(href ?? ""))).toBe(true);
+  await page.getByRole("link", { name: "Gerar outras recomendações" }).click();
+  await expect(page).toHaveURL("/dashboard?rodada=1");
+  // A seção recarrega no próprio Suspense: espera os 12 cartões novos.
+  await expect
+    .poll(async () => {
+      const links = await linksDasSeries(page);
+      return links.length === 12 && links.join() !== antes.join();
+    })
+    .toBe(true);
+  const depois = await linksDasSeries(page);
+
+  const destino = depois[0] ?? "";
+  await series.getByRole("link").first().click();
+  await expect(page).toHaveURL(destino);
+  await expect(main.getByRole("heading", { level: 1 })).toHaveText(
+    `Série ${destino.split("/").at(-1)}`,
+  );
+});
+
+test("no celular (390 × 844), a seção de séries não cria rolagem para o lado", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await cadastrar(page, "Mário Reis", emailAleatorio("e2e"));
+  await concluirOnboarding(page);
+
+  const series = page.getByRole("main").getByRole("region", { name: SERIES });
+  await expect(series.getByRole("listitem").first()).toBeVisible();
+  await series.scrollIntoViewIfNeeded();
+  await expect(series.getByRole("heading", { name: SERIES })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
