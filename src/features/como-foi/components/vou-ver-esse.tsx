@@ -60,7 +60,8 @@ export function VouVerEsse({
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="lg" onClick={escolher} disabled={enviando}>
+      {/* Alto o bastante para o toque no celular, onde a pessoa decide. */}
+      <Button size="lg" className="h-12 px-6 text-base" onClick={escolher} disabled={enviando}>
         Vou ver esse!
       </Button>
       {mensagem && (

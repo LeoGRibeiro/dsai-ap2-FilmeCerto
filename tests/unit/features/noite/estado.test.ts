@@ -8,6 +8,7 @@ import {
   respostasCompletas,
   urlComResposta,
   urlDaNoite,
+  urlsDaTroca,
   type EstadoNoite,
 } from "@/features/noite/estado";
 
@@ -135,5 +136,27 @@ describe("proximaRodada", () => {
   it("devolve null depois da 5ª troca", () => {
     expect(proximaRodada({ ...inicio, trocas: 4 }, "outro", mostrados)?.trocas).toBe(5);
     expect(proximaRodada({ ...inicio, trocas: 5 }, "outro", mostrados)).toBeNull();
+  });
+});
+
+describe("urlsDaTroca", () => {
+  const mostrados = [
+    { id: 30, duracaoMin: 95 },
+    { id: 40, duracaoMin: 90 },
+  ];
+
+  it("monta a URL da próxima rodada para cada motivo", () => {
+    const base = "/noite?humor=cansado&exp=rir&com=a-dois";
+    const resto = "vistos=10,20,30,40&trocas=3";
+    expect(urlsDaTroca(completo, mostrados)).toEqual({
+      "ja-vi": `${base}&tom=1&max=100&${resto}`,
+      "nao-e-o-clima": `${base}&tom=2&max=100&${resto}`,
+      "muito-longo": `${base}&tom=1&max=80&${resto}`,
+      outro: `${base}&tom=1&max=100&${resto}`,
+    });
+  });
+
+  it("devolve null quando não há mais trocas", () => {
+    expect(urlsDaTroca({ ...completo, trocas: 5 }, mostrados)).toBeNull();
   });
 });

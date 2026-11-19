@@ -3,7 +3,7 @@ import {
   climaSchema,
   MAX_TROCAS,
   type Clima,
-  type MOTIVOS_TROCA,
+  MOTIVOS_TROCA,
   type Pergunta,
 } from "@/features/metricas/eventos";
 import { DURACAO_TROCA, TOTAL_TONS } from "@/features/noite/mapeamento";
@@ -137,4 +137,18 @@ export function proximaRodada(
         ? encurtar(estado.duracaoMax, mostrados[0]?.duracaoMin ?? null)
         : estado.duracaoMax,
   };
+}
+
+/** URL da próxima rodada para cada motivo de "Esse não", ou `null` sem trocas restantes. */
+export function urlsDaTroca(
+  estado: EstadoNoite,
+  mostrados: { id: number; duracaoMin: number | null }[],
+): Record<MotivoTroca, string> | null {
+  const urls = {} as Record<MotivoTroca, string>;
+  for (const motivo of MOTIVOS_TROCA) {
+    const proxima = proximaRodada(estado, motivo, mostrados);
+    if (!proxima) return null;
+    urls[motivo] = urlDaNoite(proxima);
+  }
+  return urls;
 }
