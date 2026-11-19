@@ -235,6 +235,16 @@ export type Database = {
           total: number;
         }[];
       };
+      metricas_detalhes: {
+        Args: never;
+        Returns: {
+          chave: string;
+          nome: string;
+          sem_equipe: number;
+          total: number;
+          valor: string;
+        }[];
+      };
       metricas_eventos: {
         Args: never;
         Returns: {
