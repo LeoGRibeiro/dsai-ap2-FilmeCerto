@@ -69,6 +69,21 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
     expect(await series.generosSeries()).toContainEqual({ id: 10765, nome: "Sci-Fi & Fantasy" });
   });
 
+  it('buscarSeries traz séries com o texto, que abrem nos detalhes; com "nada", vazio', async () => {
+    const pagina = await series.buscarSeries("dark");
+    expect(pagina).toMatchObject({ pagina: 1, totalPaginas: 3, totalResultados: 55 });
+    expect(pagina.itens).toHaveLength(20);
+    expect(pagina.itens[0]).toMatchObject({ titulo: "dark 1-1", generos: [10765] });
+    expect(await series.obterSerie(pagina.itens[0]!.id)).not.toBeNull();
+    expect((await series.buscarSeries("nada")).itens).toEqual([]);
+  });
+
+  it("a busca de filmes continua igual", async () => {
+    const pagina = await filmes.buscarFilmes("matrix", 2);
+    expect(pagina).toMatchObject({ pagina: 2, totalResultados: 55 });
+    expect(pagina.itens[0]).toMatchObject({ id: 500040, titulo: "matrix 2-1", generos: [878] });
+  });
+
   it("o mesmo ID é um filme e uma série diferentes", async () => {
     const [filme, serie] = await Promise.all([filmes.obterFilme(1399), series.obterSerie(1399)]);
     expect(filme?.titulo).toBe("Filme 1399");

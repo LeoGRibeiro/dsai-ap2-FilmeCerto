@@ -142,18 +142,21 @@ const servidor = createServer((req, res) => {
     return responder(res, 200, pagina(filmes, numero));
   }
 
-  if (url.pathname === "/3/search/movie") {
+  // Busca por nome de filmes e de séries: mesmos IDs e títulos, como na descoberta.
+  const busca = url.pathname.match(/^\/3\/search\/(movie|tv)$/);
+  if (busca) {
     const texto = url.searchParams.get("query") ?? "";
     const numero = Number(url.searchParams.get("page") ?? 1);
     if (texto.includes("nada")) {
       return responder(res, 200, { page: 1, results: [], total_pages: 0, total_results: 0 });
     }
-    const filmes = Array.from({ length: 20 }, (_, i) =>
-      filme(500000 + numero * 20 + i, `${texto} ${numero}-${i + 1}`, 878, i),
+    const [criar, genero] = busca[1] === "tv" ? [serie, 10765] : [filme, 878];
+    const itens = Array.from({ length: 20 }, (_, i) =>
+      criar(500000 + numero * 20 + i, `${texto} ${numero}-${i + 1}`, genero, i),
     );
     return responder(res, 200, {
       page: numero,
-      results: filmes,
+      results: itens,
       total_pages: 3,
       total_results: 55,
     });
