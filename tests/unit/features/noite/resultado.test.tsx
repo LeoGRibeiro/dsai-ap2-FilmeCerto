@@ -174,6 +174,21 @@ describe("ResultadoNoite", () => {
     expect(escolherFilme).toHaveBeenCalledExactlyOnceWith(12);
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
   });
+
+  it("só depois do 'Vou ver esse!' oferece compartilhar o filme escolhido", async () => {
+    render(resultado(1, opcoesBC));
+    expect(screen.queryByRole("link", { name: /Compartilhar/ })).not.toBeInTheDocument();
+    const opcao = screen.getByRole("article", { name: "Opção C" });
+
+    await userEvent.click(within(opcao).getByRole("button", { name: "Vou ver esse!" }));
+
+    const links = await screen.findAllByRole("link", { name: "Compartilhar no WhatsApp" });
+    expect(links).toHaveLength(1);
+    expect(opcao).toContainElement(links[0]!);
+    const texto = new URL(links[0]!.getAttribute("href")!).searchParams.get("text");
+    expect(texto).toMatch(/^Hoje vamos ver Opção C, termina às \d{1,2}h\d{2}\n/);
+    expect(texto).toMatch(/\/filme\/12$/);
+  });
 });
 
 describe("RecomendacaoNoite", () => {
