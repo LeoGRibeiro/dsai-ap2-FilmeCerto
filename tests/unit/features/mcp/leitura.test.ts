@@ -124,8 +124,8 @@ describe("recomendar_filmes", () => {
 
 describe("ver_listas", () => {
   const itens = [
-    { tmdbId: 1, status: "quero_assistir" as const, titulo: "A", posterPath: null, ano: 2000, reacao: null },
-    { tmdbId: 2, status: "assistido" as const, titulo: "B", posterPath: null, ano: null, reacao: "amei" as const },
+    { tipo: "filme" as const, tmdbId: 1, status: "quero_assistir" as const, titulo: "A", posterPath: null, ano: 2000, reacao: null },
+    { tipo: "filme" as const, tmdbId: 2, status: "assistido" as const, titulo: "B", posterPath: null, ano: null, reacao: "amei" as const },
   ];
   it("separa as duas listas e filtra quando pedido", async () => {
     const ctx = contexto({ dados: dadosFalsos({ itensLista: vi.fn(async () => itens) }) });

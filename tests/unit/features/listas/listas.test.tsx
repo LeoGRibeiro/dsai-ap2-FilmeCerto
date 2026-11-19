@@ -12,6 +12,7 @@ vi.mock("@/features/listas/actions", () => ({ alternarLista: vi.fn(async () => (
 
 function item(tmdbId: number, sobrescrever: Partial<ItemLista> = {}): ItemLista {
   return {
+    tipo: "filme",
     tmdbId,
     status: "assistido",
     titulo: `Filme ${tmdbId}`,
@@ -99,6 +100,21 @@ describe("GradeFilmes", () => {
     render(<GradeFilmes aba="assistidos" itens={[item(1, { reacao: "amei" }), item(2)]} />);
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText("Amei")).toBeInTheDocument();
+  });
+
+  it("filme e série de mesmo ID levam cada um à sua página, e a série diz 'Série'", () => {
+    render(
+      <GradeFilmes
+        aba="quero"
+        itens={[item(1399, { tipo: "serie", titulo: "Série 1399" }), item(1399)]}
+      />,
+    );
+    const serie = screen.getByRole("link", { name: "Série 1399 (2020), série" });
+    expect(serie).toHaveAttribute("href", "/serie/1399");
+    expect(serie).toHaveTextContent("Série · 2020");
+    const filme = screen.getByRole("link", { name: "Filme 1399 (2020)" });
+    expect(filme).toHaveAttribute("href", "/filme/1399");
+    expect(filme).not.toHaveTextContent("Série");
   });
 
   it("mostra a mensagem de vazio", () => {

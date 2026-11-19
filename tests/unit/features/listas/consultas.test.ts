@@ -48,6 +48,7 @@ describe("leituras das listas só veem filmes", () => {
   it("obterItensLista não lista a série nem usa a reação dada a ela", async () => {
     expect(await obterItensLista(banco().cliente)).toEqual([
       {
+        tipo: "filme",
         tmdbId: ID,
         status: "assistido",
         titulo: "Filme 1399",
@@ -56,6 +57,7 @@ describe("leituras das listas só veem filmes", () => {
         reacao: null,
       },
       {
+        tipo: "filme",
         tmdbId: 550,
         status: "assistido",
         titulo: "Filme 550",
@@ -63,6 +65,16 @@ describe("leituras das listas só veem filmes", () => {
         ano: 1999,
         reacao: "amei",
       },
+    ]);
+  });
+
+  it("com filmes e séries, traz os dois de mesmo ID, cada um com a sua reação", async () => {
+    const itens = await obterItensLista(banco().cliente, ["filme", "serie"]);
+
+    expect(itens.map(({ tipo, tmdbId, titulo, reacao }) => ({ tipo, tmdbId, titulo, reacao }))).toEqual([
+      { tipo: "serie", tmdbId: ID, titulo: "Série 1399", reacao: "nao-gostei" },
+      { tipo: "filme", tmdbId: ID, titulo: "Filme 1399", reacao: null },
+      { tipo: "filme", tmdbId: 550, titulo: "Filme 550", reacao: "amei" },
     ]);
   });
 
