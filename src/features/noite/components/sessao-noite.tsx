@@ -1,12 +1,12 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import { enviarEvento } from "@/features/metricas/enviar";
 import type { Clima, ETAPAS_WIZARD } from "@/features/metricas/eventos";
 import { concluirNoite } from "@/features/noite/actions";
-import { lerEstado, proximaPergunta } from "@/features/noite/estado";
+import { lerEstado, proximaPergunta, ROTA_NOITE } from "@/features/noite/estado";
 
 type Etapa = (typeof ETAPAS_WIZARD)[number];
 
@@ -37,8 +37,10 @@ type Memoria = {
  * Sessão do wizard no navegador, no layout de `/noite`: o layout não é remontado entre as
  * telas, então a memória sobrevive a cada resposta e troca (só a página muda com a URL).
  * Emite `wizard_iniciado` e `wizard_abandonado` (SPEC/2026-11-18-wizard-noite.md, "Eventos").
+ * Só na própria `/noite`: a sala da "Noite a dois" fica sob este layout, mas não é o wizard.
  */
 export function SessaoNoite({ children }: { children: ReactNode }) {
+  const noWizard = usePathname() === ROTA_NOITE;
   const busca = useSearchParams();
   const estado = lerEstado(Object.fromEntries(busca));
   const semRespostas = Object.keys(estado.respostas).length === 0;
@@ -54,6 +56,7 @@ export function SessaoNoite({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    if (!noWizard) return;
     const atual = memoria.current;
     atual.etapa = etapa;
     if (etapa === "resultado") atual.chegouAoResultado = true;
@@ -67,9 +70,10 @@ export function SessaoNoite({ children }: { children: ReactNode }) {
       abandonou: false,
     });
     enviarEvento({ nome: "wizard_iniciado" });
-  }, [etapa, semRespostas]);
+  }, [etapa, semRespostas, noWizard]);
 
   useEffect(() => {
+    if (!noWizard) return;
     const atual = memoria.current;
     atual.montado = true;
     function abandonar() {
@@ -86,7 +90,7 @@ export function SessaoNoite({ children }: { children: ReactNode }) {
         if (!atual.montado) abandonar();
       }, 0);
     };
-  }, []);
+  }, [noWizard]);
 
   const sessao = useMemo<SessaoDaNoite>(
     () => ({

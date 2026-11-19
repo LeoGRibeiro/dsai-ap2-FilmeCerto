@@ -37,6 +37,70 @@ export type FiltrosNoite = {
   classificacaoNosDetalhes: ClassificacaoBR | null;
 };
 
+type Montagem = {
+  tom: Tom;
+  /** Respostas de quem vai assistir: uma pessoa no wizard, duas na "Noite a dois". */
+  respostas: Clima[];
+  /** Gêneros evitados do perfil, já nos IDs do tipo (absolutos). */
+  evitados: number[];
+  /** Exclusões fixas das experiências; perdem para o gênero do tom. */
+  semDasExperiencias?: number[];
+  /** Outros limites de duração ("Muito longo", "Até que horas?"). */
+  limites?: (number | null | undefined)[];
+  /** Tabelas do tipo; o padrão é filme. */
+  mapa?: Mapeamento;
+};
+
+/**
+ * Os ajustes de humor e companhia de todas as respostas, juntos: vale o menor limite de
+ * duração, qualquer `nostalgico` limita a época, qualquer "família" limita a classificação.
+ * A experiência manda mais que o humor: nenhuma exclusão tira um gênero do tom.
+ */
+export function montarFiltros({
+  tom,
+  respostas,
+  evitados,
+  semDasExperiencias = [],
+  limites = [],
+  mapa = MAPEAMENTO_FILME,
+}: Montagem): FiltrosNoite {
+  const humores = respostas.map(({ humor }) => mapa.humor[humor]);
+  const companhias = respostas.map(({ companhia }) => mapa.companhia[companhia]);
+  const semDoTom = [...semDasExperiencias, ...humores.flatMap((h) => h.sem ?? [])].filter(
+    (g) => !tom.generos.includes(g),
+  );
+  const semGeneros = [...new Set([...evitados, ...semDoTom, ...mapa.sempreSem])];
+  const duracoes = [...humores.map((h) => h.duracaoMax), ...limites].filter(
+    (n) => typeof n === "number",
+  );
+  const lancadoAte = humores.find((h) => h.lancadoAte)?.lancadoAte;
+  const classificacao = companhias.find((c) => c.classificacaoMax)?.classificacaoMax ?? null;
+  const noTmdb = mapa.classificacaoNoTmdb ? classificacao : null;
+  const ordem =
+    humores.find((h) => h.ordem)?.ordem ?? companhias.find((c) => c.ordem)?.ordem ?? ORDEM_PADRAO;
+
+  return {
+    tom,
+    evitados,
+    classificacaoNosDetalhes: mapa.classificacaoNoTmdb ? null : classificacao,
+    filtros: {
+      todosGeneros: tom.generos,
+      ...(semGeneros.length > 0 && { semGeneros }),
+      ...(duracoes.length > 0 && { duracaoMax: Math.min(...duracoes) }),
+      ...(lancadoAte && { lancadoAte }),
+      ...(noTmdb && { classificacaoMax: noTmdb }),
+      notaMin: PISO.notaMin,
+      votosMin: PISO.votosMin,
+      ordem,
+    },
+  };
+}
+
+/** O tom não tem gênero evitado. */
+export function tomPermitido(tom: Tom, evitados: readonly number[]): boolean {
+  return !tom.generos.some((g) => evitados.includes(g));
+}
+
 /**
  * Filtros do TMDB para a rodada, pelas tabelas do tipo. A experiência escolhe o tom; o humor e
  * a companhia ajustam; os gêneros evitados do perfil são absolutos, e os favoritos não entram.
@@ -51,35 +115,17 @@ export function filtrosDaNoite(
   const evitados = mapa.evitados(evitadosDoPerfil);
   const experiencia = mapa.tons[respostas.experiencia];
   if (experiencia.evitadaSe?.some((g) => evitadosDoPerfil.includes(g))) return null;
-  const disponiveis = experiencia.tons.filter((t) => !t.generos.some((g) => evitados.includes(g)));
+  const disponiveis = experiencia.tons.filter((t) => tomPermitido(t, evitados));
   const escolhido = disponiveis[tom % disponiveis.length];
   if (!escolhido) return null;
 
-  const humor = mapa.humor[respostas.humor];
-  const companhia = mapa.companhia[respostas.companhia];
-  // A experiência manda mais que o humor: o humor não exclui o gênero do tom.
-  const semDoHumor = (humor.sem ?? []).filter((g) => !escolhido.generos.includes(g));
-  const semGeneros = [
-    ...new Set([...evitados, ...(experiencia.sem ?? []), ...semDoHumor, ...mapa.sempreSem]),
-  ];
   // "Cansado", "Muito longo" e "Até que horas?": vale o menor limite.
-  const limites = [humor.duracaoMax, duracaoMax, tempo].filter((n) => typeof n === "number");
-  const classificacao = companhia.classificacaoMax ?? null;
-  const noTmdb = mapa.classificacaoNoTmdb ? classificacao : null;
-
-  return {
+  return montarFiltros({
     tom: escolhido,
+    respostas: [respostas],
     evitados,
-    classificacaoNosDetalhes: mapa.classificacaoNoTmdb ? null : classificacao,
-    filtros: {
-      todosGeneros: escolhido.generos,
-      ...(semGeneros.length > 0 && { semGeneros }),
-      ...(limites.length > 0 && { duracaoMax: Math.min(...limites) }),
-      ...(humor.lancadoAte && { lancadoAte: humor.lancadoAte }),
-      ...(noTmdb && { classificacaoMax: noTmdb }),
-      notaMin: PISO.notaMin,
-      votosMin: PISO.votosMin,
-      ordem: humor.ordem ?? companhia.ordem ?? ORDEM_PADRAO,
-    },
-  };
+    semDasExperiencias: experiencia.sem,
+    limites: [duracaoMax, tempo],
+    mapa,
+  });
 }

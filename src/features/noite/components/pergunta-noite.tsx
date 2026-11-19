@@ -52,9 +52,12 @@ function FilmeOuSerie({ estado }: { estado: EstadoNoite }) {
 export function PerguntaNoite({
   estado,
   pergunta,
+  rota,
 }: {
   estado: EstadoNoite;
   pergunta: PerguntaDaNoite;
+  /** Outra rota com as mesmas perguntas (a sala da "Noite a dois"); o padrão é `/noite`. */
+  rota?: string;
 }) {
   const posicao = PERGUNTAS.indexOf(pergunta) + 1;
   const respostas = CLIMAS[pergunta.chave];
@@ -67,7 +70,8 @@ export function PerguntaNoite({
           {posicao} de {PERGUNTAS.length}
         </p>
       </div>
-      {posicao === 1 && <FilmeOuSerie estado={estado} />}
+      {/* A sala da "Noite a dois" é só de filmes: lá não se escolhe o tipo. */}
+      {posicao === 1 && !rota && <FilmeOuSerie estado={estado} />}
       <h1 id="pergunta-noite" className="text-3xl tracking-tight text-balance sm:text-4xl">
         {pergunta.titulo}
       </h1>
@@ -75,7 +79,7 @@ export function PerguntaNoite({
         {respostas.map((valor) => (
           <li key={valor}>
             <Link
-              href={urlComResposta(estado, pergunta.chave, valor)}
+              href={urlComResposta(estado, pergunta.chave, valor, rota)}
               className="border-border bg-card hover:bg-muted focus-visible:ring-ring/50 flex min-h-24 items-center justify-center rounded-xl border p-4 text-center text-lg font-medium text-balance transition-colors outline-none focus-visible:ring-3 active:translate-y-px"
             >
               {ROTULOS_CLIMA[valor]}

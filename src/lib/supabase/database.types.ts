@@ -222,11 +222,56 @@ export type Database = {
         };
         Relationships: [];
       };
+      salas_noite: {
+        Row: {
+          convidado_id: string | null;
+          criada_em: string;
+          criador_id: string;
+          expira_em: string;
+          id: string;
+          respostas_convidado: Json | null;
+          respostas_criador: Json | null;
+          resultado: Json | null;
+        };
+        Insert: {
+          convidado_id?: string | null;
+          criada_em?: string;
+          criador_id?: string;
+          expira_em?: string;
+          id?: string;
+          respostas_convidado?: Json | null;
+          respostas_criador?: Json | null;
+          resultado?: Json | null;
+        };
+        Update: {
+          convidado_id?: string | null;
+          criada_em?: string;
+          criador_id?: string;
+          expira_em?: string;
+          id?: string;
+          respostas_convidado?: Json | null;
+          respostas_criador?: Json | null;
+          resultado?: Json | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      concluir_sala_noite: {
+        Args: { p_resultado: Json; p_sala: string };
+        Returns: boolean;
+      };
+      criar_sala_noite: {
+        Args: { p_segundos?: number };
+        Returns: string;
+      };
+      entrar_sala_noite: {
+        Args: { p_sala: string };
+        Returns: string;
+      };
       metricas_climas: {
         Args: never;
         Returns: {
@@ -257,6 +302,20 @@ export type Database = {
       registrar_clima: {
         Args: { p_companhia: string; p_experiencia: string; p_humor: string };
         Returns: undefined;
+      };
+      responder_sala_noite: {
+        Args: { p_companhia: string; p_experiencia: string; p_humor: string; p_sala: string };
+        Returns: undefined;
+      };
+      restricoes_sala_noite: {
+        Args: { p_sala: string };
+        Returns: {
+          evitados: number[];
+          excluir: number[];
+          respostas_convidado: Json;
+          respostas_criador: Json;
+          streamings: number[];
+        }[];
       };
     };
     Enums: {

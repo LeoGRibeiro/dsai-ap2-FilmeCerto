@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Clima } from "@/features/metricas/eventos";
 import {
   NoiteIndisponivel,
+  recomendarJuntos,
   recomendarNoite,
   type ApiNoite,
   type ApiNoiteSerie,
@@ -319,6 +320,70 @@ describe("recomendarNoite", () => {
     await expect(
       recomendarNoite({ respostas, estado: rodada0, perfil, excluir: [], api }),
     ).rejects.toThrow(NoiteIndisponivel);
+  });
+});
+
+describe("recomendarJuntos", () => {
+  const rir: Clima = { humor: "animado", experiencia: "rir", companhia: "a-dois" };
+  const tenso: Clima = { humor: "cansado", experiencia: "tenso", companhia: "a-dois" };
+
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("devolve 1 destaque e 2 opções com o motivo das duas pessoas, sem os excluídos", async () => {
+    const { api, chamadas } = apiFalsa({
+      streaming: [[resumo(1), resumo(2)]],
+      geral: [[resumo(2), resumo(3), resumo(4), resumo(5)]],
+    });
+
+    const resultado = await recomendarJuntos({
+      a: rir,
+      b: tenso,
+      perfil: { generosEvitados: [], streamings: [8, 337] },
+      excluir: [3],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([1, 2, 4]);
+    expect(resultado?.destaque.motivo).toBe(
+      "Um quer rir e o outro quer ficar tenso: comédia de ação, nota 7,5, está na Netflix.",
+    );
+    expect(chamadas[0]).toMatchObject({
+      provedores: [8, 337],
+      todosGeneros: [35, 28],
+      duracaoMax: 110,
+    });
+  });
+
+  it("devolve null sem filme e lança quando o TMDB falha sem sobrar filme", async () => {
+    const vazio = apiFalsa({ geral: [[]] });
+    const semStreaming = { generosEvitados: [], streamings: [] };
+    expect(
+      await recomendarJuntos({
+        a: rir,
+        b: tenso,
+        perfil: semStreaming,
+        excluir: [],
+        api: vazio.api,
+      }),
+    ).toBeNull();
+
+    const fora = apiFalsa({}, { falhar: true });
+    await expect(
+      recomendarJuntos({ a: rir, b: tenso, perfil: semStreaming, excluir: [], api: fora.api }),
+    ).rejects.toBeInstanceOf(NoiteIndisponivel);
+  });
+
+  it("com todos os tons evitados, nem consulta o TMDB", async () => {
+    const { api } = apiFalsa({ geral: [[resumo(1)]] });
+    const perfilEvita = { generosEvitados: [35, 28, 53], streamings: [] };
+
+    expect(
+      await recomendarJuntos({ a: rir, b: tenso, perfil: perfilEvita, excluir: [], api }),
+    ).toBeNull();
+    expect(api.descobrirFilmes).not.toHaveBeenCalled();
   });
 });
 

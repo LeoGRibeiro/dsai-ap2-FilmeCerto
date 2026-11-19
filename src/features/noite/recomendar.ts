@@ -1,6 +1,7 @@
 import type { Clima } from "@/features/metricas/eventos";
 import type { EstadoNoite } from "@/features/noite/estado";
 import { filtrosDaNoite } from "@/features/noite/filtros";
+import { filtrosJuntos, motivoJuntos } from "@/features/noite/juntos";
 import { motivoDaNoite, provedorDaNoite } from "@/features/noite/motivo";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
 import type { ApiFilmes } from "@/lib/tmdb/filmes";
@@ -71,7 +72,10 @@ function fonteDa(entrada: Entrada): Fonte {
       },
     };
   }
-  const { api } = entrada;
+  return fonteDeFilmes(entrada.api);
+}
+
+function fonteDeFilmes(api: ApiNoite): Fonte {
   return {
     descobrir: (filtros) => api.descobrirFilmes(filtros),
     detalhar: (id) => api.obterFilme(id),
@@ -124,6 +128,81 @@ async function detalhar(
   }
 }
 
+type Busca = {
+  filtros: FiltrosDescoberta;
+  quantidade: number;
+  streamings: readonly number[];
+  /** Gêneros evitados nos IDs do tipo, conferidos também no resultado. */
+  evitados: readonly number[];
+  /** IDs que nunca entram ("Já assisti", reações, já mostrados). */
+  bloqueados: number[];
+  fonte: Fonte;
+  /** Conferência nos detalhes (horário, classificação): lê candidatos a mais. */
+  passa?: (titulo: TituloNoite) => boolean;
+};
+
+/**
+ * Até `quantidade` títulos, com detalhes: primeiro nos streamings, depois sem filtro de
+ * provedor. Nunca devolve título bloqueado ou de gênero evitado (mesmo se o TMDB devolver).
+ * `falhou` diz se alguma consulta ao TMDB falhou no caminho.
+ */
+export async function buscarFilmes({
+  filtros,
+  quantidade,
+  streamings,
+  evitados,
+  bloqueados: excluidos,
+  fonte,
+  passa,
+}: Busca): Promise<{ titulos: TituloNoite[]; falhou: boolean }> {
+  let falhou = false;
+  const aoFalhar = () => {
+    falhou = true;
+  };
+  // O que só se confere nos detalhes pode descartar candidatos: lê alguns a mais.
+  const candidatos = passa ? quantidade * FOLGA_CONFERENCIA : quantidade;
+  const bloqueados = new Set(excluidos);
+  const escolhidos: FilmeResumo[] = [];
+  const consultas: FiltrosDescoberta[] = streamings.length
+    ? [{ ...filtros, provedores: [...streamings] }, filtros]
+    : [filtros];
+
+  for (const consulta of consultas) {
+    for (let pagina = 1; pagina <= PAGINAS_POR_CONSULTA; pagina++) {
+      if (escolhidos.length >= candidatos) break;
+      const resultado = await consultar(fonte, { ...consulta, pagina }, aoFalhar);
+      for (const filme of resultado.itens) {
+        const evitado = filme.generos.some((genero) => evitados.includes(genero));
+        if (escolhidos.length >= candidatos || evitado || bloqueados.has(filme.id)) continue;
+        escolhidos.push(filme);
+        bloqueados.add(filme.id);
+      }
+      if (pagina >= resultado.totalPaginas) break;
+    }
+  }
+
+  const detalhes = await Promise.all(escolhidos.map(({ id }) => detalhar(fonte, id, aoFalhar)));
+  const titulos = detalhes
+    .filter((titulo): titulo is TituloNoite => titulo !== null && (!passa || passa(titulo)))
+    .slice(0, quantidade);
+  return { titulos, falhou };
+}
+
+/** O primeiro título vira o destaque. `null` sem título; `NoiteIndisponivel` se o TMDB falhou. */
+function comoResultado(
+  { titulos, falhou }: { titulos: TituloNoite[]; falhou: boolean },
+  perfil: PerfilNoite,
+  motivo: (titulo: TituloNoite, provedor: Provedor | null) => string,
+): ResultadoNoite | null {
+  const [destaque, ...opcoes] = titulos.map((filme) => {
+    const provedor = provedorDaNoite(filme.ondeAssistir, perfil.streamings);
+    return { filme, provedor, motivo: motivo(filme, provedor) };
+  });
+  if (destaque) return { destaque, opcoes };
+  if (falhou) throw new NoiteIndisponivel();
+  return null;
+}
+
 /**
  * Filmes (ou séries) da rodada: 1 na primeira, 1 destaque + 2 opções depois de uma troca.
  * Busca primeiro nos streamings da pessoa e completa sem filtro de provedor. Nunca devolve
@@ -137,50 +216,55 @@ export async function recomendarNoite(entrada: Entrada): Promise<ResultadoNoite 
   const noite = filtrosDaNoite({ respostas, tom, duracaoMax, tempo, tipo }, perfil.generosEvitados);
   if (!noite) return null;
   const { evitados, classificacaoNosDetalhes: classificacao } = noite;
-  const fonte = fonteDa(entrada);
-
-  let falhou = false;
-  const aoFalhar = () => {
-    falhou = true;
-  };
-  const quantidade = estado.trocas === 0 ? 1 : 3;
-  // O que só se confere nos detalhes pode descartar candidatos: lê alguns a mais.
-  const confere = tempo !== null || classificacao !== null;
-  const candidatos = confere ? quantidade * FOLGA_CONFERENCIA : quantidade;
-  const bloqueados = new Set([...excluir, ...estado.vistos]);
-  const escolhidos: FilmeResumo[] = [];
-  const consultas: FiltrosDescoberta[] = perfil.streamings.length
-    ? [{ ...noite.filtros, provedores: perfil.streamings }, noite.filtros]
-    : [noite.filtros];
-
-  for (const filtros of consultas) {
-    for (let pagina = 1; pagina <= PAGINAS_POR_CONSULTA; pagina++) {
-      if (escolhidos.length >= candidatos) break;
-      const resultado = await consultar(fonte, { ...filtros, pagina }, aoFalhar);
-      for (const filme of resultado.itens) {
-        const evitado = filme.generos.some((genero) => evitados.includes(genero));
-        if (escolhidos.length >= candidatos || evitado || bloqueados.has(filme.id)) continue;
-        escolhidos.push(filme);
-        bloqueados.add(filme.id);
-      }
-      if (pagina >= resultado.totalPaginas) break;
-    }
-  }
 
   // "Até que horas?" promete que o filme (ou o episódio) termina a tempo, e a série em família
   // não tem filtro de classificação no TMDB: os dois são conferidos nos detalhes.
+  const confere = tempo !== null || classificacao !== null;
   const passa = ({ duracaoMin, classificacao: dele }: TituloNoite) =>
     (tempo === null || (duracaoMin !== null && duracaoMin <= tempo)) &&
     (classificacao === null || ateAClassificacao(dele, classificacao));
-  const detalhes = await Promise.all(escolhidos.map(({ id }) => detalhar(fonte, id, aoFalhar)));
-  const [destaque, ...opcoes] = detalhes
-    .filter((filme): filme is TituloNoite => filme !== null && passa(filme))
-    .slice(0, quantidade)
-    .map((filme) => {
-      const provedor = provedorDaNoite(filme.ondeAssistir, perfil.streamings);
-      return { filme, provedor, motivo: motivoDaNoite(respostas, noite.tom, filme, provedor) };
-    });
-  if (destaque) return { destaque, opcoes };
-  if (falhou) throw new NoiteIndisponivel();
-  return null;
+  const busca = await buscarFilmes({
+    filtros: noite.filtros,
+    quantidade: estado.trocas === 0 ? 1 : 3,
+    streamings: perfil.streamings,
+    evitados,
+    bloqueados: [...excluir, ...estado.vistos],
+    fonte: fonteDa(entrada),
+    ...(confere && { passa }),
+  });
+  return comoResultado(busca, perfil, (filme, provedor) =>
+    motivoDaNoite(respostas, noite.tom, filme, provedor),
+  );
+}
+
+/**
+ * "Noite a dois" (SPEC/2026-11-18-noite-a-dois.md): 1 destaque + 2 opções de filme para as
+ * duas pessoas. `perfil` e `excluir` já são a união dos perfis das duas; `a` é quem criou a sala.
+ */
+export async function recomendarJuntos({
+  a,
+  b,
+  perfil,
+  excluir,
+  api,
+}: {
+  a: Clima;
+  b: Clima;
+  perfil: PerfilNoite;
+  excluir: number[];
+  api: ApiNoite;
+}): Promise<ResultadoNoite | null> {
+  const juntos = filtrosJuntos(a, b, perfil.generosEvitados);
+  if (!juntos) return null;
+  const busca = await buscarFilmes({
+    filtros: juntos.filtros,
+    quantidade: 3,
+    streamings: perfil.streamings,
+    evitados: juntos.evitados,
+    bloqueados: excluir,
+    fonte: fonteDeFilmes(api),
+  });
+  return comoResultado(busca, perfil, (filme, provedor) =>
+    motivoJuntos(a, b, juntos.tom, filme, provedor),
+  );
 }
