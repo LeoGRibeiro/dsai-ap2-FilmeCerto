@@ -9,4 +9,13 @@ describe("BotaoNoite", () => {
 
     expect(screen.getByRole("link", { name: "O que ver hoje?" })).toHaveAttribute("href", "/noite");
   });
+
+  it("'Prefiro uma série' já responde 'Filme ou série?' no mesmo clique", () => {
+    render(<BotaoNoite />);
+
+    expect(screen.getByRole("link", { name: "Prefiro uma série" })).toHaveAttribute(
+      "href",
+      "/noite?tipo=serie",
+    );
+  });
 });

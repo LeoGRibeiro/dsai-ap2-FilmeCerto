@@ -45,7 +45,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             {resumirPreferencias(preferencias)}
           </p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-start">
           <BotaoNoite />
           <Link href={proximaRodada} className={buttonVariants({ variant: "outline", size: "lg" })}>
             Gerar outras recomendações
