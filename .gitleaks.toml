@@ -20,3 +20,7 @@ regexes = ['''^[a-z]+(-[a-z]+)*-20\d{2}-\d{2}-\d{2}$''']
 description = "turnAttributionKey: UUID interno das sessões do Claude Code, não é credencial."
 regexTarget = "match"
 regexes = ['''(?i)turnAttributionKey":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"''']
+
+[[allowlists]]
+description = "Token falso do GitHub escrito à mão pelo agente da #19 para testar que o gitleaks pega um ghp_ dentro de uma sessão (sequência a1B2c3D4...). Aparece nas exportações da sessão de 2026-11-18-1920. Só esta string exata; qualquer outro ghp_ continua sendo pego."
+regexes = ['''^ghp_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8$''']
