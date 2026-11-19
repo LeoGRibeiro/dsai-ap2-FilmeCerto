@@ -10,8 +10,9 @@ import { tituloComAno } from "@/features/filme/formatar";
 import { buscaPorId } from "@/features/filme/ler-id";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { obterReacao } from "@/features/reacoes/consultas";
+import { diaEmSaoPaulo } from "@/features/recomendacao/semente";
 import { Temporadas } from "@/features/serie/components/temporadas";
-import { dadosDaSerie } from "@/features/serie/formatar";
+import { dadosDaSerie, proximoEpisodio } from "@/features/serie/formatar";
 import type { Midia } from "@/lib/midia";
 import { obterSerie } from "@/lib/tmdb/series";
 
@@ -35,6 +36,7 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
       <Cabecalho
         titulo={serie}
         dados={dadosDaSerie(serie)}
+        aviso={proximoEpisodio(serie, diaEmSaoPaulo(new Date()))}
         acoes={<AcoesTitulo midia={midia} reacao={reacao} statusLista={statusLista} />}
       />
 
@@ -49,7 +51,11 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
 
       {serie.temporadas.length > 0 && (
         <Secao titulo="Temporadas">
-          <Temporadas temporadas={serie.temporadas} />
+          <Temporadas
+            serieId={serie.id}
+            temporadas={serie.temporadas}
+            duracaoEpisodioMin={serie.duracaoEpisodioMin}
+          />
         </Secao>
       )}
 
