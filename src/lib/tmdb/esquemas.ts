@@ -122,6 +122,9 @@ export const detalhesSerieTmdb = z.object({
   /** O TMDB deixou de preencher em muitas séries; vem `[]`. */
   episode_run_time: z.array(z.number()).default([]),
   last_episode_to_air: z.object({ runtime: z.number().nullish() }).nullish(),
+  /** "Returning Series", "Ended", "Canceled", "In Production", "Planned"... */
+  status: textoOpcional,
+  next_episode_to_air: z.object({ air_date: textoOpcional }).nullish(),
   seasons: z
     .array(
       z.object({
@@ -141,10 +144,34 @@ export const detalhesSerieTmdb = z.object({
 
 export const generosTmdb = z.object({ genres: z.array(generoTmdb) });
 
+/** Uma temporada com os episódios (`/tv/{id}/season/{n}`). */
+export const temporadaTmdb = z.object({
+  season_number: z.number().int(),
+  name: textoOuVazio,
+  overview: textoOuVazio,
+  air_date: textoOpcional,
+  poster_path: textoOpcional,
+  episodes: z
+    .array(
+      z.object({
+        episode_number: z.number().int(),
+        name: textoOuVazio,
+        overview: textoOuVazio,
+        runtime: z.number().nullish(),
+        air_date: textoOpcional,
+        still_path: textoOpcional,
+        vote_average: numero,
+        vote_count: numero,
+      }),
+    )
+    .default([]),
+});
+
 export type FilmeTmdb = z.infer<typeof filmeTmdb>;
 export type DetalhesTmdb = z.infer<typeof detalhesTmdb>;
 export type SerieTmdb = z.infer<typeof serieTmdb>;
 export type DetalhesSerieTmdb = z.infer<typeof detalhesSerieTmdb>;
+export type TemporadaTmdb = z.infer<typeof temporadaTmdb>;
 export type GeneroTmdb = z.infer<typeof generoTmdb>;
 export type VideosTmdb = z.infer<typeof videosTmdb>;
 export type CreditosTmdb = z.infer<typeof creditosTmdb>;
