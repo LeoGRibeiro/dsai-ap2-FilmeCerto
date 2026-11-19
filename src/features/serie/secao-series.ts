@@ -28,14 +28,23 @@ const EPISODIO_MAX_MIN = 60;
 /** Nunca entram. Kids sai porque o dashboard não sabe se há criança na sala. */
 const SEMPRE_FORA = [TV.news, TV.reality, TV.talk, TV.kids];
 
+/**
+ * Gêneros de TV do perfil. Um evitado vence um favorito que vira o mesmo gênero de TV
+ * (Ação favorito e Aventura evitado são os dois 10759): sem isso, o TMDB não devolve nada.
+ */
+function generosDoPerfil(preferencias: EntradaSecaoSeries["preferencias"]) {
+  const evitados = generosEmTv(preferencias.generosEvitados ?? []);
+  const favoritos = generosEmTv(preferencias.generos).filter((id) => !evitados.includes(id));
+  return { favoritos, evitados };
+}
+
 /** Filtros do `/discover/tv` da seção (tabela em SPEC/2026-11-19-series-descoberta.md). */
 export function filtrosSecaoSeries({
   preferencias,
   rodada,
 }: Pick<EntradaSecaoSeries, "preferencias" | "rodada">): FiltrosDescobertaSerie {
   const perfil = PERFIS[preferencias.frequencia];
-  const favoritos = generosEmTv(preferencias.generos);
-  const evitados = generosEmTv(preferencias.generosEvitados ?? []);
+  const { favoritos, evitados } = generosDoPerfil(preferencias);
   return {
     // Sem favorito com equivalente em TV, sem filtro de gênero.
     generos: favoritos.length > 0 ? favoritos : undefined,
@@ -70,7 +79,7 @@ export async function montarSecaoSeries(
   }
 
   const fora = new Set(entrada.excluir);
-  const favoritos = generosEmTv(entrada.preferencias.generos);
+  const { favoritos } = generosDoPerfil(entrada.preferencias);
   const series: Recomendacao[] = resultado.itens
     .filter((serie) => !fora.has(serie.id))
     .slice(0, MAX_SERIES)

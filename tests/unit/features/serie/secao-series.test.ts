@@ -64,6 +64,16 @@ describe("filtrosSecaoSeries", () => {
     expect(filtros.semGeneros).toEqual([SCI_FI_FANTASIA, ...FORA]);
   });
 
+  it("um evitado vence o favorito que vira o mesmo gênero de TV", () => {
+    const filtros = filtrosSecaoSeries(
+      entrada({
+        preferencias: { generos: [28, 18], generosEvitados: [12], frequencia: "semanal" },
+      }),
+    );
+    expect(filtros.generos).toEqual([DRAMA]);
+    expect(filtros.semGeneros).toEqual([ACAO_AVENTURA, ...FORA]);
+  });
+
   it("sem evitados, semGeneros é só a exclusão fixa", () => {
     expect(filtrosSecaoSeries(entrada()).semGeneros).toEqual(FORA);
   });
