@@ -39,6 +39,20 @@ create policy "salas_noite: participantes leem até expirar"
     and expira_em > now()
   );
 
+-- Quem chama é o criador ou o convidado. Com "is distinct from", a vaga livre (convidado nulo)
+-- nunca deixa passar quem não entrou, o que um "not in (criador, convidado)" com nulo deixaria.
+create function public.participa_sala_noite(p_sala public.salas_noite)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select auth.uid() is not null
+     and (auth.uid() = p_sala.criador_id or auth.uid() is not distinct from p_sala.convidado_id);
+$$;
+
+comment on function public.participa_sala_noite is 'Se quem chama é o criador ou o convidado da sala.';
+
 -- Cria a sala de quem chama e devolve o ID. A validade pode ser menor que 3 h, nunca maior
 -- (os testes usam poucos segundos). Aproveita para apagar as salas expiradas da pessoa.
 create function public.criar_sala_noite(p_segundos int default 10800)
@@ -125,7 +139,7 @@ declare
   v_respostas jsonb;
 begin
   select * into v_sala from public.salas_noite where id = p_sala for update;
-  if not found or auth.uid() is null or auth.uid() not in (v_sala.criador_id, v_sala.convidado_id) then
+  if not found or not public.participa_sala_noite(v_sala) then
     raise exception 'só quem está na sala responde' using errcode = 'insufficient_privilege';
   end if;
   if v_sala.expira_em <= now() or v_sala.resultado is not null then
@@ -168,7 +182,7 @@ declare
   v_pessoas uuid[];
 begin
   select * into v_sala from public.salas_noite where id = p_sala;
-  if not found or auth.uid() is null or auth.uid() not in (v_sala.criador_id, v_sala.convidado_id) then
+  if not found or not public.participa_sala_noite(v_sala) then
     raise exception 'só quem está na sala monta a sugestão' using errcode = 'insufficient_privilege';
   end if;
   if v_sala.expira_em <= now() or v_sala.respostas_criador is null or v_sala.respostas_convidado is null then
@@ -206,7 +220,7 @@ declare
   v_sala public.salas_noite;
 begin
   select * into v_sala from public.salas_noite where id = p_sala for update;
-  if not found or auth.uid() is null or auth.uid() not in (v_sala.criador_id, v_sala.convidado_id) then
+  if not found or not public.participa_sala_noite(v_sala) then
     raise exception 'só quem está na sala grava o resultado' using errcode = 'insufficient_privilege';
   end if;
   if v_sala.expira_em <= now() or v_sala.resultado is not null then
@@ -232,6 +246,7 @@ $$;
 comment on function public.concluir_sala_noite is 'Grava o filme sugerido (uma vez só) e apaga as respostas da sala.';
 
 -- Funções são executáveis por public por padrão: só quem está logado usa.
+revoke execute on function public.participa_sala_noite(public.salas_noite) from public, anon, authenticated;
 revoke execute on function public.criar_sala_noite(int) from public, anon;
 revoke execute on function public.entrar_sala_noite(uuid) from public, anon;
 revoke execute on function public.responder_sala_noite(uuid, text, text, text) from public, anon;

@@ -171,6 +171,18 @@ describe("RLS e funções das salas da 'Noite a dois'", () => {
     expect(depois.error?.code).toBe("P0001");
   });
 
+  it("com a vaga livre, quem não entrou na sala também não responde nem lê restrições", async () => {
+    const livre = await criarSala(a);
+    const resposta = await c.cliente.rpc("responder_sala_noite", { p_sala: livre, ...TENSO });
+    expect(resposta.error?.code).toBe("42501");
+    const restricoes = await c.cliente.rpc("restricoes_sala_noite", { p_sala: livre });
+    expect(restricoes.error?.code).toBe("42501");
+    expect((await ler(a, livre))[0]).toMatchObject({
+      convidado_id: null,
+      respostas_convidado: null,
+    });
+  });
+
   it("antes das duas respostas, não há restrições nem resultado", async () => {
     const nova = await criarSala(a);
     expect(await entrar(b, nova)).toBe("convidado");
