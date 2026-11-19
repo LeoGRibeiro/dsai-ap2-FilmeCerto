@@ -11,6 +11,15 @@ export default defineConfig({
     },
   },
   test: {
+    // `pnpm test:coverage`: cobertura do projeto unit. O `lcov.info` alimenta a cobertura das
+    // linhas novas no CI (scripts/cobertura-diff.mjs).
+    coverage: {
+      provider: "v8",
+      // Com `include`, arquivos que nenhum teste importa também entram no relatório, com 0%.
+      include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      exclude: ["src/lib/supabase/database.types.ts"],
+      reporter: ["text-summary", "lcov"],
+    },
     projects: [
       {
         extends: true,

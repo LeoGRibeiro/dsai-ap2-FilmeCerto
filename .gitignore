@@ -53,3 +53,6 @@ supabase/.temp
 
 # material da disciplina (slides e pedido do cliente em PDF; o pedido está transcrito em docs/ap2/)
 /pdfs_trabalhos/
+
+# Playwright MCP (capturas e logs das sessões com agentes)
+/.playwright-mcp/

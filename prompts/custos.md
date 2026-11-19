@@ -2,7 +2,7 @@
 
 Como os números foram obtidos:
 
-- **Claude Code:** soma de `message.usage` das mensagens do assistente no `.jsonl` de cada sessão, contando cada `message.id` uma vez só (incluindo subagentes, se houver). A extensão do VS Code não tem `/cost`, então o custo fica como não disponível e os tokens cumprem o critério.
+- **Claude Code:** soma de `message.usage` das mensagens do assistente no `.jsonl` de cada sessão, contando cada `message.id` uma vez só (incluindo subagentes, se houver). O `node scripts/custo-sessao.mjs prompts/sessoes/<sessão>.jsonl` faz essa soma, inclui sozinho os `.jsonl` da pasta `<sessão>/subagents/` e imprime a linha da tabela (`--ferramenta` e `--custo` mudam as duas colunas de texto). A extensão do VS Code não tem `/cost`, então o custo fica como não disponível e os tokens cumprem o critério.
 - **Antigravity:** os valores da linha `"type":"cost-state"` da própria exportação (`usage` e `modelUsage[...].costUSD`).
 
 ## AP2
@@ -14,6 +14,7 @@ Como os números foram obtidos:
 | [2026-11-18-1006-claude-code.jsonl](sessoes/2026-11-18-1006-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 108 | 49.573 | 127.407 / 6.290.156 | não disponível (extensão VS Code) |
 | [2026-11-18-1037-claude-code.jsonl](sessoes/2026-11-18-1037-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 98 | 69.971 | 162.902 / 6.719.199 | não disponível (extensão VS Code) |
 | [2026-11-18-1117-claude-code.jsonl](sessoes/2026-11-18-1117-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 122 | 65.266 | 162.175 / 8.654.754 | não disponível (extensão VS Code) |
+| [2026-11-18-1920-claude-code.jsonl](sessoes/2026-11-18-1920-claude-code.jsonl) (+ 9 subagentes em [`2026-11-18-1920-claude-code/subagents/`](sessoes/2026-11-18-1920-claude-code/subagents/)) | claude-code (VS Code), orquestração | claude-opus-5-5 | 1.942 | 988.217 | 4.082.325 / 171.670.376 | não disponível (extensão VS Code) |
 
 ## AP1 (sessões dos autores originais, herdadas com o fork)
 

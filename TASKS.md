@@ -6,31 +6,56 @@
 
 ### Concluído
 
-- [x] **Fork e repositório:** issues e Actions ativadas, dupla com permissão de escrita, `main` protegida (PR com 1 aprovação e check `verificar`, só *merge commit*), rótulos e issues #2 a #9.
+- [x] **Fork e repositório:** issues e Actions ativadas, dupla com permissão de escrita, `main` protegida (PR com 1 aprovação e check `verificar`, só _merge commit_), rótulos e issues #2 a #9.
 - [x] **Linha de base:** `4ac8b98` = 10.643 linhas (`cloc`), 305 testes unitários verdes.
 - [x] **Documentos da AP2** (PRs #1 e #11): pedido do cliente, [visão geral](SPEC/2026-11-17-visao-geral-ap2.md), AGENTS.md e este arquivo.
 - [x] **Deploy (#3, PR #10):** <https://dsai-ap2-filme-certo.vercel.app>, Vercel ligada à `main`, Supabase `ndugdhtzdjweqvwjwvxy`. O `/api/health` devolve o SHA servido.
 - [x] **Processo (PR #12):** checklist da seção 0 do AGENTS.md, hooks `pre-commit` e `commit-msg` em `.githooks/` e `prompts/custos.md` com todas as sessões.
 - [x] **Métricas de uso (#5, PR #13):** spec [2026-11-18-metricas.md](SPEC/2026-11-18-metricas.md), tabelas `eventos`, `contagem_climas` e `equipe_metricas`, `POST /api/eventos` e a página `/metricas`.
-- [x] **Wizard, lógica (#6, PR #14):** spec [2026-11-18-wizard-noite.md](SPEC/2026-11-18-wizard-noite.md) com as tabelas de mapeamento e `src/features/noite/` (filtros, estado na URL, motivo, "termina às", `obterNoite`, `concluirNoite`). **As telas ainda não existem** (branch A abaixo).
+- [x] **Wizard, lógica (#6, PR #14):** spec [2026-11-18-wizard-noite.md](SPEC/2026-11-18-wizard-noite.md) com as tabelas de mapeamento e `src/features/noite/` (filtros, estado na URL, motivo, "termina às", `obterNoite`, `concluirNoite`). As telas estão no PR #20 (branch A).
 - [x] **"Como foi?" (#7, PR #15):** spec [2026-11-18-como-foi.md](SPEC/2026-11-18-como-foi.md), enum `tipo_midia`, tabela `escolhas_noite`, componentes `VouVerEsse` e `PerguntaComoFoi` (o cartão já aparece no dashboard).
 - [x] **Produção em dia:** as migrations `metricas` e `escolhas_noite` foram aplicadas com `supabase db push`. A conta do Leonardo está em `equipe_metricas`.
+- [x] **Plano até a entrega, implementado (18 e 19/11):** uma sessão orquestrou um agente por branch, cada um num worktree próprio. Todos os PRs abaixo estão abertos contra a `main`, com CI verde, na ordem de merge. **Nenhum foi mesclado ainda**: a revisão e o merge são do Lucas.
+
+| Ordem | Branch                     | PR       | Issue       | Spec                                                          | Migration nova                             |
+| ----- | -------------------------- | -------- | ----------- | ------------------------------------------------------------- | ------------------------------------------ |
+| P     | `docs/plano-entrega`       | #16      | —           | visão geral                                                   | —                                          |
+| G     | `feat/metricas-funil`      | #18      | Closes #17  | [metricas-funil](SPEC/2026-11-18-metricas-funil.md)           | `20261118181500_metricas_detalhes`         |
+| M     | `chore/medicao`            | #19      | Parte de #4 | visão geral                                                   | —                                          |
+| A     | `feat/noite-telas`         | #20      | Closes #6   | [wizard-noite](SPEC/2026-11-18-wizard-noite.md)               | —                                          |
+| B     | `feat/series-base`         | #21      | Parte de #8 | [series-base](SPEC/2026-11-18-series-base.md)                 | `20261118224000_tipo_midia_reacoes_listas` |
+| H     | `feat/noite-ate-que-horas` | #23      | Closes #22  | [noite-ate-que-horas](SPEC/2026-11-18-noite-ate-que-horas.md) | —                                          |
+| C     | `feat/series-pagina`       | #24      | Parte de #8 | [series-pagina](SPEC/2026-11-18-series-pagina.md)             | —                                          |
+| I     | `feat/noite-compartilhar`  | #26      | Closes #25  | [noite-compartilhar](SPEC/2026-11-18-noite-compartilhar.md)   | —                                          |
+| D     | `feat/series-noite`        | #28      | Closes #8   | [series-noite](SPEC/2026-11-18-series-noite.md)               | —                                          |
+| J     | `feat/noite-a-dois`        | #29      | Closes #9   | [noite-a-dois](SPEC/2026-11-18-noite-a-dois.md)               | `20261118233000_salas_noite`               |
+| F     | `docs/entrega-ap2`         | (último) | Closes #27  | visão geral                                                   | —                                          |
+
+- A D já traz a H e a I por `git merge`, e a J já traz a D, então os PRs de cima não conflitam com os de baixo. A sequência completa (P a J) foi mesclada numa cópia local, na ordem: sem conflito, typecheck, lint e testes unitários verdes.
+- O que cada branch deixou de fora está na seção "Fora do escopo" da spec dela e no corpo do PR.
+
+### Próximo passo
+
+1. **Leonardo:** marcar como prontos os PRs #20 e #21 (`gh pr ready 20 && gh pr ready 21`); os agentes foram bloqueados pelas permissões nesse comando.
+2. **Lucas:** revisar e mesclar pelo terminal, um por vez, do menor número para o maior (seção "Como o Lucas mescla cada PR"). Antes de cada merge, conferir o CI verde do PR.
+3. **Logo depois dos merges com migration** (#18, #21 e #29): `pnpm exec supabase db push --dry-run` e depois `pnpm exec supabase db push`. Até isso, o `/metricas` (#18) e a "Noite a dois" (#29) dão erro na produção, e as reações e listas (#21) também, porque o código passa a gravar a coluna `tipo`.
+4. **Depois do último merge:** `curl -s https://dsai-ap2-filme-certo.vercel.app/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
 
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**`.
 - [ ] Liberar o `/metricas` para o Lucas e os clientes: a pessoa cria conta no site e alguém roda no SQL Editor:
-  `insert into public.equipe_metricas (usuario_id) select id from auth.users where email = '<e-mail>' on conflict do nothing;`
+      `insert into public.equipe_metricas (usuario_id) select id from auth.users where email = '<e-mail>' on conflict do nothing;`
 - [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`).
 
 ## Plano até a entrega
 
 ### Quem faz o quê
 
-| Papel | Quem |
-|---|---|
-| Implementa as branches abaixo | Leonardo, com agentes do Claude Code |
-| Revisa, aprova e mescla os PRs pelo terminal | Lucas |
+| Papel                                        | Quem                                 |
+| -------------------------------------------- | ------------------------------------ |
+| Implementa as branches abaixo                | Leonardo, com agentes do Claude Code |
+| Revisa, aprova e mescla os PRs pelo terminal | Lucas                                |
 
 ### Mapa das branches
 
@@ -64,6 +89,7 @@ main ─┬─ G  feat/metricas-funil
 
 - A sessão que orquestra é uma conversa nova do Claude Code, que será registrada em `prompts/sessoes/`.
 - No máximo 4 agentes ao mesmo tempo, cada um num worktree próprio e numa branch só.
+  - Como foi feito (18 e 19/11): os worktrees ficaram em `../ap2-wt/<letra>`, criados à mão com `git worktree add`, porque o isolamento automático do Claude Code recusou o caminho no Windows (`c:\` contra `C:/`). Cada branch começou quando a base dela ficou pronta. O limite de uso de 5 horas da conta parou os agentes duas vezes, e eles foram retomados do ponto em que pararam.
 - O agente de cada branch recebe o cartão dela (abaixo) e as regras acima, e devolve: número do PR, estado do CI e o que ficou de fora.
 - No fim da sessão, a branch F recebe, em commits separados: o TASKS.md atualizado; a exportação da sessão principal **e das transcrições dos subagentes** (pasta `subagents/` da sessão), depois de procurar segredos; e a linha em `prompts/custos.md` com os tokens somados, incluindo os subagentes.
 
@@ -176,5 +202,9 @@ Se o PR trouxer migration nova, rodar `pnpm exec supabase db push` logo depois. 
 ## Pontos de atenção
 
 - **Migrations e RLS** só são validadas no CI (Supabase local em Docker). Fazer push cedo e acompanhar com `gh run watch`.
-- **CI com `supabase/setup-cli` em `version: latest`:** se quebrar por versão nova da CLI, fixar a versão.
+- **CI com `supabase/setup-cli`:** em `version: latest` ele falhou algumas vezes por limite da API do GitHub, antes de rodar qualquer teste (`gh run rerun <id> --failed` resolve). O PR #19 fixa a versão em 2.119.0.
+- **Parcela de commits de cada integrante (mínimo de 30%):** em 19/11, todos os 125 commits da AP2 (49 na `main` e 76 nos PRs abertos) são do Leonardo. Os 11 merges do Lucas levam a parcela dele a cerca de 8%. Só trabalho real do Lucas, com a conta dele, muda isso (nunca `--author` nem `Co-authored-by`).
+- **Trailers (mínimo de 80%):** 43 de 49 na `main`; os 6 sem trailers são os merges pelo botão do GitHub (#1, #10, #11, #13, #14 e #15). Com os PRs abertos e os merges pelo terminal, a projeção é de cerca de 95%.
+- **Duplicação:** o `jscpd` do CI mede só código (1,03%). No repositório inteiro, sem o lockfile e sem `prompts/`, dá 5,24%, quase tudo por causa do plano da AP1 `docs/superpowers/plans/2026-10-13-mcp.md`, que copia o código do MCP. Mexer nesse arquivo é decisão da dupla.
+- **Telas logadas sem Docker:** sem Supabase local, as telas novas foram verificadas por testes de componente e pelos E2E no CI (com um teste em 390x844 em cada fluxo), não a olho. Vale uma passada manual no celular depois do deploy.
 - **Nada do wizard vira preferência.** Toda resposta (inclusive "até que horas" e as da noite a dois) fica na URL ou deixa de valer depois do resultado.
