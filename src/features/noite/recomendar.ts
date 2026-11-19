@@ -20,7 +20,8 @@ export type ResultadoNoite = { destaque: FilmeDaNoite; opcoes: FilmeDaNoite[] };
 
 type Entrada = {
   respostas: Clima;
-  estado: Pick<EstadoNoite, "tom" | "duracaoMax" | "vistos" | "trocas">;
+  estado: Pick<EstadoNoite, "tom" | "duracaoMax" | "vistos" | "trocas"> &
+    Partial<Pick<EstadoNoite, "tempo">>;
   perfil: PerfilNoite;
   /** "Já assisti" e filmes com reação. */
   excluir: number[];
@@ -69,7 +70,7 @@ async function detalhar(
 /**
  * Filmes da rodada: 1 na primeira, 1 destaque + 2 opções depois de uma troca.
  * Busca primeiro nos streamings da pessoa e completa sem filtro de provedor. Nunca devolve
- * filme excluído, já mostrado ou de gênero evitado. `null` quando não sobra nenhum; lança
+ * filme excluído, já mostrado, de gênero evitado ou que passa do "Até que horas?". `null` quando não sobra nenhum; lança
  * `NoiteIndisponivel` quando não sobra nenhum porque o TMDB falhou.
  */
 export async function recomendarNoite({
@@ -80,8 +81,8 @@ export async function recomendarNoite({
   api,
 }: Entrada): Promise<ResultadoNoite | null> {
   const evitados = perfil.generosEvitados;
-  const { tom, duracaoMax } = estado;
-  const noite = filtrosDaNoite({ respostas, tom, duracaoMax }, evitados);
+  const { tom, duracaoMax, tempo = null } = estado;
+  const noite = filtrosDaNoite({ respostas, tom, duracaoMax, tempo }, evitados);
   if (!noite) return null;
 
   let falhou = false;
@@ -109,9 +110,12 @@ export async function recomendarNoite({
     }
   }
 
+  // "Até que horas?" promete que o filme termina a tempo: confere a duração nos detalhes.
+  const cabe = ({ duracaoMin }: FilmeDetalhes) =>
+    tempo === null || (duracaoMin !== null && duracaoMin <= tempo);
   const detalhes = await Promise.all(escolhidos.map(({ id }) => detalhar(api, id, aoFalhar)));
   const [destaque, ...opcoes] = detalhes
-    .filter((filme): filme is FilmeDetalhes => filme !== null)
+    .filter((filme): filme is FilmeDetalhes => filme !== null && cabe(filme))
     .map((filme) => {
       const provedor = provedorDaNoite(filme.ondeAssistir, perfil.streamings);
       return { filme, provedor, motivo: motivoDaNoite(respostas, noite.tom, filme, provedor) };

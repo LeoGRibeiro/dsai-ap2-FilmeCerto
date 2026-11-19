@@ -50,6 +50,8 @@ type Opcoes = {
   falhar?: boolean | "streaming";
   detalhesFalham?: boolean;
   semDetalhes?: number[];
+  /** Duração nos detalhes por ID (o padrão é 100 min). */
+  duracoes?: Record<number, number | null>;
 };
 
 /** TMDB falso: a consulta com provedores lê `streaming`, a outra lê `geral`, por página. */
@@ -71,7 +73,9 @@ function apiFalsa(paginas: Paginas, opcoes: Opcoes = {}) {
     }),
     obterFilme: vi.fn(async (id: number) => {
       if (opcoes.detalhesFalham) throw new TmdbErro("Sem resposta do TMDB", null);
-      return opcoes.semDetalhes?.includes(id) ? null : detalhes(id);
+      if (opcoes.semDetalhes?.includes(id)) return null;
+      const duracao = opcoes.duracoes?.[id];
+      return duracao === undefined ? detalhes(id) : { ...detalhes(id), duracaoMin: duracao };
     }),
   };
   return { api, chamadas };
@@ -223,6 +227,39 @@ describe("recomendarNoite", () => {
 
     expect(chamadas[0]?.todosGeneros).toEqual([35]);
     expect(resultado?.destaque.motivo).toMatch(/^Você está cansado, quer rir/);
+  });
+
+  it("com 'Até que horas?', limita a busca e nunca devolve filme que passa do horário", async () => {
+    const { api, chamadas } = apiFalsa(
+      { streaming: [[resumo(1), resumo(2), resumo(3), resumo(4)]] },
+      { duracoes: { 1: 95, 2: null, 3: 90 } },
+    );
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: { ...rodada1, tempo: 90 },
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(chamadas[0]).toMatchObject({ duracaoMax: 90 });
+    // 1 é mais longo que o tempo e 2 não tem duração conhecida: só 3 cabe até a hora.
+    expect(ids(resultado)).toEqual([3]);
+  });
+
+  it("sem 'Até que horas?', não confere a duração nos detalhes", async () => {
+    const { api } = apiFalsa({ streaming: [[resumo(1)]] }, { duracoes: { 1: 180 } });
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: rodada0,
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([1]);
   });
 
   it("devolve null sem candidatos", async () => {
