@@ -116,3 +116,6 @@ export const ORDEM_PADRAO: OrdemDescoberta = "nota";
 
 /** "Muito longo": quanto encurtar, o mínimo e a base quando a duração é desconhecida. */
 export const DURACAO_TROCA = { reducao: 20, minima: 80, base: 120 } as const;
+
+/** "Até que horas?": com menos minutos que isso, não há filme a sugerir. */
+export const TEMPO_MINIMO = 60;
