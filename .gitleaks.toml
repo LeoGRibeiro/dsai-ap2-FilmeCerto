@@ -24,3 +24,7 @@ regexes = ['''(?i)turnAttributionKey":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 [[allowlists]]
 description = "Token falso do GitHub escrito à mão pelo agente da #19 para testar que o gitleaks pega um ghp_ dentro de uma sessão (sequência a1B2c3D4...). Aparece nas exportações da sessão de 2026-11-18-1920. Só esta string exata; qualquer outro ghp_ continua sendo pego."
 regexes = ['''^ghp_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8$''']
+
+[[allowlists]]
+description = "Chave publishable falsa (sequência de teclado Zx9Qw8Er7...) escrita à mão pelo agente da #19 para conferir que a allowlist da chave local não libera outras chaves. Aparece na exportação da sessão de 2026-11-18-1920. Só esta string exata."
+regexes = ['''^sb_publishable_Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0Lz$''']
