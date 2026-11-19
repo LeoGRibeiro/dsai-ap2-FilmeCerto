@@ -8,8 +8,8 @@ import {
 } from "@/features/metricas/eventos";
 import { MAPEAMENTOS } from "@/features/noite/filtros";
 import { TOTAL_TONS } from "@/features/noite/mapeamento";
-import { HORAS_LIMITE, PERGUNTAS, type HoraLimite } from "@/features/noite/opcoes";
-import { minutosAte } from "@/features/noite/termina";
+import { PERGUNTAS } from "@/features/noite/opcoes";
+import { DIA_MIN, minutosAte } from "@/features/noite/termina";
 import { limparIds } from "@/features/surpresa/memoria";
 import type { TipoMidia } from "@/lib/midia";
 
@@ -26,9 +26,12 @@ export type EstadoNoite = {
   /** IDs já mostrados nesta sessão do wizard. */
   vistos: number[];
   trocas: number;
-  /** "Até que horas?": a hora escolhida, ou `null` para "Tanto faz". Sempre junto de `tempo`. */
-  ate: HoraLimite | null;
-  /** Minutos que faltavam até `ate`, calculados no navegador da pessoa. */
+  /**
+   * "Até que horas?" (SPEC/2026-11-19-noite-tempo-disponivel.md): o "Outro horário" em minutos
+   * do dia (22h15 é 1335), ou `null` no "Tanto faz" e no tempo a partir de agora. Exige `tempo`.
+   */
+  ate: number | null;
+  /** Minutos disponíveis: a janela escolhida ("2h" é 120) ou os que faltavam até `ate`. */
   tempo: number | null;
 };
 
@@ -63,6 +66,18 @@ function inteiro(valor: string | string[] | undefined, min: number, max: number)
   return numero >= min && numero <= max ? numero : null;
 }
 
+/** `ate` na URL: "2215" é 22h15 (1335 minutos do dia). */
+function lerHHMM(valor: string | undefined): number | null {
+  if (!valor || !/^\d{4}$/.test(valor)) return null;
+  const [hora, minuto] = [Number(valor.slice(0, 2)), Number(valor.slice(2))];
+  return hora < 24 && minuto < 60 ? hora * 60 + minuto : null;
+}
+
+function escreverHHMM(minutoDoDia: number): string {
+  const minuto = ((minutoDoDia % DIA_MIN) + DIA_MIN) % DIA_MIN;
+  return `${String(Math.floor(minuto / 60)).padStart(2, "0")}${String(minuto % 60).padStart(2, "0")}`;
+}
+
 function resposta<P extends Pergunta>(pergunta: P, valor: string | undefined) {
   return (CLIMAS[pergunta] as readonly string[]).includes(valor ?? "")
     ? (valor as Clima[P])
@@ -78,11 +93,9 @@ export function lerEstado(busca: Busca): EstadoNoite {
     if (valor) Object.assign(respostas, { [chave]: valor });
   }
   const vistos = (texto(busca.vistos) ?? "").split(",").filter(Boolean).map(Number);
-  const hora = inteiro(busca.ate, 0, 23);
-  const ate = HORAS_LIMITE.find((h) => h === hora) ?? null;
   const tempo = inteiro(busca.tempo, 0, TEMPO_MAXIMO_URL);
-  // A hora e os minutos só valem juntos: sem um deles, é "Tanto faz".
-  const horario = ate !== null && tempo !== null ? { ate, tempo } : { ate: null, tempo: null };
+  // O horário só vale com os minutos; sem eles, é "Tanto faz".
+  const ate = tempo === null ? null : lerHHMM(texto(busca.ate));
 
   return {
     tipo,
@@ -91,7 +104,8 @@ export function lerEstado(busca: Busca): EstadoNoite {
     duracaoMax: inteiro(busca.max, MAPEAMENTOS[tipo].duracaoTroca.minima, DURACAO_MAXIMA_URL),
     vistos: limparIds(vistos).slice(-MAX_VISTOS_NOITE),
     trocas: inteiro(busca.trocas, 0, MAX_TROCAS) ?? 0,
-    ...horario,
+    ate,
+    tempo,
   };
 }
 
@@ -114,8 +128,8 @@ export function urlDaNoite(estado: EstadoNoite, rota = ROTA_NOITE): string {
     const valor = estado.respostas[chave];
     if (valor) busca.set(parametro, valor);
   }
-  if (estado.ate !== null && estado.tempo !== null) {
-    busca.set("ate", String(estado.ate));
+  if (estado.tempo !== null) {
+    if (estado.ate !== null) busca.set("ate", escreverHHMM(estado.ate));
     busca.set("tempo", String(estado.tempo));
   }
   if (estado.tom > 0) busca.set("tom", String(estado.tom));
@@ -142,12 +156,19 @@ export function inicioDaNoite(tipo: TipoMidia): string {
 }
 
 /**
- * "Até que horas?": o mesmo estado com a hora escolhida e os minutos que faltam no relógio
- * `agora` (o do navegador). `null` é "Tanto faz". Não é troca: o resto do estado fica igual.
+ * "Até que horas?" a partir de agora: o mesmo estado com a janela em minutos ("2h" é 120).
+ * `null` é "Tanto faz". Não é troca: o resto do estado fica igual.
  */
-export function comHorario(estado: EstadoNoite, hora: HoraLimite | null, agora: Date): EstadoNoite {
-  if (hora === null) return { ...estado, ate: null, tempo: null };
-  return { ...estado, ate: hora, tempo: minutosAte(hora, agora) };
+export function comJanela(estado: EstadoNoite, minutos: number | null): EstadoNoite {
+  return { ...estado, ate: null, tempo: minutos };
+}
+
+/**
+ * "Outro horário": o mesmo estado com o horário (minutos do dia) e os minutos que faltam até
+ * ele no relógio `agora` (o do navegador).
+ */
+export function comHorario(estado: EstadoNoite, minutoDoDia: number, agora: Date): EstadoNoite {
+  return { ...estado, ate: minutoDoDia, tempo: minutosAte(minutoDoDia, agora) };
 }
 
 /**
