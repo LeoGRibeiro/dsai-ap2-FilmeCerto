@@ -1,6 +1,7 @@
 import { IDS_GENEROS } from "@/features/preferencias/generos";
 import { DURACOES, type Duracao } from "@/features/preferencias/opcoes";
 import { filtrosDeDuracao } from "@/features/recomendacao/perfil";
+import type { TipoMidia } from "@/lib/midia";
 import type { FiltrosDescoberta, OrdemDescoberta } from "@/lib/tmdb/tipos";
 
 const MAX_TEXTO = 100;
@@ -20,7 +21,14 @@ export type FiltrosBusca = {
   ordem: OrdemDescoberta;
 };
 
-export type Busca = { modo: Modo; texto: string; pagina: number; filtros: FiltrosBusca };
+export type Busca = {
+  modo: Modo;
+  /** Filme ou série; só a busca por nome procura séries. */
+  tipo: TipoMidia;
+  texto: string;
+  pagina: number;
+  filtros: FiltrosBusca;
+};
 
 type Parametros = Record<string, string | string[] | undefined>;
 
@@ -47,8 +55,11 @@ function umDe<T extends string>(
 /** Lê os parâmetros da URL da busca, já validados e com os padrões aplicados. */
 export function lerBusca(parametros: Parametros, hoje = new Date()): Busca {
   const genero = inteiro(parametros.genero, 1, Number.MAX_SAFE_INTEGER);
+  const modo: Modo = texto(parametros.modo) === "filtros" ? "filtros" : "nome";
   return {
-    modo: texto(parametros.modo) === "filtros" ? "filtros" : "nome",
+    modo,
+    // Sem `tipo=serie` (ou com outro valor) é filme, como nas URLs da AP1.
+    tipo: modo === "nome" && texto(parametros.tipo) === "serie" ? "serie" : "filme",
     texto: texto(parametros.q).replace(/\s+/g, " ").slice(0, MAX_TEXTO),
     pagina: inteiro(parametros.pagina, 1, MAX_PAGINA) ?? 1,
     filtros: {
@@ -74,8 +85,8 @@ export function filtrosParaDescoberta(filtros: FiltrosBusca, pagina: number): Fi
 }
 
 /** Parâmetros que a paginação precisa manter, conforme o modo. */
-export function parametrosDaBusca({ modo, texto, filtros }: Busca): Record<string, string> {
-  if (modo === "nome") return { q: texto };
+export function parametrosDaBusca({ modo, tipo, texto, filtros }: Busca): Record<string, string> {
+  if (modo === "nome") return { q: texto, ...(tipo === "serie" && { tipo }) };
   return {
     modo: "filtros",
     ...(filtros.genero !== null && { genero: String(filtros.genero) }),

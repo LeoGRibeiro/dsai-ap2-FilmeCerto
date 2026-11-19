@@ -51,6 +51,14 @@ describe("lerBusca", () => {
     expect(lerBusca({}).modo).toBe("nome");
   });
 
+  it("lê tipo=serie; ausente, inválido ou no modo filtros é filme", () => {
+    expect(lerBusca({ q: "dark", tipo: "serie" }).tipo).toBe("serie");
+    for (const tipo of [undefined, "filme", "outro", ["serie", "filme"]]) {
+      expect(lerBusca({ q: "dark", tipo }).tipo).toBe("filme");
+    }
+    expect(lerBusca({ modo: "filtros", tipo: "serie" }).tipo).toBe("filme");
+  });
+
   it("valida os filtros e aplica os padrões", () => {
     expect(lerBusca({ genero: "18", ano: "2010" }, hoje).filtros).toEqual({
       genero: 18,
@@ -97,6 +105,14 @@ describe("parametrosDaBusca", () => {
     expect(
       parametrosDaBusca(lerBusca({ modo: "filtros", genero: "27", duracao: "curta" }, hoje)),
     ).toEqual({ modo: "filtros", genero: "27", duracao: "curta" });
+  });
+
+  it("mantém o tipo só quando é série", () => {
+    expect(parametrosDaBusca(lerBusca({ q: "dark", tipo: "serie", pagina: "2" }))).toEqual({
+      q: "dark",
+      tipo: "serie",
+    });
+    expect(parametrosDaBusca(lerBusca({ q: "dark", tipo: "filme" }))).toEqual({ q: "dark" });
   });
 });
 
