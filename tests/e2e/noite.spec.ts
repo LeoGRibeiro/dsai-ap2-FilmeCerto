@@ -172,6 +172,53 @@ test("no celular (390 × 844), o fluxo cabe na tela e os botões principais func
   await expect(main(page).getByRole("status")).toContainText("Boa sessão!");
 });
 
+test.describe("'Até que horas?'", () => {
+  // O horário que vale é o do navegador: fuso de São Paulo e relógio fixo em 23h30.
+  test.use({ timezoneId: "America/Sao_Paulo" });
+
+  test("é opcional, avisa quando já passou e atravessa a meia-noite, no celular", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await novaPessoa(page, "Ugo Dias");
+    await page.clock.setFixedTime(new Date("2026-11-18T23:30:00-03:00"));
+    await page.goto("/dashboard");
+
+    // Os 4 cliques continuam os mesmos, com "Tanto faz" já marcado.
+    await main(page).getByRole("link", { name: "O que ver hoje?" }).click();
+    await responder(page, ["Cansado", "Rir", "A dois"]);
+    await expect(page).toHaveURL("/noite?humor=cansado&exp=rir&com=a-dois");
+    const titulo = main(page).getByRole("heading", { level: 1 });
+    await expect(titulo).toHaveText("Filme 35020");
+    const horario = main(page).getByRole("group", { name: "Até que horas?" });
+    await expect(horario.getByRole("button", { name: "Tanto faz" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // 23h já passou: nada de sugestão que estoura o horário.
+    await horario.getByRole("button", { name: "23h" }).click();
+    await expect(page).toHaveURL("/noite?humor=cansado&exp=rir&com=a-dois&ate=23&tempo=0");
+    await expect(titulo).toHaveText("Não dá tempo de ver um filme até as 23h");
+    await expect(main(page).getByText(/^Esse horário já passou\./)).toBeVisible();
+    await expect(main(page).getByRole("link", { name: "Refazer as perguntas" })).toBeVisible();
+
+    // Até 1h: 90 minutos, virando a meia-noite.
+    await horario.getByRole("button", { name: "1h" }).click();
+    await expect(page).toHaveURL(/&ate=1&tempo=90$/);
+    await expect(titulo).toHaveText(/^Curto \d+$/);
+    await expect(main(page).getByText("Começando agora, termina às 0h50")).toBeVisible();
+    await expect(main(page).getByRole("button", { name: "Vou ver esse!" })).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+
+    await horario.getByRole("button", { name: "Tanto faz" }).click();
+    await expect(page).toHaveURL("/noite?humor=cansado&exp=rir&com=a-dois");
+    await expect(titulo).toHaveText("Filme 35020");
+  });
+});
+
 test("sem sessão, /noite leva ao login guardando as respostas", async ({ page }) => {
   await page.goto("/noite?humor=cansado");
   await expect(page).toHaveURL(/\/login\?next=%2Fnoite%3Fhumor%3Dcansado$/);
