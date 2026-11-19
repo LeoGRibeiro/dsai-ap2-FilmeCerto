@@ -105,7 +105,10 @@ const servidor = createServer((req, res) => {
   if (detalhes) {
     const id = Number(detalhes[1]);
     if (id >= 999000000) return responder(res, 404, { status_code: 34 });
-    const base = filme(id, `Filme ${id}`, 18, 0);
+    // Os filmes "Para a família" (IDs 700000+, só com certification.lte) mantêm o nome nos
+    // detalhes, que é o que o resultado do wizard mostra.
+    const familia = id >= 700000 && id < 800000;
+    const base = filme(id, familia ? `Para a família ${id}` : `Filme ${id}`, 18, 0);
     delete base.genre_ids;
     return responder(res, 200, {
       ...base,
