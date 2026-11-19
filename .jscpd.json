@@ -1,0 +1,13 @@
+{
+  "path": ["."],
+  "format": ["typescript", "tsx", "javascript", "css", "sql"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/tests/e2e/tmdb-falso/**",
+    "**/src/lib/supabase/database.types.ts"
+  ],
+  "threshold": 5,
+  "reporters": ["console"]
+}

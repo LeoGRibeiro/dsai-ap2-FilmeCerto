@@ -147,12 +147,12 @@ pnpm dev                     # http://localhost:3000
 | `pnpm lint`                 | ESLint                                                                         |
 | `pnpm typecheck`            | Checagem de tipos (`tsc --noEmit`)                                             |
 | `pnpm test`                 | Testes unitários e de componentes (Vitest)                                     |
+| `pnpm test:coverage`        | Os mesmos testes, com cobertura em `coverage/` (`lcov.info` e relatório HTML)  |
+| `pnpm coverage:diff <base>` | Cobertura das linhas novas contra a base (ex.: `origin/main`, `4ac8b98`)       |
 | `pnpm test:integration`     | Testes contra o Supabase local: trigger e RLS (requer `pnpm db:start`)         |
 | `pnpm test:e2e`             | Testes ponta a ponta (Playwright; faz o build apontando para o Supabase local) |
 | `pnpm check:secrets`        | Garante que segredos não vazaram para o bundle do navegador                    |
-| `pnpm test:coverage`        | Testes unitários com cobertura (`coverage/lcov.info`)                          |
-| `pnpm coverage:diff <ref>`  | Cobertura das linhas novas em relação a um ref (ex.: `origin/main`, `4ac8b98`) |
-| `pnpm check:duplicacao`     | Duplicação de código com `jscpd` (reprova acima de 5%)                         |
+| `pnpm check:duplicacao`     | Duplicação do código com o `jscpd` (falha acima de 5%; veja `.jscpd.json`)     |
 | `pnpm db:start`             | Sobe o Supabase local em Docker e aplica as migrations                         |
 | `pnpm db:types`             | Gera `src/lib/supabase/database.types.ts` a partir do banco local              |
 
