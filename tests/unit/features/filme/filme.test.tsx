@@ -14,11 +14,14 @@ import {
   formatarVotos,
   tituloComAno,
 } from "@/features/filme/formatar";
-import { lerId } from "@/features/filme/ler-id";
+import { AcoesTitulo, Sinopse } from "@/features/filme/components/pagina-titulo";
+import { buscaPorId, lerId } from "@/features/filme/ler-id";
 import { enviarEvento } from "@/features/metricas/enviar";
 import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
 
 vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
+vi.mock("@/features/reacoes/actions", () => ({ alternarReacao: vi.fn() }));
+vi.mock("@/features/listas/actions", () => ({ alternarLista: vi.fn() }));
 
 function detalhes(sobrescrever: Partial<FilmeDetalhes> = {}): FilmeDetalhes {
   return {
@@ -83,6 +86,47 @@ describe("lerId", () => {
 
   it.each(["0", "abc", "-5", "1.5", "12345678901", ""])("recusa %j", (valor) => {
     expect(lerId(valor)).toBeNull();
+  });
+});
+
+describe("buscaPorId", () => {
+  it("busca o ID válido e devolve null sem buscar o inválido", async () => {
+    const obter = vi.fn(async (id: number) => ({ id }));
+    const buscar = buscaPorId(obter);
+
+    expect(await buscar("1399")).toEqual({ id: 1399 });
+    expect(await buscar("abc")).toBeNull();
+    expect(obter).toHaveBeenCalledExactlyOnceWith(1399);
+  });
+});
+
+describe("Sinopse", () => {
+  it("mostra o texto e quem fez", () => {
+    render(<Sinopse texto="Uma família..." rotulo="Criação" nomes={["Ana", "Bia"]} />);
+    expect(screen.getByRole("heading", { name: "Sinopse" })).toBeInTheDocument();
+    expect(screen.getByText("Uma família...")).toBeInTheDocument();
+    expect(screen.getByText("Criação: Ana, Bia")).toBeInTheDocument();
+  });
+
+  it("sem texto nem nomes, avisa e omite a linha de créditos", () => {
+    render(<Sinopse texto="" rotulo="Direção" nomes={[]} />);
+    expect(screen.getByText("Sinopse não disponível em português.")).toBeInTheDocument();
+    expect(screen.queryByText(/Direção/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AcoesTitulo", () => {
+  it("passa o tipo e os valores atuais aos botões de reação e de lista", () => {
+    const { container } = render(
+      <AcoesTitulo midia={{ tipo: "serie", tmdbId: 1399 }} reacao="amei" statusLista={null} />,
+    );
+    const tipos = [...container.querySelectorAll<HTMLInputElement>('input[name="tipo"]')];
+    expect(tipos.map((campo) => campo.value)).toEqual(Array(5).fill("serie"));
+    expect(screen.getByRole("button", { name: "Amei" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Quero assistir" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 });
 
