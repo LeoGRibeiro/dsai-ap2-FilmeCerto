@@ -2,7 +2,7 @@
 
 Como os números foram obtidos:
 
-- **Claude Code:** soma de `message.usage` das mensagens do assistente no `.jsonl` de cada sessão, contando cada `message.id` uma vez só (incluindo subagentes, se houver). A extensão do VS Code não tem `/cost`, então o custo fica como não disponível e os tokens cumprem o critério.
+- **Claude Code:** soma de `message.usage` das mensagens do assistente no `.jsonl` de cada sessão, contando cada `message.id` uma vez só (incluindo subagentes, se houver). O `node scripts/custo-sessao.mjs prompts/sessoes/<sessão>.jsonl` faz essa soma, inclui sozinho os `.jsonl` da pasta `<sessão>/subagents/` e imprime a linha da tabela (`--ferramenta` e `--custo` mudam as duas colunas de texto). A extensão do VS Code não tem `/cost`, então o custo fica como não disponível e os tokens cumprem o critério.
 - **Antigravity:** os valores da linha `"type":"cost-state"` da própria exportação (`usage` e `modelUsage[...].costUSD`).
 
 ## AP2
