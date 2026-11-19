@@ -1,5 +1,6 @@
 import type { Duracao, Frequencia } from "@/features/preferencias/opcoes";
 import type { Reacao } from "@/features/reacoes/opcoes";
+import type { TipoMidia } from "@/lib/midia";
 import type { FilmeResumo } from "@/lib/tmdb/tipos";
 
 export type ReacaoMotor = {
@@ -31,10 +32,15 @@ export type EntradaMotor = {
   excluir?: number[];
 };
 
-export type Recomendacao = FilmeResumo & { motivo: string; pontuacao: number };
+export type Recomendacao = FilmeResumo & {
+  motivo: string;
+  pontuacao: number;
+  /** Série leva o cartão para `/serie/{id}`; sem tipo, é filme (o motor só lida com filmes). */
+  tipo?: TipoMidia;
+};
 
 export type Secao = {
-  /** "streamings", "para-voce", "parecidos-{tmdbId}" ou "genero-{id}". */
+  /** "streamings", "para-voce", "parecidos-{tmdbId}", "genero-{id}" ou "series". */
   id: string;
   titulo: string;
   filmes: Recomendacao[];
