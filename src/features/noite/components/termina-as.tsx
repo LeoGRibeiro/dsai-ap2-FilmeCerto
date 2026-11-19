@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
 import { terminaAs } from "@/features/noite/termina";
 
 /** O horário anda com o relógio: a pessoa pode ficar alguns minutos decidindo. */
-function aCadaMeioMinuto(avisar: () => void) {
+export function aCadaMeioMinuto(avisar: () => void) {
   const id = setInterval(avisar, 30_000);
   return () => clearInterval(id);
 }

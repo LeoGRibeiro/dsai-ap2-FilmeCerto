@@ -219,6 +219,40 @@ test.describe("'Até que horas?'", () => {
   });
 });
 
+test.describe("Compartilhar a noite", () => {
+  test.use({ timezoneId: "America/Sao_Paulo" });
+
+  test("depois do 'Vou ver esse!', sem Web Share, o WhatsApp leva filme, hora e link, no celular", async ({
+    page,
+  }) => {
+    // Como num computador: sem a folha de compartilhamento do aparelho.
+    await page.addInitScript(() => Reflect.deleteProperty(Navigator.prototype, "share"));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await novaPessoa(page, "Vera Lins");
+    await page.clock.setFixedTime(new Date("2026-11-18T23:30:00-03:00"));
+    await page.goto("/noite?humor=cansado&exp=rir&com=a-dois");
+    await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Filme 35020");
+    const whatsapp = main(page).getByRole("link", { name: "Compartilhar no WhatsApp" });
+    await expect(whatsapp).toHaveCount(0);
+
+    await main(page).getByRole("button", { name: "Vou ver esse!" }).click();
+    await expect(main(page).getByRole("status")).toContainText("Boa sessão!");
+
+    // Confere o href sem abrir o WhatsApp.
+    await expect(whatsapp).toBeInViewport();
+    await expect(whatsapp).toHaveAttribute("target", "_blank");
+    const href = new URL((await whatsapp.getAttribute("href"))!);
+    expect(href.origin + href.pathname).toBe("https://wa.me/");
+    const origem = new URL(page.url()).origin;
+    expect(href.searchParams.get("text")).toBe(
+      `Hoje vamos ver Filme 35020, termina às 1h35\n${origem}/filme/35020`,
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+  });
+});
+
 test("sem sessão, /noite leva ao login guardando as respostas", async ({ page }) => {
   await page.goto("/noite?humor=cansado");
   await expect(page).toHaveURL(/\/login\?next=%2Fnoite%3Fhumor%3Dcansado$/);
