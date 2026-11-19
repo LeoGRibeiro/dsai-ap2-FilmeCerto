@@ -2,8 +2,10 @@ import type { Clima } from "@/features/metricas/eventos";
 import type { FilmeNaTela } from "@/features/noite/components/filme-destaque";
 import { ResultadoNoite } from "@/features/noite/components/resultado-noite";
 import { SemNoite } from "@/features/noite/components/sem-noite";
+import { SemTempo } from "@/features/noite/components/sem-tempo";
 import { obterNoite } from "@/features/noite/consultas";
 import { urlsDaTroca, type EstadoNoite } from "@/features/noite/estado";
+import { TEMPO_MINIMO } from "@/features/noite/mapeamento";
 import type { FilmeDaNoite, PerfilNoite } from "@/features/noite/recomendar";
 
 /** Só os campos que a tela usa: elenco, parecidos e o resto do TMDB ficam no servidor. */
@@ -12,7 +14,10 @@ export function paraTela({ filme, provedor, motivo }: FilmeDaNoite): FilmeNaTela
   return { id, titulo, ano, posterPath, sinopse, duracaoMin, trailerYoutube, motivo, provedor };
 }
 
-/** Busca a rodada no servidor. Sem filme, oferece refazer; TMDB fora do ar vai ao `error.tsx`. */
+/**
+ * Busca a rodada no servidor. Sem tempo até o "Até que horas?", nem consulta o TMDB.
+ * Sem filme, oferece refazer; TMDB fora do ar vai ao `error.tsx`.
+ */
 export async function RecomendacaoNoite({
   respostas,
   estado,
@@ -22,6 +27,11 @@ export async function RecomendacaoNoite({
   estado: EstadoNoite;
   perfil: PerfilNoite;
 }) {
+  const { ate, tempo } = estado;
+  if (ate !== null && tempo !== null && tempo < TEMPO_MINIMO) {
+    return <SemTempo estado={estado} ate={ate} tempo={tempo} />;
+  }
+
   const resultado = await obterNoite(respostas, estado, perfil);
   if (!resultado) return <SemNoite />;
 
