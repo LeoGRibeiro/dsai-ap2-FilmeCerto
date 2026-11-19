@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,7 +13,10 @@ import {
   type SessaoDaNoite,
 } from "@/features/noite/components/sessao-noite";
 
-vi.mock("next/navigation", () => ({ useSearchParams: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => "/noite"),
+  useSearchParams: vi.fn(),
+}));
 vi.mock("@/features/metricas/enviar", () => ({ enviarEvento: vi.fn() }));
 vi.mock("@/features/noite/actions", () => ({ concluirNoite: vi.fn(async () => {}) }));
 
@@ -114,6 +117,18 @@ describe("SessaoNoite: wizard_abandonado", () => {
     expect(enviados("wizard_abandonado")).toEqual([
       [{ nome: "wizard_abandonado", dados: { etapa: "resultado" } }],
     ]);
+  });
+
+  it("na sala da 'Noite a dois', sob o mesmo layout, nada é contado como wizard", () => {
+    vi.mocked(usePathname).mockReturnValue("/noite/juntos/5b0f3c9e-6a1d-4c51-9a8e-2f4d1c7b9e10");
+    naUrl("");
+    const { unmount } = render(<Wizard />);
+
+    unmount();
+    act(() => vi.runAllTimers());
+
+    expect(enviarEvento).not.toHaveBeenCalled();
+    vi.mocked(usePathname).mockReturnValue("/noite");
   });
 
   it("ao sair de /noite pelo app, envia com a etapa das perguntas", () => {

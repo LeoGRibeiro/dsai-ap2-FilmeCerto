@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { exigirUsuario } from "@/features/auth/sessao";
 import { AteQueHoras } from "@/features/noite/components/ate-que-horas";
+import { JuntosBotao } from "@/features/noite/components/juntos-botao";
 import { PerguntaNoite } from "@/features/noite/components/pergunta-noite";
 import { EsqueletoNoite, RecomendacaoNoite } from "@/features/noite/components/recomendacao-noite";
 import {
@@ -12,6 +13,7 @@ import {
   respostasCompletas,
   urlDaNoite,
 } from "@/features/noite/estado";
+import { PERGUNTAS } from "@/features/noite/opcoes";
 import { obterPreferencias } from "@/features/preferencias/consultas";
 
 export const metadata: Metadata = { title: "O que ver hoje?" };
@@ -33,6 +35,8 @@ export default async function NoitePage({ searchParams }: PageProps<"/noite">) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8">
       {pergunta && <PerguntaNoite estado={estado} pergunta={pergunta} />}
+      {/* "Noite a dois" (SPEC/2026-11-18-noite-a-dois.md): só antes da primeira resposta. */}
+      {pergunta === PERGUNTAS[0] && <JuntosBotao />}
       {respostas && (
         <div className="flex flex-col gap-6">
           <AteQueHoras estado={estado} />
