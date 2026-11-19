@@ -5,13 +5,18 @@ import { SemNoite } from "@/features/noite/components/sem-noite";
 import { SemTempo } from "@/features/noite/components/sem-tempo";
 import { obterNoite } from "@/features/noite/consultas";
 import { urlsDaTroca, type EstadoNoite } from "@/features/noite/estado";
-import { TEMPO_MINIMO } from "@/features/noite/mapeamento";
+import { MAPEAMENTOS } from "@/features/noite/filtros";
 import type { FilmeDaNoite, PerfilNoite } from "@/features/noite/recomendar";
+import type { TipoMidia } from "@/lib/midia";
 
 /** Só os campos que a tela usa: elenco, parecidos e o resto do TMDB ficam no servidor. */
-export function paraTela({ filme, provedor, motivo }: FilmeDaNoite): FilmeNaTela {
+export function paraTela(
+  { filme, provedor, motivo }: FilmeDaNoite,
+  tipo: TipoMidia = "filme",
+): FilmeNaTela {
   const { id, titulo, ano, posterPath, sinopse, duracaoMin, trailerYoutube } = filme;
-  return { id, titulo, ano, posterPath, sinopse, duracaoMin, trailerYoutube, motivo, provedor };
+  const naTela = { id, titulo, ano, posterPath, sinopse, duracaoMin, trailerYoutube };
+  return { tipo, ...naTela, motivo, provedor };
 }
 
 /**
@@ -27,13 +32,13 @@ export async function RecomendacaoNoite({
   estado: EstadoNoite;
   perfil: PerfilNoite;
 }) {
-  const { ate, tempo } = estado;
-  if (ate !== null && tempo !== null && tempo < TEMPO_MINIMO) {
+  const { ate, tempo, tipo } = estado;
+  if (ate !== null && tempo !== null && tempo < MAPEAMENTOS[tipo].tempoMinimo) {
     return <SemTempo estado={estado} ate={ate} tempo={tempo} />;
   }
 
   const resultado = await obterNoite(respostas, estado, perfil);
-  if (!resultado) return <SemNoite />;
+  if (!resultado) return <SemNoite tipo={tipo} />;
 
   // "Esse não" recusa tudo o que está na tela; o destaque vem primeiro ("Muito longo" usa a duração dele).
   const mostrados = [resultado.destaque, ...resultado.opcoes].map(({ filme }) => filme);
@@ -41,18 +46,20 @@ export async function RecomendacaoNoite({
     <ResultadoNoite
       respostas={respostas}
       trocas={estado.trocas}
-      destaque={paraTela(resultado.destaque)}
-      opcoes={resultado.opcoes.map(paraTela)}
+      destaque={paraTela(resultado.destaque, tipo)}
+      opcoes={resultado.opcoes.map((opcao) => paraTela(opcao, tipo))}
       proximas={urlsDaTroca(estado, mostrados)}
     />
   );
 }
 
 /** Enquanto o TMDB responde: o formato do destaque, sem conteúdo. */
-export function EsqueletoNoite() {
+export function EsqueletoNoite({ tipo = "filme" }: { tipo?: TipoMidia }) {
   return (
     <div role="status" className="flex flex-col gap-5">
-      <p className="text-muted-foreground">Procurando o filme da sua noite…</p>
+      <p className="text-muted-foreground">
+        Procurando {tipo === "serie" ? "a série" : "o filme"} da sua noite…
+      </p>
       <div className="flex gap-4 sm:gap-6">
         <div className="bg-muted aspect-[2/3] w-28 shrink-0 animate-pulse rounded-lg sm:w-44" />
         <div className="flex flex-1 flex-col gap-3">

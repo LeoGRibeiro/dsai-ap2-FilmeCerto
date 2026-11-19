@@ -41,7 +41,7 @@ export default async function NoitePage({ searchParams }: PageProps<"/noite">) {
         <div className="flex flex-col gap-6">
           <AteQueHoras estado={estado} />
           {/* A chave mostra o esqueleto de novo a cada troca, em vez da rodada anterior. */}
-          <Suspense key={urlDaNoite(estado)} fallback={<EsqueletoNoite />}>
+          <Suspense key={urlDaNoite(estado)} fallback={<EsqueletoNoite tipo={estado.tipo} />}>
             <RecomendacaoNoite respostas={respostas} estado={estado} perfil={preferencias} />
           </Suspense>
         </div>

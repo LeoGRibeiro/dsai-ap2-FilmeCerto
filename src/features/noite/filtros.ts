@@ -1,13 +1,20 @@
 import type { Clima } from "@/features/metricas/eventos";
 import {
-  AJUSTES_COMPANHIA,
-  AJUSTES_HUMOR,
+  MAPEAMENTO_FILME,
   ORDEM_PADRAO,
   PISO,
-  TONS,
+  type Mapeamento,
   type Tom,
 } from "@/features/noite/mapeamento";
-import type { FiltrosDescoberta } from "@/lib/tmdb/tipos";
+import { MAPEAMENTO_SERIE } from "@/features/noite/mapeamento-serie";
+import type { TipoMidia } from "@/lib/midia";
+import type { ClassificacaoBR, FiltrosDescoberta } from "@/lib/tmdb/tipos";
+
+/** As tabelas de cada tipo (SPEC/2026-11-18-wizard-noite.md e SPEC/2026-11-18-series-noite.md). */
+export const MAPEAMENTOS: Record<TipoMidia, Mapeamento> = {
+  filme: MAPEAMENTO_FILME,
+  serie: MAPEAMENTO_SERIE,
+};
 
 export type RodadaNoite = {
   respostas: Clima;
@@ -17,20 +24,31 @@ export type RodadaNoite = {
   duracaoMax: number | null;
   /** Minutos até a hora do "Até que horas?", se houver. */
   tempo?: number | null;
+  /** Filme (o padrão) ou série. */
+  tipo?: TipoMidia;
 };
 
-export type FiltrosNoite = { filtros: FiltrosDescoberta; tom: Tom };
+export type FiltrosNoite = {
+  filtros: FiltrosDescoberta;
+  tom: Tom;
+  /** Os gêneros evitados do perfil nos IDs do tipo, para conferir o resultado. */
+  evitados: number[];
+  /** Classificação máxima a conferir nos detalhes, quando o TMDB não a filtra (séries). */
+  classificacaoNosDetalhes: ClassificacaoBR | null;
+};
 
 type Montagem = {
   tom: Tom;
   /** Respostas de quem vai assistir: uma pessoa no wizard, duas na "Noite a dois". */
   respostas: Clima[];
-  /** Gêneros evitados do perfil (absolutos). */
+  /** Gêneros evitados do perfil, já nos IDs do tipo (absolutos). */
   evitados: number[];
   /** Exclusões fixas das experiências; perdem para o gênero do tom. */
   semDasExperiencias?: number[];
   /** Outros limites de duração ("Muito longo", "Até que horas?"). */
   limites?: (number | null | undefined)[];
+  /** Tabelas do tipo; o padrão é filme. */
+  mapa?: Mapeamento;
 };
 
 /**
@@ -44,29 +62,33 @@ export function montarFiltros({
   evitados,
   semDasExperiencias = [],
   limites = [],
+  mapa = MAPEAMENTO_FILME,
 }: Montagem): FiltrosNoite {
-  const humores = respostas.map(({ humor }) => AJUSTES_HUMOR[humor]);
-  const companhias = respostas.map(({ companhia }) => AJUSTES_COMPANHIA[companhia]);
+  const humores = respostas.map(({ humor }) => mapa.humor[humor]);
+  const companhias = respostas.map(({ companhia }) => mapa.companhia[companhia]);
   const semDoTom = [...semDasExperiencias, ...humores.flatMap((h) => h.sem ?? [])].filter(
     (g) => !tom.generos.includes(g),
   );
-  const semGeneros = [...new Set([...evitados, ...semDoTom])];
+  const semGeneros = [...new Set([...evitados, ...semDoTom, ...mapa.sempreSem])];
   const duracoes = [...humores.map((h) => h.duracaoMax), ...limites].filter(
     (n) => typeof n === "number",
   );
   const lancadoAte = humores.find((h) => h.lancadoAte)?.lancadoAte;
-  const classificacaoMax = companhias.find((c) => c.classificacaoMax)?.classificacaoMax;
+  const classificacao = companhias.find((c) => c.classificacaoMax)?.classificacaoMax ?? null;
+  const noTmdb = mapa.classificacaoNoTmdb ? classificacao : null;
   const ordem =
     humores.find((h) => h.ordem)?.ordem ?? companhias.find((c) => c.ordem)?.ordem ?? ORDEM_PADRAO;
 
   return {
     tom,
+    evitados,
+    classificacaoNosDetalhes: mapa.classificacaoNoTmdb ? null : classificacao,
     filtros: {
       todosGeneros: tom.generos,
       ...(semGeneros.length > 0 && { semGeneros }),
       ...(duracoes.length > 0 && { duracaoMax: Math.min(...duracoes) }),
       ...(lancadoAte && { lancadoAte }),
-      ...(classificacaoMax && { classificacaoMax }),
+      ...(noTmdb && { classificacaoMax: noTmdb }),
       notaMin: PISO.notaMin,
       votosMin: PISO.votosMin,
       ordem,
@@ -75,18 +97,24 @@ export function montarFiltros({
 }
 
 /** O tom não tem gênero evitado. */
-export function tomPermitido(tom: Tom, evitados: number[]): boolean {
+export function tomPermitido(tom: Tom, evitados: readonly number[]): boolean {
   return !tom.generos.some((g) => evitados.includes(g));
 }
 
 /**
- * Filtros do TMDB para a rodada (tabelas de `SPEC/2026-11-18-wizard-noite.md`).
- * A experiência escolhe o tom; o humor e a companhia ajustam; os gêneros evitados do perfil
- * são absolutos, e os favoritos não entram. `null` se todos os tons tiverem gênero evitado.
+ * Filtros do TMDB para a rodada, pelas tabelas do tipo. A experiência escolhe o tom; o humor e
+ * a companhia ajustam; os gêneros evitados do perfil são absolutos, e os favoritos não entram.
+ * `null` se todos os tons tiverem gênero evitado.
  */
-export function filtrosDaNoite(rodada: RodadaNoite, evitados: number[]): FiltrosNoite | null {
-  const { respostas, tom, duracaoMax, tempo } = rodada;
-  const experiencia = TONS[respostas.experiencia];
+export function filtrosDaNoite(
+  rodada: RodadaNoite,
+  evitadosDoPerfil: readonly number[],
+): FiltrosNoite | null {
+  const { respostas, tom, duracaoMax, tempo, tipo = "filme" } = rodada;
+  const mapa = MAPEAMENTOS[tipo];
+  const evitados = mapa.evitados(evitadosDoPerfil);
+  const experiencia = mapa.tons[respostas.experiencia];
+  if (experiencia.evitadaSe?.some((g) => evitadosDoPerfil.includes(g))) return null;
   const disponiveis = experiencia.tons.filter((t) => tomPermitido(t, evitados));
   const escolhido = disponiveis[tom % disponiveis.length];
   if (!escolhido) return null;
@@ -98,5 +126,6 @@ export function filtrosDaNoite(rodada: RodadaNoite, evitados: number[]): Filtros
     evitados,
     semDasExperiencias: experiencia.sem,
     limites: [duracaoMax, tempo],
+    mapa,
   });
 }

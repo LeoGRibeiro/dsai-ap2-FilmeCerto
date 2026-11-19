@@ -6,33 +6,32 @@ import { idsParaExcluir, obterNoite } from "@/features/noite/consultas";
 import { ESTADO_INICIAL } from "@/features/noite/estado";
 import { createClient } from "@/lib/supabase/server";
 import { descobrirFilmes, obterFilme } from "@/lib/tmdb/filmes";
+import { descobrirSeries, obterSerie } from "@/lib/tmdb/series";
+
+import { bancoEmMemoria } from "../../../support/banco-memoria";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/tmdb/filmes", () => ({ descobrirFilmes: vi.fn(), obterFilme: vi.fn() }));
+vi.mock("@/lib/tmdb/series", () => ({ descobrirSeries: vi.fn(), obterSerie: vi.fn() }));
 
 type Erro = { code: string; message: string } | null;
 type Linhas = { tmdb_id: number }[];
 
-/** Supabase falso: guarda os filtros de cada tabela e responde com as linhas dadas. */
+/** Supabase falso: responde com as linhas dadas, sem filtrar (os filtros têm teste próprio). */
 function bancoFalso(tabelas: { lista_itens?: Linhas; reacoes?: Linhas; erro?: Erro } = {}) {
-  const filtros: Record<string, [string, unknown][]> = {};
   const insert = vi.fn(async () => ({ error: null }));
   const rpc = vi.fn(async () => ({ error: null }));
   const from = (tabela: "lista_itens" | "reacoes" | "eventos") => {
-    filtros[tabela] = [];
     const resposta = { data: tabelas[tabela as "reacoes"] ?? [], error: tabelas.erro ?? null };
     const consulta = {
       select: () => consulta,
-      eq: (coluna: string, valor: unknown) => {
-        filtros[tabela]!.push([coluna, valor]);
-        return consulta;
-      },
+      eq: () => consulta,
       then: (resolver: (r: typeof resposta) => unknown) => Promise.resolve(resposta).then(resolver),
       insert,
     };
     return consulta;
   };
-  return { cliente: { from, rpc } as never, filtros, insert, rpc };
+  return { cliente: { from, rpc } as never, insert, rpc };
 }
 
 function logado(usuario: { id: string } | null, banco = bancoFalso()) {
@@ -51,11 +50,22 @@ describe("idsParaExcluir", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("junta os filmes em 'Já assisti' e os com reação, sem ler 'Quero assistir'", async () => {
-    const banco = bancoFalso({ lista_itens: [{ tmdb_id: 1 }], reacoes: [{ tmdb_id: 2 }] });
+  it("junta os filmes em 'Já assisti' e os com reação, sem 'Quero assistir' nem séries", async () => {
+    const banco = bancoEmMemoria({
+      lista_itens: [
+        { tipo: "filme", tmdb_id: 1, status: "assistido" },
+        { tipo: "filme", tmdb_id: 2, status: "quero_assistir" },
+        { tipo: "serie", tmdb_id: 3, status: "assistido" },
+      ],
+      reacoes: [
+        { tipo: "filme", tmdb_id: 4 },
+        { tipo: "serie", tmdb_id: 5 },
+      ],
+    });
 
-    expect(await idsParaExcluir(banco.cliente)).toEqual([1, 2]);
-    expect(banco.filtros.lista_itens).toEqual([["status", "assistido"]]);
+    expect(await idsParaExcluir(banco.cliente)).toEqual([1, 4]);
+    // Para a série, o contrário: só as linhas de série.
+    expect(await idsParaExcluir(banco.cliente, "serie")).toEqual([3, 5]);
   });
 
   it("lança quando o banco falha, para não recomendar filme já visto", async () => {
@@ -116,6 +126,56 @@ describe("obterNoite", () => {
     expect(resultado?.destaque.motivo).toBe(
       "Você está ansioso, quer pensar e vai ver sozinho: ficção científica, nota 8,0, não está nos seus streamings.",
     );
+  });
+});
+
+describe("obterNoite de série", () => {
+  it("usa o TMDB de séries e nunca o de filmes", async () => {
+    logado({ id: "u-1" }, bancoFalso({ lista_itens: [{ tmdb_id: 1 }] }));
+    const resumo = (id: number) => ({
+      id,
+      titulo: `Série ${id}`,
+      tituloOriginal: "",
+      sinopse: "",
+      posterPath: null,
+      backdropPath: null,
+      generos: [10765],
+      ano: 2015,
+      nota: 8.4,
+      votos: 900,
+      popularidade: 1,
+    });
+    vi.mocked(descobrirSeries).mockResolvedValue({
+      itens: [resumo(1), resumo(2)],
+      pagina: 1,
+      totalPaginas: 1,
+      totalResultados: 2,
+    });
+    vi.mocked(obterSerie).mockImplementation(async (id) => ({
+      ...resumo(id),
+      generos: [],
+      duracaoEpisodioMin: 48,
+      temporadas: [],
+      slogan: null,
+      trailerYoutube: null,
+      elenco: [],
+      criacao: [],
+      classificacao: "14",
+      ondeAssistir: null,
+    }));
+    vi.mocked(descobrirFilmes).mockClear();
+
+    const resultado = await obterNoite(
+      respostas,
+      { ...ESTADO_INICIAL, tipo: "serie" },
+      { generosEvitados: [], streamings: [] },
+    );
+
+    expect(resultado?.destaque.filme).toMatchObject({ id: 2, titulo: "Série 2", duracaoMin: 48 });
+    expect(descobrirSeries).toHaveBeenCalledWith(
+      expect.objectContaining({ todosGeneros: [10765] }),
+    );
+    expect(descobrirFilmes).not.toHaveBeenCalled();
   });
 });
 

@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
 
+import type { TipoMidia } from "@/lib/midia";
 import { urlImagem } from "@/lib/tmdb/imagens";
 import type { OndeAssistir as Dados, Provedor } from "@/lib/tmdb/tipos";
 
@@ -39,12 +40,22 @@ function Provedores({ titulo, provedores }: { titulo: string; provedores: Proved
   );
 }
 
-export function OndeAssistir({ dados }: { dados: Dados | null }) {
+const ESTE: Record<TipoMidia, string> = { filme: "este filme", serie: "esta série" };
+
+export function OndeAssistir({
+  dados,
+  tipo = "filme",
+}: {
+  dados: Dados | null;
+  tipo?: TipoMidia;
+}) {
   const grupos = GRUPOS.filter(({ chave }) => dados && dados[chave].length > 0);
 
   if (!dados || grupos.length === 0) {
     return (
-      <p className="text-muted-foreground">Não encontramos onde assistir este filme no Brasil.</p>
+      <p className="text-muted-foreground">
+        Não encontramos onde assistir {ESTE[tipo]} no Brasil.
+      </p>
     );
   }
 

@@ -52,7 +52,7 @@ describe("ResultadoSala", () => {
     const segunda = screen.getByRole("article", { name: "Filme 2" });
     await userEvent.click(within(segunda).getByRole("button", { name: "Vou ver esse!" }));
 
-    expect(escolherFilme).toHaveBeenCalledWith(2);
+    expect(escolherFilme).toHaveBeenCalledWith(2, "filme");
     expect(await within(segunda).findByText(/Boa sessão!/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Vou ver esse!" })).not.toBeInTheDocument();
   });

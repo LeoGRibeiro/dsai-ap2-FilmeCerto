@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { contarExibicao, gravarEscolha, gravarResposta } from "@/features/como-foi/gravar";
 import { RESPOSTAS_COMO_FOI } from "@/features/metricas/eventos";
-import { tmdbIdSchema } from "@/features/reacoes/schema";
+import { tipoMidiaSchema, tmdbIdSchema } from "@/features/reacoes/schema";
+import { caminhoMidia, NAO_ENCONTRADO } from "@/lib/midia";
 import { createClient } from "@/lib/supabase/server";
 
 export type EstadoComoFoi = { mensagem?: string };
@@ -25,22 +26,24 @@ async function sessao() {
   return user ? { supabase, usuarioId: user.id } : null;
 }
 
-/** "Vou ver esse!": guarda a escolha da noite. O título vem do TMDB, não do navegador. */
-export async function escolherFilme(tmdbId: unknown): Promise<EstadoComoFoi> {
+/**
+ * "Vou ver esse!": guarda a escolha da noite, de um filme (sem `tipo`) ou de uma série.
+ * O título vem do TMDB, não do navegador.
+ */
+export async function escolherFilme(tmdbId: unknown, tipo?: unknown): Promise<EstadoComoFoi> {
+  const tipoValido = tipoMidiaSchema.safeParse(tipo);
+  const naoEncontrado = { mensagem: NAO_ENCONTRADO[tipoValido.data ?? "filme"] };
   const id = tmdbIdSchema.safeParse(tmdbId);
-  if (!id.success) return { mensagem: "Filme não encontrado." };
+  if (!id.success || !tipoValido.success) return naoEncontrado;
 
   const atual = await sessao();
   if (!atual) return { mensagem: SESSAO_EXPIRADA };
 
-  const gravado = await gravarEscolha(atual.supabase, id.data);
+  const gravado = await gravarEscolha(atual.supabase, { tipo: tipoValido.data, tmdbId: id.data });
   if (gravado.ok) return {};
-  return {
-    mensagem:
-      gravado.erro === "filme-nao-encontrado"
-        ? "Filme não encontrado."
-        : "Não foi possível guardar sua escolha agora. Tente de novo.",
-  };
+  return gravado.erro === "filme-nao-encontrado"
+    ? naoEncontrado
+    : { mensagem: "Não foi possível guardar sua escolha agora. Tente de novo." };
 }
 
 /** Chamada uma vez pelo navegador quando o cartão "Como foi?" aparece. */
@@ -71,7 +74,7 @@ export async function responderComoFoi(
   if (!gravado.ok) return erroGenerico;
 
   revalidatePath("/dashboard");
-  revalidatePath(`/filme/${gravado.tmdbId}`);
+  revalidatePath(caminhoMidia(gravado));
   revalidatePath("/listas");
   return {};
 }

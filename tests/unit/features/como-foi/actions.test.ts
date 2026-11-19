@@ -36,10 +36,33 @@ afterEach(() => vi.clearAllMocks());
 describe("escolherFilme", () => {
   it("grava a escolha do usuário logado", async () => {
     logado({ id: "u-1" });
-    vi.mocked(gravarEscolha).mockResolvedValue({ ok: true, tmdbId: 550 });
+    vi.mocked(gravarEscolha).mockResolvedValue({ ok: true, tipo: "filme", tmdbId: 550 });
 
     expect(await escolherFilme(550)).toEqual({});
-    expect(gravarEscolha).toHaveBeenCalledWith(expect.objectContaining(cliente), 550);
+    expect(gravarEscolha).toHaveBeenCalledWith(expect.objectContaining(cliente), {
+      tipo: "filme",
+      tmdbId: 550,
+    });
+  });
+
+  it("grava a escolha de uma série com o tipo", async () => {
+    logado({ id: "u-1" });
+    vi.mocked(gravarEscolha).mockResolvedValue({ ok: true, tipo: "serie", tmdbId: 1399 });
+
+    expect(await escolherFilme(1399, "serie")).toEqual({});
+    expect(gravarEscolha).toHaveBeenCalledWith(expect.objectContaining(cliente), {
+      tipo: "serie",
+      tmdbId: 1399,
+    });
+  });
+
+  it("diz 'Série não encontrada.' para série inexistente e recusa tipo desconhecido", async () => {
+    logado({ id: "u-1" });
+    vi.mocked(gravarEscolha).mockResolvedValue({ ok: false, erro: "filme-nao-encontrado" });
+
+    expect(await escolherFilme(1399, "serie")).toEqual({ mensagem: "Série não encontrada." });
+    expect(await escolherFilme(1399, "novela")).toEqual({ mensagem: "Filme não encontrado." });
+    expect(gravarEscolha).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -82,7 +105,7 @@ describe("exibirComoFoi", () => {
 describe("responderComoFoi", () => {
   it("grava a resposta e atualiza o dashboard, o filme e as listas", async () => {
     logado({ id: "u-1" });
-    vi.mocked(gravarResposta).mockResolvedValue({ ok: true, tmdbId: 550 });
+    vi.mocked(gravarResposta).mockResolvedValue({ ok: true, tipo: "filme", tmdbId: 550 });
 
     expect(await responderComoFoi({}, formulario("7", "gostei"))).toEqual({});
 
@@ -97,6 +120,16 @@ describe("responderComoFoi", () => {
       "/filme/550",
       "/listas",
     ]);
+  });
+
+  it("de uma série, atualiza a página da série", async () => {
+    logado({ id: "u-1" });
+    vi.mocked(gravarResposta).mockResolvedValue({ ok: true, tipo: "serie", tmdbId: 1399 });
+
+    expect(await responderComoFoi({}, formulario("8", "amei"))).toEqual({});
+
+    expect(revalidatePath).toHaveBeenCalledWith("/serie/1399");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/filme/1399");
   });
 
   it("devolve a mensagem de erro quando a gravação falha", async () => {

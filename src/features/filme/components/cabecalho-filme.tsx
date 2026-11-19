@@ -1,18 +1,32 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-import { formatarDuracao, formatarVotos } from "@/features/filme/formatar";
+import { formatarDuracao, formatarNota } from "@/features/filme/formatar";
 import { urlImagem } from "@/lib/tmdb/imagens";
 import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
 
-export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?: ReactNode }) {
+/** O que o cabeçalho mostra de um filme ou de uma série. */
+export type DadosCabecalho = Pick<
+  FilmeDetalhes,
+  "titulo" | "tituloOriginal" | "posterPath" | "backdropPath" | "generos" | "slogan"
+>;
+
+/**
+ * Cabeçalho da página de um título: fundo, pôster, título, linha de dados (itens `null` são
+ * omitidos), gêneros, slogan e ações. Filme e série mudam só a linha de dados.
+ */
+export function Cabecalho({
+  titulo: filme,
+  dados: itens,
+  acoes,
+}: {
+  titulo: DadosCabecalho;
+  dados: (string | null)[];
+  acoes?: ReactNode;
+}) {
   const fundo = urlImagem(filme.backdropPath, "w1280");
   const poster = urlImagem(filme.posterPath, "w500");
-  const dados = [
-    filme.ano ? String(filme.ano) : null,
-    formatarDuracao(filme.duracaoMin),
-    `★ ${filme.nota.toFixed(1)} (${formatarVotos(filme.votos)} votos)`,
-  ].filter((item): item is string => item !== null);
+  const dados = itens.filter((item): item is string => item !== null);
 
   return (
     <div className="border-border/60 bg-card relative isolate overflow-hidden rounded-2xl border">
@@ -69,5 +83,20 @@ export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?:
         </div>
       </div>
     </div>
+  );
+}
+
+/** Linha de dados do filme: ano · duração · nota. */
+export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?: ReactNode }) {
+  return (
+    <Cabecalho
+      titulo={filme}
+      dados={[
+        filme.ano ? String(filme.ano) : null,
+        formatarDuracao(filme.duracaoMin),
+        formatarNota(filme.nota, filme.votos),
+      ]}
+      acoes={acoes}
+    />
   );
 }

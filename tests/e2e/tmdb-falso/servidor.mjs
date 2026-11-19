@@ -45,8 +45,63 @@ function filme(id, titulo, genero, posicao) {
   };
 }
 
+// Gêneros de TV: outra lista que a dos filmes (/genre/tv/list), com IDs próprios.
+const NOMES_TV = {
+  10759: "Action & Adventure",
+  16: "Animação",
+  35: "Comédia",
+  80: "Crime",
+  99: "Documentário",
+  18: "Drama",
+  10751: "Família",
+  10762: "Kids",
+  9648: "Mistério",
+  10763: "News",
+  10764: "Reality",
+  10765: "Sci-Fi & Fantasy",
+  10766: "Soap",
+  10767: "Talk",
+  10768: "War & Politics",
+  37: "Faroeste",
+};
+
+/** Série com os mesmos valores de um filme: na série, o título é `name` e a data, a estreia. */
+function serie(id, titulo, genero, posicao) {
+  const { title, original_title, release_date, ...resto } = filme(id, titulo, genero, posicao);
+  return { ...resto, name: title, original_name: original_title, first_air_date: release_date };
+}
+
+const ELENCO = [
+  { name: "Atriz Um", character: "Heroína", profile_path: null },
+  { name: "Ator Dois", character: "Vilão", profile_path: null },
+  { name: "Atriz Três", character: "Mentora", profile_path: null },
+];
+
+/** Vídeos e onde assistir dos detalhes; `tipo` é "movie" ou "tv", como nos links do TMDB. */
+function anexos(tipo, id, trailer) {
+  return {
+    videos: { results: [{ key: trailer, site: "YouTube", type: "Trailer", official: true }] },
+    "watch/providers": {
+      results: {
+        BR: {
+          link: `https://www.themoviedb.org/${tipo}/${id}/watch?locale=BR`,
+          flatrate: [{ provider_id: 8, provider_name: "Netflix", logo_path: null }],
+          rent: [{ provider_id: 2, provider_name: "Apple TV", logo_path: null }],
+        },
+      },
+    },
+  };
+}
+
 function pagina(resultados, numero) {
   return { page: numero, results: resultados, total_pages: 50, total_results: 1000 };
+}
+
+/** Gênero pedido em with_genres; sem ele, o primeiro de `nomes` fora de without_genres. */
+function generoPedido(url, nomes) {
+  const sem = (url.searchParams.get("without_genres") ?? "").split(",").filter(Boolean);
+  const padrao = Object.keys(nomes).find((id) => !sem.includes(id)) ?? "18";
+  return url.searchParams.get("with_genres") ?? padrao;
 }
 
 function responder(res, status, corpo) {
@@ -62,10 +117,7 @@ const servidor = createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
 
   if (url.pathname === "/3/discover/movie") {
-    // Sem with_genres, usa o primeiro gênero (na ordem de NOMES) que não está em without_genres.
-    const sem = (url.searchParams.get("without_genres") ?? "").split(",").filter(Boolean);
-    const padrao = Object.keys(NOMES).find((id) => !sem.includes(id)) ?? "18";
-    const generos = url.searchParams.get("with_genres") ?? padrao;
+    const generos = generoPedido(url, NOMES);
     if (generos === GENERO_QUE_FALHA) return responder(res, 503, { status_message: "Falha" });
     const genero = Number(generos.split(/[|,]/)[0]);
     const numero = Number(url.searchParams.get("page") ?? 1);
@@ -127,26 +179,8 @@ const servidor = createServer((req, res) => {
       ],
       runtime: curto ? 80 : 125,
       tagline: "Um slogan de teste.",
-      videos: {
-        results: [{ key: "trailer-falso", site: "YouTube", type: "Trailer", official: true }],
-      },
-      credits: {
-        cast: [
-          { name: "Atriz Um", character: "Heroína", profile_path: null },
-          { name: "Ator Dois", character: "Vilão", profile_path: null },
-          { name: "Atriz Três", character: "Mentora", profile_path: null },
-        ],
-        crew: [{ name: "Diretora Teste", job: "Director" }],
-      },
-      "watch/providers": {
-        results: {
-          BR: {
-            link: `https://www.themoviedb.org/movie/${id}/watch?locale=BR`,
-            flatrate: [{ provider_id: 8, provider_name: "Netflix", logo_path: null }],
-            rent: [{ provider_id: 2, provider_name: "Apple TV", logo_path: null }],
-          },
-        },
-      },
+      ...anexos("movie", id, "trailer-falso"),
+      credits: { cast: ELENCO, crew: [{ name: "Diretora Teste", job: "Director" }] },
       recommendations: pagina(
         Array.from({ length: 5 }, (_, i) => filme(id * 10 + i, `Parecido ${id}-${i + 1}`, 18, i)),
         1,
@@ -161,6 +195,71 @@ const servidor = createServer((req, res) => {
       filme(origem * 100 + i, `Parecido ${origem}-${i + 1}`, 18, i),
     );
     return responder(res, 200, pagina(filmes, 1));
+  }
+
+  if (url.pathname === "/3/genre/tv/list") {
+    const genres = Object.entries(NOMES_TV).map(([id, name]) => ({ id: Number(id), name }));
+    return responder(res, 200, { genres });
+  }
+
+  if (url.pathname === "/3/discover/tv") {
+    const genero = Number(generoPedido(url, NOMES_TV).split(/[|,]/)[0]);
+    const numero = Number(url.searchParams.get("page") ?? 1);
+    const nome = NOMES_TV[genero] ?? `Gênero ${genero}`;
+    const streaming = url.searchParams.has("with_watch_providers");
+    // Mesma fórmula de IDs dos filmes: o mesmo ID é um filme e uma série diferentes, como no TMDB.
+    const series = Array.from({ length: 20 }, (_, i) =>
+      streaming
+        ? serie(800000 + numero * 20 + i, `Série no streaming ${numero}-${i + 1}`, genero, i)
+        : serie(genero * 1000 + numero * 20 + i, `Série ${nome} ${numero}-${i + 1}`, genero, i),
+    );
+    return responder(res, 200, pagina(series, numero));
+  }
+
+  const detalhesSerie = url.pathname.match(/^\/3\/tv\/(\d+)$/);
+  if (detalhesSerie) {
+    const id = Number(detalhesSerie[1]);
+    if (id >= 999000000) return responder(res, 404, { status_code: 34 });
+    const base = serie(id, `Série ${id}`, 18, 0);
+    delete base.genre_ids;
+    return responder(res, 200, {
+      ...base,
+      overview: `Sinopse da Série ${id}.`,
+      genres: [
+        { id: 18, name: "Drama" },
+        { id: 10765, name: "Sci-Fi & Fantasy" },
+      ],
+      episode_run_time: [45],
+      last_episode_to_air: { runtime: 47 },
+      seasons: [
+        {
+          season_number: 0,
+          name: "Especiais",
+          episode_count: 2,
+          air_date: null,
+          poster_path: null,
+        },
+        {
+          season_number: 1,
+          name: "Temporada 1",
+          episode_count: 10,
+          air_date: "2019-03-01",
+          poster_path: null,
+        },
+        {
+          season_number: 2,
+          name: "Temporada 2",
+          episode_count: 8,
+          air_date: "2021-03-01",
+          poster_path: null,
+        },
+      ],
+      tagline: "Um slogan de série.",
+      created_by: [{ name: "Criadora Teste" }],
+      ...anexos("tv", id, "trailer-serie-falso"),
+      credits: { cast: ELENCO, crew: [] },
+      content_ratings: { results: [{ iso_3166_1: "BR", rating: "12" }] },
+    });
   }
 
   responder(res, 404, { status_message: "Não encontrado" });

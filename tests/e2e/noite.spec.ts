@@ -253,6 +253,82 @@ test.describe("Compartilhar a noite", () => {
   });
 });
 
+test.describe("'Filme ou série?'", () => {
+  test("'Prefiro uma série' + 3 respostas mostram a série da noite, e 'Vou ver esse!' leva a ela", async ({
+    page,
+  }) => {
+    await novaPessoa(page, "Vera Assis");
+
+    await main(page).getByRole("link", { name: "Prefiro uma série" }).click();
+    await expect(page).toHaveURL("/noite?tipo=serie");
+    const tipo = main(page).getByRole("group", { name: "Filme ou série?" });
+    await expect(tipo.getByRole("link", { name: "Série" })).toHaveAttribute("aria-current", "true");
+    await responder(page, ["Cansado", "Rir", "A dois"]);
+
+    // 4 cliques: o do dashboard e as 3 respostas. Mesmo ID do filme 35020, outro título.
+    await expect(page).toHaveURL("/noite?tipo=serie&humor=cansado&exp=rir&com=a-dois");
+    await expect(main(page).getByText("A série da sua noite")).toBeVisible();
+    await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Série 35020");
+    await expect(main(page).getByText(/ · Episódios de ~45 min$/)).toBeVisible();
+    await expect(
+      main(page).getByText(/^Começando agora, o episódio termina às \d{1,2}h\d{2}$/),
+    ).toBeVisible();
+    await expect(main(page).getByTestId("motivo-noite")).toHaveText(
+      /^Você está cansado, quer rir e vai ver a dois: comédia, nota \d,\d, está na Netflix\.$/,
+    );
+
+    await main(page).getByRole("button", { name: "Vou ver esse!" }).click();
+    await expect(main(page).getByRole("status")).toContainText("Boa sessão!");
+    await main(page).getByRole("link", { name: "Ver detalhes de Série 35020" }).click();
+    await expect(page).toHaveURL("/serie/35020");
+    await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Série 35020");
+  });
+
+  test("no celular (390 × 844), o caminho da série cabe na tela e troca sem repetir", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await novaPessoa(page, "Wagner Paz");
+
+    const serie = main(page).getByRole("link", { name: "Prefiro uma série" });
+    await expect(serie).toBeInViewport();
+    await serie.click();
+    await responder(page, ["De boa", "Ficar tenso", "Família com crianças"]);
+
+    const vouVer = main(page).getByRole("button", { name: "Vou ver esse!" });
+    const esseNao = main(page).getByRole("button", { name: "Esse não" });
+    await expect(main(page).getByRole("heading", { level: 1 })).toHaveText(/^Série \d+$/);
+    await expect(vouVer).toBeInViewport();
+    await expect(esseNao).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+
+    await trocar(page, "Outro");
+    await expect(page).toHaveURL(/^.*\/noite\?tipo=serie&.*&trocas=1$/);
+    const titulos = await titulosNaTela(page);
+    expect(new Set(titulos).size).toBe(3);
+    for (const titulo of titulos) expect(titulo).toMatch(/^Série \d+$/);
+
+    await main(page).getByRole("button", { name: "Vou ver esse!" }).first().click();
+    await expect(main(page).getByRole("status")).toContainText("Boa sessão!");
+  });
+
+  test("na 1ª tela, dá para trocar de série para filme", async ({ page }) => {
+    await novaPessoa(page, "Xênia Rocha");
+    await page.goto("/noite?tipo=serie");
+
+    await main(page)
+      .getByRole("group", { name: "Filme ou série?" })
+      .getByRole("link", { name: "Filme" })
+      .click();
+    await expect(page).toHaveURL("/noite");
+    await responder(page, ["Cansado", "Rir", "A dois"]);
+    await expect(main(page).getByText("O filme da sua noite")).toBeVisible();
+    await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Filme 35020");
+  });
+});
+
 test("sem sessão, /noite leva ao login guardando as respostas", async ({ page }) => {
   await page.goto("/noite?humor=cansado");
   await expect(page).toHaveURL(/\/login\?next=%2Fnoite%3Fhumor%3Dcansado$/);

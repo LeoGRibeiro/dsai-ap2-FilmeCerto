@@ -94,6 +94,44 @@ describe("página /noite: perguntas", () => {
     ]);
   });
 
+  it("na 1ª tela, 'Filme ou série?' mostra filme marcado e leva à série", async () => {
+    await abrir({});
+
+    const grupo = screen.getByRole("group", { name: "Filme ou série?" });
+    expect(within(grupo).getByRole("link", { name: "Filme" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(within(grupo).getByRole("link", { name: "Série" })).not.toHaveAttribute("aria-current");
+    expect(within(grupo).getByRole("link", { name: "Série" })).toHaveAttribute(
+      "href",
+      "/noite?tipo=serie",
+    );
+  });
+
+  it("com tipo=serie, marca série e as respostas levam o tipo adiante", async () => {
+    await abrir({ tipo: "serie" });
+
+    const grupo = screen.getByRole("group", { name: "Filme ou série?" });
+    expect(within(grupo).getByRole("link", { name: "Série" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(within(grupo).getByRole("link", { name: "Filme" })).toHaveAttribute("href", "/noite");
+    expect(cartoes()).toContainEqual(["Cansado", "/noite?tipo=serie&humor=cansado"]);
+    expect(screen.getByText("1 de 3")).toBeInTheDocument();
+  });
+
+  it("as outras telas não repetem 'Filme ou série?'", async () => {
+    await abrir({ tipo: "serie", humor: "cansado", exp: "rir" });
+
+    expect(screen.queryByRole("group", { name: "Filme ou série?" })).not.toBeInTheDocument();
+    expect(cartoes()).toContainEqual([
+      "A dois",
+      "/noite?tipo=serie&humor=cansado&exp=rir&com=a-dois",
+    ]);
+  });
+
   it("ignora resposta inválida na URL e pergunta de novo o que falta", async () => {
     await abrir({ humor: "furioso", exp: "rir" });
 

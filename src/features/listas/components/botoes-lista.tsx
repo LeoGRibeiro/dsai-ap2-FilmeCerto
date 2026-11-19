@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 
 import { alternarLista } from "@/features/listas/actions";
 import { ROTULOS_STATUS, STATUS_LISTA, type StatusLista } from "@/features/listas/opcoes";
+import type { TipoMidia } from "@/lib/midia";
 
 const ICONES: Record<StatusLista, LucideIcon> = {
   quero_assistir: Bookmark,
@@ -13,7 +14,15 @@ const ICONES: Record<StatusLista, LucideIcon> = {
 };
 
 /** "Quero assistir" e "Já assisti"; mesmo padrão dos botões de reação. */
-export function BotoesLista({ tmdbId, atual }: { tmdbId: number; atual: StatusLista | null }) {
+export function BotoesLista({
+  tmdbId,
+  atual,
+  tipo = "filme",
+}: {
+  tmdbId: number;
+  atual: StatusLista | null;
+  tipo?: TipoMidia;
+}) {
   const [estado, formAction, enviando] = useActionState(alternarLista, {});
   // Enquanto a ação roda, mostra o resultado esperado; depois, vale o que veio do servidor.
   const [palpite, setPalpite] = useState<StatusLista | null>(atual);
@@ -31,6 +40,7 @@ export function BotoesLista({ tmdbId, atual }: { tmdbId: number; atual: StatusLi
               action={formAction}
               onSubmit={() => setPalpite(atual === status ? null : status)}
             >
+              <input type="hidden" name="tipo" value={tipo} />
               <input type="hidden" name="tmdbId" value={tmdbId} />
               <input type="hidden" name="status" value={status} />
               <button

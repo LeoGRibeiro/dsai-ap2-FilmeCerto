@@ -6,15 +6,19 @@ import {
   MOTIVOS_TROCA,
   type Pergunta,
 } from "@/features/metricas/eventos";
-import { DURACAO_TROCA, TOTAL_TONS } from "@/features/noite/mapeamento";
+import { MAPEAMENTOS } from "@/features/noite/filtros";
+import { TOTAL_TONS } from "@/features/noite/mapeamento";
 import { HORAS_LIMITE, PERGUNTAS, type HoraLimite } from "@/features/noite/opcoes";
 import { minutosAte } from "@/features/noite/termina";
 import { limparIds } from "@/features/surpresa/memoria";
+import type { TipoMidia } from "@/lib/midia";
 
 export type MotivoTroca = (typeof MOTIVOS_TROCA)[number];
 
 /** Tudo o que o wizard sabe, guardado só na URL de `/noite`. */
 export type EstadoNoite = {
+  /** "Filme ou série?": filme quando a URL não diz (SPEC/2026-11-18-series-noite.md). */
+  tipo: TipoMidia;
   respostas: Partial<Clima>;
   tom: number;
   /** Limite de duração vindo de "Muito longo". */
@@ -36,6 +40,7 @@ const DURACAO_MAXIMA_URL = 600;
 const TEMPO_MAXIMO_URL = 24 * 60;
 
 export const ESTADO_INICIAL: EstadoNoite = {
+  tipo: "filme",
   respostas: {},
   tom: 0,
   duracaoMax: null,
@@ -66,6 +71,7 @@ function resposta<P extends Pergunta>(pergunta: P, valor: string | undefined) {
 
 /** Lê o estado dos `searchParams` de `/noite`; valores inválidos são ignorados. */
 export function lerEstado(busca: Busca): EstadoNoite {
+  const tipo: TipoMidia = texto(busca.tipo) === "serie" ? "serie" : "filme";
   const respostas: Partial<Clima> = {};
   for (const { chave, parametro } of PERGUNTAS) {
     const valor = resposta(chave, texto(busca[parametro]));
@@ -79,9 +85,10 @@ export function lerEstado(busca: Busca): EstadoNoite {
   const horario = ate !== null && tempo !== null ? { ate, tempo } : { ate: null, tempo: null };
 
   return {
+    tipo,
     respostas,
     tom: inteiro(busca.tom, 0, TOTAL_TONS - 1) ?? 0,
-    duracaoMax: inteiro(busca.max, DURACAO_TROCA.minima, DURACAO_MAXIMA_URL),
+    duracaoMax: inteiro(busca.max, MAPEAMENTOS[tipo].duracaoTroca.minima, DURACAO_MAXIMA_URL),
     vistos: limparIds(vistos).slice(-MAX_VISTOS_NOITE),
     trocas: inteiro(busca.trocas, 0, MAX_TROCAS) ?? 0,
     ...horario,
@@ -102,6 +109,7 @@ export function respostasCompletas(estado: EstadoNoite): Clima | null {
 /** URL de `/noite` (ou de `rota`) para o estado, só com os parâmetros que fogem do padrão. */
 export function urlDaNoite(estado: EstadoNoite, rota = ROTA_NOITE): string {
   const busca = new URLSearchParams();
+  if (estado.tipo === "serie") busca.set("tipo", "serie");
   for (const { chave, parametro } of PERGUNTAS) {
     const valor = estado.respostas[chave];
     if (valor) busca.set(parametro, valor);
@@ -128,6 +136,11 @@ export function urlComResposta<P extends Pergunta>(
   return urlDaNoite({ ...estado, respostas: { ...estado.respostas, [pergunta]: valor } }, rota);
 }
 
+/** "Refazer as perguntas": a primeira pergunta, mantendo filme ou série. */
+export function inicioDaNoite(tipo: TipoMidia): string {
+  return urlDaNoite({ ...ESTADO_INICIAL, tipo });
+}
+
 /**
  * "Até que horas?": o mesmo estado com a hora escolhida e os minutos que faltam no relógio
  * `agora` (o do navegador). `null` é "Tanto faz". Não é troca: o resto do estado fica igual.
@@ -137,9 +150,12 @@ export function comHorario(estado: EstadoNoite, hora: HoraLimite | null, agora: 
   return { ...estado, ate: hora, tempo: minutosAte(hora, agora) };
 }
 
-/** Encurta o limite de duração depois de "Muito longo" (tabela de precedência da spec). */
-function encurtar(atual: number | null, duracaoRecusada: number | null): number {
-  const { reducao, minima, base } = DURACAO_TROCA;
+/**
+ * Encurta o limite de duração depois de "Muito longo" (tabela de precedência da spec). Para
+ * série, a duração é a do episódio, com a redução, o piso e a base do mapeamento de série.
+ */
+function encurtar(tipo: TipoMidia, atual: number | null, duracaoRecusada: number | null): number {
+  const { reducao, minima, base } = MAPEAMENTOS[tipo].duracaoTroca;
   const novo = (duracaoRecusada ?? atual ?? base) - reducao;
   return Math.max(minima, Math.min(novo, atual ?? novo));
 }
@@ -164,7 +180,7 @@ export function proximaRodada(
     tom: motivo === "nao-e-o-clima" ? (estado.tom + 1) % TOTAL_TONS : estado.tom,
     duracaoMax:
       motivo === "muito-longo"
-        ? encurtar(estado.duracaoMax, mostrados[0]?.duracaoMin ?? null)
+        ? encurtar(estado.tipo, estado.duracaoMax, mostrados[0]?.duracaoMin ?? null)
         : estado.duracaoMax,
   };
 }

@@ -34,6 +34,7 @@ export const horasAtras = (horas: number) => new Date(Date.now() - horas * 3_600
 export function escolha(sobrescrever: object = {}) {
   return {
     id: 7,
+    tipo: "filme",
     tmdb_id: 550,
     titulo: "Clube da Luta",
     escolhido_em: horasAtras(20),

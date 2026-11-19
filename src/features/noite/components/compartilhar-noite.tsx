@@ -6,6 +6,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { linkWhatsApp, mensagemDaNoite, urlDoFilme } from "@/features/noite/compartilhar";
 import { aCadaMeioMinuto } from "@/features/noite/components/termina-as";
+import type { TipoMidia } from "@/lib/midia";
 
 const ESTILO = "h-12 px-6 text-base";
 
@@ -19,10 +20,13 @@ const temWebShare = () => typeof navigator.share === "function";
  * folha de compartilhamento do aparelho e, sem ela, um link do WhatsApp. Não grava nada.
  */
 export function CompartilharNoite({
+  tipo = "filme",
   tmdbId,
   titulo,
   duracaoMin,
 }: {
+  /** Filme (o padrão) ou série: muda o link e diz "um episódio de". */
+  tipo?: TipoMidia;
   tmdbId: number;
   titulo: string;
   duracaoMin: number | null;
@@ -31,17 +35,17 @@ export function CompartilharNoite({
   // O href acompanha o relógio, como o "Começando agora, termina às…" da tela.
   const mensagem = useSyncExternalStore(
     aCadaMeioMinuto,
-    () => mensagemDaNoite(titulo, duracaoMin, new Date()),
+    () => mensagemDaNoite(titulo, duracaoMin, new Date(), tipo),
     () => null,
   );
   const [falhou, setFalhou] = useState(false);
   if (mensagem === null) return null;
 
-  const url = urlDoFilme(window.location.origin, tmdbId);
+  const url = urlDoFilme(window.location.origin, tmdbId, tipo);
 
   async function compartilhar() {
     try {
-      await navigator.share({ text: mensagemDaNoite(titulo, duracaoMin, new Date()), url });
+      await navigator.share({ text: mensagemDaNoite(titulo, duracaoMin, new Date(), tipo), url });
     } catch (erro) {
       // Cancelar a folha de compartilhamento não é erro.
       if (erro instanceof DOMException && erro.name === "AbortError") return;
