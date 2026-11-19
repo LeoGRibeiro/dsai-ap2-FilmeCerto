@@ -79,8 +79,32 @@ describe("EsseNao", () => {
     await userEvent.click(screen.getByRole("button", { name: "Marcar e trocar" }));
 
     const dados = vi.mocked(alternarLista).mock.calls[0]![1];
-    expect(Object.fromEntries(dados)).toEqual({ tmdbId: "550", status: "assistido" });
+    expect(Object.fromEntries(dados)).toEqual({
+      tipo: "filme",
+      tmdbId: "550",
+      status: "assistido",
+    });
     expect(router.push).toHaveBeenCalledExactlyOnceWith("/noite?r=ja-vi");
+  });
+
+  it("de uma série, 'Marcar e trocar' marca a série, não o filme de mesmo ID", async () => {
+    render(
+      <EsseNao
+        proximas={proximas}
+        trocasRestantes={4}
+        destaque={{ tipo: "serie", id: 550, titulo: "Dark" }}
+      />,
+    );
+
+    await motivo("Já vi");
+    await userEvent.click(screen.getByRole("button", { name: "Marcar e trocar" }));
+
+    const dados = vi.mocked(alternarLista).mock.calls[0]![1];
+    expect(Object.fromEntries(dados)).toEqual({
+      tipo: "serie",
+      tmdbId: "550",
+      status: "assistido",
+    });
   });
 
   it("'Só trocar' troca sem mexer nas listas", async () => {
@@ -112,6 +136,21 @@ describe("EsseNao", () => {
     expect(screen.getByRole("link", { name: "Refazer as perguntas" })).toHaveAttribute(
       "href",
       "/noite",
+    );
+  });
+
+  it("no limite de trocas de uma série, refaz as perguntas de série", () => {
+    render(
+      <EsseNao
+        proximas={null}
+        trocasRestantes={0}
+        destaque={{ tipo: "serie", id: 1, titulo: "X" }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Refazer as perguntas" })).toHaveAttribute(
+      "href",
+      "/noite?tipo=serie",
     );
   });
 });

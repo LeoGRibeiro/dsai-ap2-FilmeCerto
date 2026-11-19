@@ -5,11 +5,17 @@ import type { ReactNode } from "react";
 import { formatarDuracao } from "@/features/filme/formatar";
 import { Trailer } from "@/features/filme/components/trailer";
 import { TerminaAs } from "@/features/noite/components/termina-as";
+import type { TipoMidia } from "@/lib/midia";
 import { urlImagem } from "@/lib/tmdb/imagens";
 import type { Provedor } from "@/lib/tmdb/tipos";
 
-/** O que a tela do resultado mostra de cada filme (só o necessário vai para o navegador). */
+/**
+ * O que a tela do resultado mostra de cada filme ou série (só o necessário vai para o navegador).
+ * Na série, `duracaoMin` é a do episódio.
+ */
 export type FilmeNaTela = {
+  /** Filme quando falta. */
+  tipo?: TipoMidia;
   id: number;
   titulo: string;
   ano: number | null;
@@ -21,9 +27,14 @@ export type FilmeNaTela = {
   provedor: Provedor | null;
 };
 
-/** "2019 · 1h52", sem as partes que faltam. */
-export function anoEDuracao(filme: Pick<FilmeNaTela, "ano" | "duracaoMin">): string {
-  return [filme.ano, formatarDuracao(filme.duracaoMin)].filter(Boolean).join(" · ");
+/** "2019 · 1h52" (série: "2019 · Episódios de ~45 min"), sem as partes que faltam. */
+export function anoEDuracao(filme: Pick<FilmeNaTela, "tipo" | "ano" | "duracaoMin">): string {
+  const { tipo, duracaoMin } = filme;
+  const duracao =
+    tipo === "serie"
+      ? duracaoMin && `Episódios de ~${duracaoMin} min`
+      : formatarDuracao(duracaoMin);
+  return [filme.ano, duracao].filter(Boolean).join(" · ");
 }
 
 export function PosterNoite({ filme, className }: { filme: FilmeNaTela; className: string }) {
@@ -47,14 +58,14 @@ export function PosterNoite({ filme, className }: { filme: FilmeNaTela; classNam
 }
 
 /**
- * O filme da noite, em destaque: pôster, título, ano e duração, onde assistir, "termina às",
+ * O filme (ou a série) da noite, em destaque: pôster, título, ano e duração, onde assistir, "termina às",
  * o motivo ligado às respostas, a sinopse curta e o trailer. `acoes` são os botões da escolha.
  */
 export function FilmeDestaque({ filme, acoes }: { filme: FilmeNaTela; acoes?: ReactNode }) {
   return (
     <article aria-labelledby="titulo-noite" className="flex flex-col gap-5">
       <p className="text-primary text-sm font-medium tracking-wide uppercase">
-        O filme da sua noite
+        {filme.tipo === "serie" ? "A série da sua noite" : "O filme da sua noite"}
       </p>
       <div className="flex gap-4 sm:gap-6">
         <PosterNoite filme={filme} className="w-28 shadow-xl sm:w-44" />
@@ -67,7 +78,9 @@ export function FilmeDestaque({ filme, acoes }: { filme: FilmeNaTela; acoes?: Re
           </h1>
           <p className="text-muted-foreground text-sm">{anoEDuracao(filme)}</p>
           {filme.provedor && <p className="text-sm">Onde assistir: {filme.provedor.nome}</p>}
-          {filme.duracaoMin && <TerminaAs duracaoMin={filme.duracaoMin} />}
+          {filme.duracaoMin && (
+            <TerminaAs duracaoMin={filme.duracaoMin} episodio={filme.tipo === "serie"} />
+          )}
         </div>
       </div>
       <p data-testid="motivo-noite" className="border-primary border-l-4 pl-3 font-medium">
