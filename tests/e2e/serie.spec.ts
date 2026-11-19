@@ -128,3 +128,65 @@ test("no celular, os botões da série ficam visíveis e clicáveis, sem rolagem
   const largura = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(largura).toBeLessThanOrEqual(390);
 });
+
+test("a temporada 1 abre os 8 episódios, com a estreia do não exibido, e leva à 2", async ({
+  page,
+}) => {
+  await entrarComOnboarding(page, "Rui Prado");
+  await page.goto(`/serie/${ID}`);
+
+  const main = page.getByRole("main");
+  // No TMDB falso: em exibição, próximo episódio em 2099 e episódios de 45 min (10 × 45 = 7h 30min).
+  await expect(main.getByText("Em exibição", { exact: true })).toBeVisible();
+  await expect(main.getByText("Próximo episódio em 12/12/2099")).toBeVisible();
+  const temporada1 = secao(page, "Temporadas").getByRole("link", { name: /Temporada 1/ });
+  await expect(temporada1).toContainText("10 episódios · cerca de 7h 30min");
+  await temporada1.click();
+
+  await expect(page).toHaveURL(`/serie/${ID}/temporada/1`);
+  await expect(page).toHaveTitle(`Série ${ID}: Temporada 1 · Filme Certo`);
+  await expect(main.getByRole("heading", { level: 1 })).toHaveText("Temporada 1");
+  // Sete exibidos: seis de 50 min e um sem duração, que conta os 45 da série.
+  for (const dado of ["2019", "8 episódios", "cerca de 5h 45min"]) {
+    await expect(main.getByText(dado, { exact: true })).toBeVisible();
+  }
+  const episodios = secao(page, "Episódios").getByRole("listitem");
+  await expect(episodios).toHaveCount(8);
+  await expect(episodios.first()).toContainText("1. Episódio 1x1");
+  await expect(episodios.first()).toContainText("50min · 01/03/2019 · ★ 7.1");
+  await expect(episodios.nth(2)).toContainText("03/03/2019 · ★ 7.3");
+  await expect(episodios.last()).toContainText("Estreia em 12/12/2099");
+  await expect(episodios.last()).not.toContainText("★");
+  await expect(main.getByRole("link", { name: "Temporada anterior" })).toHaveCount(0);
+
+  await main.getByRole("link", { name: "Próxima temporada" }).click();
+  await expect(page).toHaveURL(`/serie/${ID}/temporada/2`);
+  await expect(main.getByRole("heading", { level: 1 })).toHaveText("Temporada 2");
+  await expect(main.getByRole("link", { name: "Próxima temporada" })).toHaveCount(0);
+  await expect(main.getByRole("link", { name: "Temporada anterior" })).toHaveAttribute(
+    "href",
+    `/serie/${ID}/temporada/1`,
+  );
+
+  await main.getByRole("link", { name: `Série ${ID}` }).click();
+  await expect(page).toHaveURL(`/serie/${ID}`);
+});
+
+test("temporada inexistente, a 0 ou um número inválido mostram o 404", async ({ page }) => {
+  await entrarComOnboarding(page, "Lia Moura");
+
+  for (const numero of ["99", "0", "abc"]) {
+    await page.goto(`/serie/${ID}/temporada/${numero}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Página não encontrada");
+  }
+});
+
+test("no celular, a lista de episódios não cria rolagem lateral", async ({ page }) => {
+  await entrarComOnboarding(page, "Caio Reis");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/serie/${ID}/temporada/1`);
+
+  await expect(secao(page, "Episódios").getByRole("listitem")).toHaveCount(8);
+  const largura = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(largura).toBeLessThanOrEqual(390);
+});
