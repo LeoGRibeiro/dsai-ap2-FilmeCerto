@@ -124,6 +124,17 @@ describe("RLS e funções das salas da 'Noite a dois'", () => {
       .from("lista_itens")
       .insert({ usuario_id: b.id, tmdb_id: 550, status: "assistido", titulo: "Clube da Luta" })
       .throwOnError();
+    // A sala é só de filmes: uma série vista com outro ID não entra nas exclusões.
+    await b.cliente
+      .from("lista_itens")
+      .insert({
+        usuario_id: b.id,
+        tipo: "serie",
+        tmdb_id: 1399,
+        status: "assistido",
+        titulo: "Uma série",
+      })
+      .throwOnError();
     await a.cliente
       .from("reacoes")
       .insert({ usuario_id: a.id, tmdb_id: 13, reacao: "nao-gostei", titulo: "Forrest Gump" })

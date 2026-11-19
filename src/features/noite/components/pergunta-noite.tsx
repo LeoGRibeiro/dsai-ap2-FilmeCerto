@@ -70,7 +70,8 @@ export function PerguntaNoite({
           {posicao} de {PERGUNTAS.length}
         </p>
       </div>
-      {posicao === 1 && <FilmeOuSerie estado={estado} />}
+      {/* A sala da "Noite a dois" é só de filmes: lá não se escolhe o tipo. */}
+      {posicao === 1 && !rota && <FilmeOuSerie estado={estado} />}
       <h1 id="pergunta-noite" className="text-3xl tracking-tight text-balance sm:text-4xl">
         {pergunta.titulo}
       </h1>

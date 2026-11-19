@@ -35,8 +35,8 @@ export default async function NoitePage({ searchParams }: PageProps<"/noite">) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8">
       {pergunta && <PerguntaNoite estado={estado} pergunta={pergunta} />}
-      {/* "Noite a dois" (SPEC/2026-11-18-noite-a-dois.md): só antes da primeira resposta. */}
-      {pergunta === PERGUNTAS[0] && <JuntosBotao />}
+      {/* "Noite a dois" (SPEC/2026-11-18-noite-a-dois.md): antes da 1ª resposta, só de filmes. */}
+      {pergunta === PERGUNTAS[0] && estado.tipo === "filme" && <JuntosBotao />}
       {respostas && (
         <div className="flex flex-col gap-6">
           <AteQueHoras estado={estado} />

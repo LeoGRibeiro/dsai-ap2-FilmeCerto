@@ -163,7 +163,7 @@ $$;
 comment on function public.responder_sala_noite is 'Grava as respostas de quem chama, enquanto a sala não expirou nem tem resultado.';
 
 -- Para montar a sugestão: as respostas das duas pessoas, a união dos gêneros evitados e dos
--- streamings e os IDs que nenhuma das duas quer ver ("Já assisti" e reações).
+-- streamings e os filmes que nenhuma das duas quer ver ("Já assisti" e reações; a sala é só de filmes).
 create function public.restricoes_sala_noite(p_sala uuid)
 returns table (
   respostas_criador jsonb,
@@ -199,9 +199,10 @@ begin
                      where p.usuario_id = any (v_pessoas)), '{}'),
            coalesce((select array_agg(distinct t.tmdb_id) from (
                        select l.tmdb_id from public.lista_itens l
-                       where l.usuario_id = any (v_pessoas) and l.status = 'assistido'
+                       where l.usuario_id = any (v_pessoas) and l.tipo = 'filme' and l.status = 'assistido'
                        union
-                       select r.tmdb_id from public.reacoes r where r.usuario_id = any (v_pessoas)
+                       select r.tmdb_id from public.reacoes r
+                       where r.usuario_id = any (v_pessoas) and r.tipo = 'filme'
                      ) t), '{}');
 end;
 $$;
