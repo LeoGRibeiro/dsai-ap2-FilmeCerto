@@ -1,6 +1,4 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
@@ -9,19 +7,15 @@ import { CartaoFilme } from "@/features/dashboard/components/cartao-filme";
 import { CabecalhoFilme } from "@/features/filme/components/cabecalho-filme";
 import { Elenco } from "@/features/filme/components/elenco";
 import { OndeAssistir } from "@/features/filme/components/onde-assistir";
+import { Secao, Voltar } from "@/features/filme/components/pagina-titulo";
 import { Trailer } from "@/features/filme/components/trailer";
+import { tituloComAno } from "@/features/filme/formatar";
+import { lerId } from "@/features/filme/ler-id";
 import { BotoesLista } from "@/features/listas/components/botoes-lista";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { BotoesReacao } from "@/features/reacoes/components/botoes-reacao";
 import { obterReacao } from "@/features/reacoes/consultas";
 import { obterFilme } from "@/lib/tmdb/filmes";
-
-/** Só inteiros positivos de até 10 dígitos são IDs válidos do TMDB. */
-function lerId(valor: string): number | null {
-  if (!/^\d{1,10}$/.test(valor)) return null;
-  const id = Number(valor);
-  return id > 0 ? id : null;
-}
 
 /** Uma busca por renderização, compartilhada entre a página e o título da aba. */
 const buscarFilme = cache(async (valor: string) => {
@@ -32,16 +26,7 @@ const buscarFilme = cache(async (valor: string) => {
 export async function generateMetadata({ params }: PageProps<"/filme/[id]">): Promise<Metadata> {
   const filme = await buscarFilme((await params).id);
   if (!filme) return { title: "Filme não encontrado" };
-  return { title: filme.ano ? `${filme.titulo} (${filme.ano})` : filme.titulo };
-}
-
-function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-2xl tracking-tight">{titulo}</h2>
-      {children}
-    </section>
-  );
+  return { title: tituloComAno(filme) };
 }
 
 export default async function FilmePage({ params }: PageProps<"/filme/[id]">) {
@@ -54,12 +39,7 @@ export default async function FilmePage({ params }: PageProps<"/filme/[id]">) {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
-      <Link
-        href="/dashboard"
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" /> Voltar
-      </Link>
+      <Voltar />
 
       <CabecalhoFilme
         filme={filme}

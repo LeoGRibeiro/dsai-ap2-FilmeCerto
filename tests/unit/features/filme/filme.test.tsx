@@ -3,11 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CartaoFilme } from "@/features/dashboard/components/cartao-filme";
-import { CabecalhoFilme } from "@/features/filme/components/cabecalho-filme";
+import { Cabecalho, CabecalhoFilme } from "@/features/filme/components/cabecalho-filme";
 import { Elenco } from "@/features/filme/components/elenco";
+import { ErroAoCarregar } from "@/features/filme/components/erro-ao-carregar";
 import { OndeAssistir } from "@/features/filme/components/onde-assistir";
 import { Trailer } from "@/features/filme/components/trailer";
-import { formatarDuracao, formatarVotos } from "@/features/filme/formatar";
+import {
+  formatarDuracao,
+  formatarNota,
+  formatarVotos,
+  tituloComAno,
+} from "@/features/filme/formatar";
+import { lerId } from "@/features/filme/ler-id";
 import { enviarEvento } from "@/features/metricas/enviar";
 import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
 
@@ -53,6 +60,57 @@ describe("formatar", () => {
 
   it("formatarVotos usa o separador de milhar pt-BR", () => {
     expect(formatarVotos(30000)).toBe("30.000");
+  });
+
+  it("formatarNota mostra a nota com uma casa e os votos", () => {
+    expect(formatarNota(8.44, 30000)).toBe("★ 8.4 (30.000 votos)");
+  });
+
+  it("tituloComAno omite o ano ausente", () => {
+    expect(tituloComAno({ titulo: "Clube da Luta", ano: 1999 })).toBe("Clube da Luta (1999)");
+    expect(tituloComAno({ titulo: "Clube da Luta", ano: null })).toBe("Clube da Luta");
+  });
+});
+
+describe("lerId", () => {
+  it.each([
+    ["550", 550],
+    ["0001399", 1399],
+    ["9999999999", 9999999999],
+  ])("aceita %j", (valor, id) => {
+    expect(lerId(valor)).toBe(id);
+  });
+
+  it.each(["0", "abc", "-5", "1.5", "12345678901", ""])("recusa %j", (valor) => {
+    expect(lerId(valor)).toBeNull();
+  });
+});
+
+describe("Cabecalho", () => {
+  it("mostra os itens da linha de dados e omite os nulos", () => {
+    render(<Cabecalho titulo={detalhes()} dados={["2019", null, "2 temporadas"]} />);
+    const linha = screen.getByText("2019").closest("ul");
+    expect(linha?.querySelectorAll("li")).toHaveLength(2);
+    expect(screen.getByText("2 temporadas")).toBeInTheDocument();
+  });
+});
+
+describe("ErroAoCarregar", () => {
+  it("mostra a frase recebida e tenta de novo no clique", async () => {
+    const usuario = userEvent.setup();
+    const retry = vi.fn();
+    render(<ErroAoCarregar titulo="Não foi possível carregar esta série agora." retry={retry} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Não foi possível carregar esta série agora.",
+    );
+    expect(screen.getByRole("link", { name: "Voltar ao início" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    expect(retry).toHaveBeenCalledOnce();
   });
 });
 
@@ -105,6 +163,13 @@ describe("OndeAssistir", () => {
     render(<OndeAssistir dados={null} />);
     expect(
       screen.getByText("Não encontramos onde assistir este filme no Brasil."),
+    ).toBeInTheDocument();
+  });
+
+  it("sem dados de uma série, fala da série", () => {
+    render(<OndeAssistir dados={null} tipo="serie" />);
+    expect(
+      screen.getByText("Não encontramos onde assistir esta série no Brasil."),
     ).toBeInTheDocument();
   });
 });

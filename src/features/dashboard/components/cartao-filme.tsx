@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { tituloComAno } from "@/features/filme/formatar";
 import { urlImagem } from "@/lib/tmdb/imagens";
 import type { FilmeResumo } from "@/lib/tmdb/tipos";
 
@@ -12,7 +13,7 @@ export type FilmeCartao = Pick<FilmeResumo, "id" | "titulo" | "posterPath" | "an
 
 export function CartaoFilme({ filme }: { filme: FilmeCartao }) {
   const poster = urlImagem(filme.posterPath, "w342");
-  const nome = filme.ano ? `${filme.titulo} (${filme.ano})` : filme.titulo;
+  const nome = tituloComAno(filme);
   const detalhes = [filme.ano, filme.nota !== undefined && `★ ${filme.nota.toFixed(1)}`]
     .filter(Boolean)
     .join(" · ");
