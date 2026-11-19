@@ -156,12 +156,11 @@ describe("página /noite: perguntas", () => {
     await abrir({ humor: "cansado", exp: "rir" });
     expect(screen.queryByRole("group", { name: "Até que horas?" })).not.toBeInTheDocument();
 
-    await abrir({ humor: "cansado", exp: "rir", com: "a-dois", ate: "0", tempo: "150" });
+    await abrir({ humor: "cansado", exp: "rir", com: "a-dois", ate: "0000", tempo: "150" });
     const horario = screen.getByRole("group", { name: "Até que horas?" });
-    expect(within(horario).getByRole("button", { name: "Meia-noite" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const outro = within(horario).getByRole("button", { name: /^Outro horário/ });
+    expect(outro).toHaveAttribute("aria-pressed", "true");
+    expect(outro).toHaveTextContent("até a meia-noite");
     expect(vi.mocked(RecomendacaoNoite).mock.calls[0]![0].estado).toMatchObject({
       ate: 0,
       tempo: 150,

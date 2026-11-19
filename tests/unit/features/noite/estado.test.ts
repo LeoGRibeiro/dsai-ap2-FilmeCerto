@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   comHorario,
+  comJanela,
   ESTADO_INICIAL,
   inicioDaNoite,
   lerEstado,
@@ -54,11 +55,9 @@ describe("lerEstado", () => {
     ["duração que não é número", { max: "longo" }],
     ["trocas acima do limite", { trocas: "6" }],
     ["trocas com decimal", { trocas: "1.5" }],
-    ["hora sem os minutos", { ate: "23" }],
-    ["minutos sem a hora", { tempo: "90" }],
-    ["hora fora da lista", { ate: "21", tempo: "90" }],
-    ["minutos acima de um dia", { ate: "23", tempo: "1441" }],
-    ["minutos negativos", { ate: "23", tempo: "-5" }],
+    ["horário sem os minutos", { ate: "2215" }],
+    ["minutos acima de um dia", { ate: "2215", tempo: "1441" }],
+    ["minutos negativos", { ate: "2215", tempo: "-5" }],
   ])("ignora %s", (_caso, busca) => {
     expect(lerEstado(busca)).toEqual(ESTADO_INICIAL);
   });
@@ -114,35 +113,55 @@ describe("'Filme ou série?' no estado", () => {
 });
 
 describe("'Até que horas?' no estado", () => {
-  it("lê a hora e os minutos juntos, inclusive meia-noite e 'já passou'", () => {
-    expect(lerEstado({ ate: "23", tempo: "90" })).toMatchObject({ ate: 23, tempo: 90 });
-    expect(lerEstado({ ate: "0", tempo: "0" })).toMatchObject({ ate: 0, tempo: 0 });
+  it("só os minutos são o tempo a partir de agora", () => {
+    expect(lerEstado({ tempo: "120" })).toMatchObject({ ate: null, tempo: 120 });
   });
 
-  it("escreve a hora logo depois das respostas e volta pelo lerEstado", () => {
-    const estado = { ...completo, ate: 1 as const, tempo: 90 };
+  it("o 'Outro horário' vem em HHMM, junto dos minutos", () => {
+    expect(lerEstado({ ate: "2215", tempo: "45" })).toMatchObject({ ate: 1335, tempo: 45 });
+    expect(lerEstado({ ate: "0000", tempo: "0" })).toMatchObject({ ate: 0, tempo: 0 });
+  });
+
+  it.each([
+    ["hora cheia da versão anterior", "23"],
+    ["hora acima de 23", "2460"],
+    ["minuto acima de 59", "2275"],
+    ["texto", "22h15"],
+  ])("horário inválido (%s) fica só com os minutos", (_caso, ate) => {
+    expect(lerEstado({ ate, tempo: "90" })).toMatchObject({ ate: null, tempo: 90 });
+  });
+
+  it("escreve o horário logo depois das respostas e volta pelo lerEstado", () => {
+    const estado = { ...completo, ate: 60, tempo: 90 };
     const url = urlDaNoite(estado);
     expect(url).toBe(
-      "/noite?humor=cansado&exp=rir&com=a-dois&ate=1&tempo=90&tom=1&max=100&vistos=10,20&trocas=2",
+      "/noite?humor=cansado&exp=rir&com=a-dois&ate=0100&tempo=90&tom=1&max=100&vistos=10,20&trocas=2",
     );
     expect(lerEstado(Object.fromEntries(new URL(url, "http://x").searchParams))).toEqual(estado);
   });
 
+  it("comJanela põe só os minutos, e null é 'Tanto faz'", () => {
+    const comHora = { ...completo, ate: 1335, tempo: 45 };
+    expect(comJanela(comHora, 120)).toEqual({ ...completo, tempo: 120 });
+    expect(urlDaNoite(comJanela(completo, 120))).toMatch(/&com=a-dois&tempo=120&tom=1/);
+    expect(comJanela(comHora, null)).toEqual(completo);
+  });
+
   it("comHorario calcula os minutos no relógio dado e mantém o resto do estado", () => {
     const agora = new Date(2026, 10, 18, 21, 30);
-    expect(comHorario(completo, 23, agora)).toEqual({ ...completo, ate: 23, tempo: 90 });
+    expect(comHorario(completo, 22 * 60 + 15, agora)).toEqual({
+      ...completo,
+      ate: 1335,
+      tempo: 45,
+    });
     expect(comHorario(completo, 0, agora)).toEqual({ ...completo, ate: 0, tempo: 150 });
   });
 
-  it("comHorario com 'Tanto faz' tira a hora e os minutos", () => {
-    expect(comHorario({ ...completo, ate: 23, tempo: 90 }, null, new Date())).toEqual(completo);
-  });
-
   it("a próxima rodada mantém o horário", () => {
-    const estado = { ...completo, ate: 23 as const, tempo: 90 };
+    const estado = { ...completo, ate: 1335, tempo: 45 };
     expect(proximaRodada(estado, "muito-longo", [{ id: 1, duracaoMin: 95 }])).toMatchObject({
-      ate: 23,
-      tempo: 90,
+      ate: 1335,
+      tempo: 45,
     });
   });
 });

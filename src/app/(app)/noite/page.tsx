@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "O que ver hoje?" };
 /**
  * Wizard "O que ver hoje?" (SPEC/2026-11-18-wizard-noite.md). Todo o estado está na URL:
  * sem as três respostas, mostra a próxima pergunta; com elas, a recomendação da rodada,
- * com o "Até que horas?" opcional acima (SPEC/2026-11-18-noite-ate-que-horas.md).
+ * com o "Até que horas?" opcional acima (SPEC/2026-11-19-noite-tempo-disponivel.md).
  */
 export default async function NoitePage({ searchParams }: PageProps<"/noite">) {
   await exigirUsuario();
