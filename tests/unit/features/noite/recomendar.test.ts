@@ -5,10 +5,16 @@ import {
   NoiteIndisponivel,
   recomendarNoite,
   type ApiNoite,
+  type ApiNoiteSerie,
   type PerfilNoite,
 } from "@/features/noite/recomendar";
 import { TmdbErro } from "@/lib/tmdb/cliente";
-import type { FilmeDetalhes, FilmeResumo, FiltrosDescoberta } from "@/lib/tmdb/tipos";
+import type {
+  FilmeDetalhes,
+  FilmeResumo,
+  FiltrosDescoberta,
+  SerieDetalhes,
+} from "@/lib/tmdb/tipos";
 
 const NETFLIX = { id: 8, nome: "Netflix", logoPath: null };
 const TERROR = 27;
@@ -313,5 +319,122 @@ describe("recomendarNoite", () => {
     await expect(
       recomendarNoite({ respostas, estado: rodada0, perfil, excluir: [], api }),
     ).rejects.toThrow(NoiteIndisponivel);
+  });
+});
+
+describe("recomendarNoite de série", () => {
+  function serieDetalhes(id: number, extra: Partial<SerieDetalhes> = {}): SerieDetalhes {
+    return {
+      ...resumo(id),
+      titulo: `Série ${id}`,
+      generos: [{ id: 35, nome: "Comédia" }],
+      duracaoEpisodioMin: 30,
+      temporadas: [],
+      slogan: null,
+      trailerYoutube: null,
+      elenco: [],
+      criacao: [],
+      classificacao: "12",
+      ondeAssistir: { link: "", assinatura: [NETFLIX], aluguel: [], compra: [] },
+      ...extra,
+    };
+  }
+
+  /** TMDB de séries falso: uma página de resultados e os detalhes de cada ID. */
+  function apiSerieFalsa(
+    itens: FilmeResumo[],
+    detalhesPorId: Record<number, Partial<SerieDetalhes>> = {},
+  ) {
+    const chamadas: FiltrosDescoberta[] = [];
+    const api: ApiNoiteSerie = {
+      descobrirSeries: vi.fn(async (filtros = {}) => {
+        chamadas.push(filtros);
+        return { itens, pagina: 1, totalPaginas: 1, totalResultados: itens.length };
+      }),
+      obterSerie: vi.fn(async (id: number) => serieDetalhes(id, detalhesPorId[id])),
+    };
+    return { api, chamadas };
+  }
+
+  const semStreaming: PerfilNoite = { generosEvitados: [], streamings: [] };
+
+  it("busca séries com os gêneros de TV e devolve a duração do episódio, sem tocar nos filmes", async () => {
+    const { api, chamadas } = apiSerieFalsa([resumo(1)]);
+
+    const resultado = await recomendarNoite({
+      tipo: "serie",
+      respostas,
+      estado: rodada0,
+      perfil: semStreaming,
+      excluir: [],
+      api,
+    });
+
+    expect(resultado?.destaque.filme).toMatchObject({ id: 1, titulo: "Série 1", duracaoMin: 30 });
+    expect(resultado?.destaque.motivo).toBe(
+      "Você está cansado, quer rir e vai ver a dois: comédia, nota 7,5, está na Netflix.",
+    );
+    expect(chamadas[0]).toMatchObject({ todosGeneros: [35], duracaoMax: 45 });
+    expect(chamadas[0]?.semGeneros).toEqual(expect.arrayContaining([10763, 10764, 10767]));
+  });
+
+  it("em família, descarta série acima de 12 anos ou sem classificação e completa com as seguintes", async () => {
+    const { api } = apiSerieFalsa(
+      [1, 2, 3, 4, 5, 6].map((id) => resumo(id)),
+      {
+        1: { classificacao: "16" },
+        2: { classificacao: null },
+        3: { classificacao: "L" },
+        4: { classificacao: "14" },
+        5: { classificacao: "10" },
+        6: { classificacao: "12" },
+      },
+    );
+
+    const resultado = await recomendarNoite({
+      tipo: "serie",
+      respostas: { ...respostas, companhia: "familia" },
+      estado: rodada1,
+      perfil: semStreaming,
+      excluir: [],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([3, 5, 6]);
+  });
+
+  it("com 'Até que horas?', o episódio precisa terminar a tempo", async () => {
+    const { api, chamadas } = apiSerieFalsa([resumo(1), resumo(2)], {
+      1: { duracaoEpisodioMin: 50 },
+      2: { duracaoEpisodioMin: 22 },
+    });
+
+    const resultado = await recomendarNoite({
+      tipo: "serie",
+      respostas: { ...respostas, humor: "animado" },
+      estado: { ...rodada0, tempo: 40 },
+      perfil: semStreaming,
+      excluir: [],
+      api,
+    });
+
+    expect(chamadas[0]).toMatchObject({ duracaoMax: 40 });
+    expect(ids(resultado)).toEqual([2]);
+  });
+
+  it("confere os evitados nos gêneros de TV, mesmo se o TMDB devolver", async () => {
+    // Ação (28) evitada vira Action & Adventure (10759) nas séries.
+    const { api } = apiSerieFalsa([resumo(1, [10759, 35]), resumo(2, [35])]);
+
+    const resultado = await recomendarNoite({
+      tipo: "serie",
+      respostas,
+      estado: rodada0,
+      perfil: { ...semStreaming, generosEvitados: [28] },
+      excluir: [],
+      api,
+    });
+
+    expect(ids(resultado)).toEqual([2]);
   });
 });

@@ -8,18 +8,24 @@ import {
   type ResultadoNoite,
 } from "@/features/noite/recomendar";
 import { createClient } from "@/lib/supabase/server";
+import type { TipoMidia } from "@/lib/midia";
 import type { ClienteSupabase } from "@/lib/supabase/token";
 import { descobrirFilmes, obterFilme } from "@/lib/tmdb/filmes";
+import { descobrirSeries, obterSerie } from "@/lib/tmdb/series";
 
 /**
- * IDs que o wizard nunca recomenda: filmes em "Já assisti" e filmes com qualquer reação.
- * "Quero assistir" fica de fora de propósito, e séries também (o ID de uma série pode ser o
- * de outro filme). Lança se o banco falhar, para a tela não arriscar recomendar um filme já visto.
+ * IDs que o wizard nunca recomenda: títulos do tipo pedido em "Já assisti" ou com qualquer
+ * reação. "Quero assistir" fica de fora de propósito, e o outro tipo também (o ID de uma série
+ * pode ser o de outro filme). Lança se o banco falhar, para a tela não arriscar recomendar um
+ * título já visto.
  */
-export async function idsParaExcluir(supabase: ClienteSupabase): Promise<number[]> {
+export async function idsParaExcluir(
+  supabase: ClienteSupabase,
+  tipo: TipoMidia = "filme",
+): Promise<number[]> {
   const [assistidos, reacoes] = await Promise.all([
-    supabase.from("lista_itens").select("tmdb_id").eq("tipo", "filme").eq("status", "assistido"),
-    supabase.from("reacoes").select("tmdb_id").eq("tipo", "filme"),
+    supabase.from("lista_itens").select("tmdb_id").eq("tipo", tipo).eq("status", "assistido"),
+    supabase.from("reacoes").select("tmdb_id").eq("tipo", tipo),
   ]);
   const erro = assistidos.error ?? reacoes.error;
   if (erro) {
@@ -29,18 +35,15 @@ export async function idsParaExcluir(supabase: ClienteSupabase): Promise<number[
   return [...(assistidos.data ?? []), ...(reacoes.data ?? [])].map((linha) => linha.tmdb_id);
 }
 
-/** Recomendação da rodada para o usuário logado, só lendo o perfil. */
+/** Recomendação da rodada para o usuário logado, do tipo do estado, só lendo o perfil. */
 export async function obterNoite(
   respostas: Clima,
   estado: EstadoNoite,
   perfil: PerfilNoite,
 ): Promise<ResultadoNoite | null> {
   const supabase = await createClient();
-  return recomendarNoite({
-    respostas,
-    estado,
-    perfil,
-    excluir: await idsParaExcluir(supabase),
-    api: { descobrirFilmes, obterFilme },
-  });
+  const comum = { respostas, estado, perfil, excluir: await idsParaExcluir(supabase, estado.tipo) };
+  return estado.tipo === "serie"
+    ? recomendarNoite({ ...comum, tipo: "serie", api: { descobrirSeries, obterSerie } })
+    : recomendarNoite({ ...comum, api: { descobrirFilmes, obterFilme } });
 }
