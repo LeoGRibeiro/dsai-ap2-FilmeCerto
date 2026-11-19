@@ -1,4 +1,26 @@
+import { vi } from "vitest";
+
+import { criarClienteTmdb, type ClienteTmdb } from "@/lib/tmdb/cliente";
+
 /** Respostas reduzidas no formato da API do TMDB, para os testes. */
+
+/** API do TMDB (filmes ou séries) sobre um `fetch` falso que sempre responde `corpo`. */
+export function montarApi<A>(criarApi: (cliente: ClienteTmdb) => A, corpo: unknown, status = 200) {
+  const fetchFalso = vi.fn(async () => new Response(JSON.stringify(corpo), { status }));
+  const cliente = criarClienteTmdb({
+    token: "t",
+    baseUrl: "https://tmdb.falso/3",
+    fetch: fetchFalso as unknown as typeof fetch,
+    esperar: async () => {},
+  });
+  return { api: criarApi(cliente), fetchFalso };
+}
+
+/** URL e `revalidate` da chamada de número `indice` ao `fetch` falso. */
+export function chamada(fetchFalso: ReturnType<typeof vi.fn>, indice = 0) {
+  const [url, init] = fetchFalso.mock.calls[indice] as [string, { next: { revalidate: number } }];
+  return { url: new URL(url), revalidate: init.next.revalidate };
+}
 
 export function filmeTmdb(sobrescrever: Record<string, unknown> = {}) {
   return {
@@ -64,6 +86,69 @@ export function detalhesTmdb(sobrescrever: Record<string, unknown> = {}) {
       },
     },
     recommendations: paginaTmdb([filmeTmdb({ id: 807, title: "Se7en" })]),
+    ...sobrescrever,
+  };
+}
+
+export function serieTmdb(sobrescrever: Record<string, unknown> = {}) {
+  return {
+    id: 1399,
+    name: "A Guerra dos Tronos",
+    original_name: "Game of Thrones",
+    overview: "Nove famílias nobres lutam pelo controle de Westeros.",
+    poster_path: "/tronos.jpg",
+    backdrop_path: "/tronos-fundo.jpg",
+    genre_ids: [10765, 18],
+    first_air_date: "2011-04-17",
+    vote_average: 8.5,
+    vote_count: 25000,
+    popularity: 300.5,
+    origin_country: ["US"],
+    ...sobrescrever,
+  };
+}
+
+/** Detalhes de série; vídeos, elenco e onde assistir vêm do mesmo formato dos filmes. */
+export function detalhesSerieTmdb(sobrescrever: Record<string, unknown> = {}) {
+  const base: Record<string, unknown> = serieTmdb();
+  delete base.genre_ids;
+  const { videos, credits, "watch/providers": ondeAssistir } = detalhesTmdb();
+  return {
+    ...base,
+    genres: [
+      { id: 10765, name: "Sci-Fi & Fantasy" },
+      { id: 18, name: "Drama" },
+    ],
+    episode_run_time: [50, 61],
+    last_episode_to_air: { runtime: 80 },
+    seasons: [
+      {
+        season_number: 2,
+        name: "Temporada 2",
+        episode_count: 10,
+        air_date: "2012-04-01",
+        poster_path: null,
+      },
+      { season_number: 0, name: "Especiais", episode_count: 14, air_date: null, poster_path: null },
+      {
+        season_number: 1,
+        name: "Temporada 1",
+        episode_count: 10,
+        air_date: "2011-04-17",
+        poster_path: "/t1.jpg",
+      },
+    ],
+    tagline: "",
+    created_by: [{ name: "David Benioff" }, { name: "D. B. Weiss" }],
+    videos,
+    credits,
+    "watch/providers": ondeAssistir,
+    content_ratings: {
+      results: [
+        { iso_3166_1: "US", rating: "TV-MA" },
+        { iso_3166_1: "BR", rating: "16" },
+      ],
+    },
     ...sobrescrever,
   };
 }

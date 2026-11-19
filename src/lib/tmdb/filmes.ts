@@ -1,29 +1,30 @@
 import "server-only";
 
-import type { z } from "zod";
-
-import { clienteTmdbPadrao, TmdbErro, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
+import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
 import {
-  detalhesTmdb,
-  filmeTmdb,
-  paginaTmdb,
-  type DetalhesTmdb,
-  type FilmeTmdb,
-} from "@/lib/tmdb/esquemas";
+  anoDe,
+  elencoDe,
+  limitarPagina,
+  nuloSe404,
+  ondeAssistirDe,
+  paraGeneros,
+  paraPagina,
+  parametrosDescoberta,
+  trailerDe,
+  validar,
+} from "@/lib/tmdb/comum";
+import { detalhesTmdb, filmeTmdb, type DetalhesTmdb, type FilmeTmdb } from "@/lib/tmdb/esquemas";
 import type {
   FilmeDetalhes,
   FilmeResumo,
   FiltrosDescoberta,
   OrdemDescoberta,
   Pagina,
-  Provedor,
 } from "@/lib/tmdb/tipos";
 
 const HORA = 3600;
 const CACHE_LISTAS = 6 * HORA;
 const CACHE_FILME = 24 * HORA;
-const MAX_ELENCO = 10;
-const MAX_PAGINA = 500;
 
 const ORDENS: Record<OrdemDescoberta, string> = {
   popularidade: "popularity.desc",
@@ -32,21 +33,6 @@ const ORDENS: Record<OrdemDescoberta, string> = {
 };
 
 const PAGINA_VAZIA: Pagina<never> = { itens: [], pagina: 1, totalPaginas: 0, totalResultados: 0 };
-
-function validar<T extends z.ZodType>(esquema: T, dados: unknown): z.infer<T> {
-  const resultado = esquema.safeParse(dados);
-  if (!resultado.success) throw new TmdbErro("Resposta inesperada do TMDB", null);
-  return resultado.data;
-}
-
-function limitarPagina(pagina = 1) {
-  return Math.min(Math.max(Math.trunc(pagina), 1), MAX_PAGINA);
-}
-
-function anoDe(data: string | null): number | null {
-  const ano = Number(data?.slice(0, 4));
-  return ano > 0 ? ano : null;
-}
 
 function paraResumo(filme: FilmeTmdb): FilmeResumo {
   return {
@@ -64,98 +50,45 @@ function paraResumo(filme: FilmeTmdb): FilmeResumo {
   };
 }
 
-function paraPagina(dados: unknown): Pagina<FilmeResumo> {
-  const pagina = validar(paginaTmdb(filmeTmdb), dados);
-  return {
-    itens: pagina.results.map(paraResumo),
-    pagina: pagina.page,
-    totalPaginas: pagina.total_pages,
-    totalResultados: pagina.total_results,
-  };
-}
-
-function trailerDe(videos: DetalhesTmdb["videos"]["results"]): string | null {
-  const trailers = videos.filter((video) => video.site === "YouTube" && video.type === "Trailer");
-  return (trailers.find((video) => video.official) ?? trailers[0])?.key ?? null;
-}
-
-function paraProvedores(
-  lista: { provider_id: number; provider_name: string; logo_path: string | null }[],
-): Provedor[] {
-  return lista.map((p) => ({ id: p.provider_id, nome: p.provider_name, logoPath: p.logo_path }));
-}
-
 function paraDetalhes(filme: DetalhesTmdb): FilmeDetalhes {
-  const brasil = filme["watch/providers"].results.BR;
   return {
     ...paraResumo({ ...filme, genre_ids: [] }),
-    generos: filme.genres.map(({ id, name }) => ({ id, nome: name })),
+    generos: paraGeneros(filme.genres),
     duracaoMin: filme.runtime || null,
     slogan: filme.tagline,
     trailerYoutube: trailerDe(filme.videos.results),
-    elenco: filme.credits.cast.slice(0, MAX_ELENCO).map((pessoa) => ({
-      nome: pessoa.name,
-      personagem: pessoa.character,
-      fotoPath: pessoa.profile_path,
-    })),
+    elenco: elencoDe(filme.credits),
     direcao: filme.credits.crew.filter((p) => p.job === "Director").map((p) => p.name),
-    ondeAssistir: brasil
-      ? {
-          link: brasil.link,
-          assinatura: paraProvedores(brasil.flatrate),
-          aluguel: paraProvedores(brasil.rent),
-          compra: paraProvedores(brasil.buy),
-        }
-      : null,
+    ondeAssistir: ondeAssistirDe(filme["watch/providers"]),
     parecidos: (filme.recommendations?.results ?? []).map(paraResumo),
   };
-}
-
-/** `with_genres`: vírgula exige todos os gêneros; barra aceita qualquer um. */
-function generosDe({ generos, todosGeneros }: FiltrosDescoberta): string | undefined {
-  if (todosGeneros?.length) return todosGeneros.join(",");
-  return generos?.length ? generos.join("|") : undefined;
 }
 
 /** Funções de filmes sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
 export function criarApiFilmes(cliente: ClienteTmdb) {
   return {
     async descobrirFilmes(filtros: FiltrosDescoberta = {}): Promise<Pagina<FilmeResumo>> {
-      const provedores = filtros.provedores?.length ? filtros.provedores.join("|") : undefined;
       const parametros: Parametros = {
-        with_watch_providers: provedores,
-        watch_region: provedores && "BR",
-        with_watch_monetization_types: provedores && "flatrate",
-        with_genres: generosDe(filtros),
-        without_genres: filtros.semGeneros?.length ? filtros.semGeneros.join(",") : undefined,
-        "with_runtime.gte": filtros.duracaoMin,
-        "with_runtime.lte": filtros.duracaoMax,
-        "vote_average.gte": filtros.notaMin,
-        "vote_count.gte": filtros.votosMin,
+        ...parametrosDescoberta(filtros, ORDENS),
         primary_release_year: filtros.ano,
         "primary_release_date.lte": filtros.lancadoAte,
         certification_country: filtros.classificacaoMax && "BR",
         "certification.lte": filtros.classificacaoMax,
-        sort_by: ORDENS[filtros.ordem ?? "popularidade"],
-        page: limitarPagina(filtros.pagina),
         region: "BR",
-        include_adult: false,
       };
-      return paraPagina(await cliente.requisitar("/discover/movie", parametros, CACHE_LISTAS));
+      const dados = await cliente.requisitar("/discover/movie", parametros, CACHE_LISTAS);
+      return paraPagina(filmeTmdb, dados, paraResumo);
     },
 
-    async obterFilme(id: number): Promise<FilmeDetalhes | null> {
-      try {
+    obterFilme(id: number): Promise<FilmeDetalhes | null> {
+      return nuloSe404(async () => {
         const dados = await cliente.requisitar(
           `/movie/${id}`,
           { append_to_response: "videos,credits,watch/providers,recommendations" },
           CACHE_FILME,
         );
         return paraDetalhes(validar(detalhesTmdb, dados));
-      } catch (erro) {
-        if (erro instanceof TmdbErro && erro.status === 404) return null;
-        throw erro;
-      }
+      });
     },
 
     async recomendacoesDe(id: number, pagina = 1): Promise<Pagina<FilmeResumo>> {
@@ -164,7 +97,7 @@ export function criarApiFilmes(cliente: ClienteTmdb) {
         { page: limitarPagina(pagina) },
         CACHE_FILME,
       );
-      return paraPagina(dados);
+      return paraPagina(filmeTmdb, dados, paraResumo);
     },
 
     async buscarFilmes(texto: string, pagina = 1): Promise<Pagina<FilmeResumo>> {
@@ -175,7 +108,7 @@ export function criarApiFilmes(cliente: ClienteTmdb) {
         { query: consulta, page: limitarPagina(pagina), region: "BR", include_adult: false },
         CACHE_LISTAS,
       );
-      return paraPagina(dados);
+      return paraPagina(filmeTmdb, dados, paraResumo);
     },
   };
 }

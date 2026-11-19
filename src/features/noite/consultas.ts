@@ -12,14 +12,14 @@ import type { ClienteSupabase } from "@/lib/supabase/token";
 import { descobrirFilmes, obterFilme } from "@/lib/tmdb/filmes";
 
 /**
- * IDs que o wizard nunca recomenda: "Já assisti" e filmes com qualquer reação.
- * "Quero assistir" fica de fora de propósito. Lança se o banco falhar, para a tela
- * não arriscar recomendar um filme já visto.
+ * IDs que o wizard nunca recomenda: filmes em "Já assisti" e filmes com qualquer reação.
+ * "Quero assistir" fica de fora de propósito, e séries também (o ID de uma série pode ser o
+ * de outro filme). Lança se o banco falhar, para a tela não arriscar recomendar um filme já visto.
  */
 export async function idsParaExcluir(supabase: ClienteSupabase): Promise<number[]> {
   const [assistidos, reacoes] = await Promise.all([
-    supabase.from("lista_itens").select("tmdb_id").eq("status", "assistido"),
-    supabase.from("reacoes").select("tmdb_id"),
+    supabase.from("lista_itens").select("tmdb_id").eq("tipo", "filme").eq("status", "assistido"),
+    supabase.from("reacoes").select("tmdb_id").eq("tipo", "filme"),
   ]);
   const erro = assistidos.error ?? reacoes.error;
   if (erro) {

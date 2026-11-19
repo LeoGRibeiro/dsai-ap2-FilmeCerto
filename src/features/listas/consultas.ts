@@ -17,15 +17,16 @@ export type ItemLista = {
   reacao: Reacao | null;
 };
 
-/** Itens das duas listas do usuário logado, do mais recente para o mais antigo. */
+/** Filmes nas duas listas do usuário logado, do mais recente para o mais antigo. */
 export const obterItensLista = cache(async (cliente?: ClienteSupabase): Promise<ItemLista[]> => {
   const supabase = cliente ?? (await createClient());
   const [itens, reacoes] = await Promise.all([
     supabase
       .from("lista_itens")
       .select("tmdb_id, status, titulo, poster_path, ano")
+      .eq("tipo", "filme")
       .order("adicionado_em", { ascending: false }),
-    supabase.from("reacoes").select("tmdb_id, reacao"),
+    supabase.from("reacoes").select("tmdb_id, reacao").eq("tipo", "filme"),
   ]);
 
   if (itens.error) {
@@ -47,7 +48,7 @@ export const obterItensLista = cache(async (cliente?: ClienteSupabase): Promise<
 /** IDs dos filmes nas duas listas, para o motor não recomendá-los. */
 export async function idsNasListas(cliente?: ClienteSupabase): Promise<number[]> {
   const supabase = cliente ?? (await createClient());
-  const { data, error } = await supabase.from("lista_itens").select("tmdb_id");
+  const { data, error } = await supabase.from("lista_itens").select("tmdb_id").eq("tipo", "filme");
   if (error) {
     console.error("[listas] falha ao ler IDs:", error.code, error.message);
     return [];
@@ -61,6 +62,7 @@ export async function obterStatusLista(tmdbId: number, cliente?: ClienteSupabase
   const { data } = await supabase
     .from("lista_itens")
     .select("status")
+    .eq("tipo", "filme")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   return data?.status ?? null;

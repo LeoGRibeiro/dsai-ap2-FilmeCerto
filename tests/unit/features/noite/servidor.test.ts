@@ -7,32 +7,29 @@ import { ESTADO_INICIAL } from "@/features/noite/estado";
 import { createClient } from "@/lib/supabase/server";
 import { descobrirFilmes, obterFilme } from "@/lib/tmdb/filmes";
 
+import { bancoEmMemoria } from "../../../support/banco-memoria";
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/tmdb/filmes", () => ({ descobrirFilmes: vi.fn(), obterFilme: vi.fn() }));
 
 type Erro = { code: string; message: string } | null;
 type Linhas = { tmdb_id: number }[];
 
-/** Supabase falso: guarda os filtros de cada tabela e responde com as linhas dadas. */
+/** Supabase falso: responde com as linhas dadas, sem filtrar (os filtros têm teste próprio). */
 function bancoFalso(tabelas: { lista_itens?: Linhas; reacoes?: Linhas; erro?: Erro } = {}) {
-  const filtros: Record<string, [string, unknown][]> = {};
   const insert = vi.fn(async () => ({ error: null }));
   const rpc = vi.fn(async () => ({ error: null }));
   const from = (tabela: "lista_itens" | "reacoes" | "eventos") => {
-    filtros[tabela] = [];
     const resposta = { data: tabelas[tabela as "reacoes"] ?? [], error: tabelas.erro ?? null };
     const consulta = {
       select: () => consulta,
-      eq: (coluna: string, valor: unknown) => {
-        filtros[tabela]!.push([coluna, valor]);
-        return consulta;
-      },
+      eq: () => consulta,
       then: (resolver: (r: typeof resposta) => unknown) => Promise.resolve(resposta).then(resolver),
       insert,
     };
     return consulta;
   };
-  return { cliente: { from, rpc } as never, filtros, insert, rpc };
+  return { cliente: { from, rpc } as never, insert, rpc };
 }
 
 function logado(usuario: { id: string } | null, banco = bancoFalso()) {
@@ -51,11 +48,20 @@ describe("idsParaExcluir", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("junta os filmes em 'Já assisti' e os com reação, sem ler 'Quero assistir'", async () => {
-    const banco = bancoFalso({ lista_itens: [{ tmdb_id: 1 }], reacoes: [{ tmdb_id: 2 }] });
+  it("junta os filmes em 'Já assisti' e os com reação, sem 'Quero assistir' nem séries", async () => {
+    const banco = bancoEmMemoria({
+      lista_itens: [
+        { tipo: "filme", tmdb_id: 1, status: "assistido" },
+        { tipo: "filme", tmdb_id: 2, status: "quero_assistir" },
+        { tipo: "serie", tmdb_id: 3, status: "assistido" },
+      ],
+      reacoes: [
+        { tipo: "filme", tmdb_id: 4 },
+        { tipo: "serie", tmdb_id: 5 },
+      ],
+    });
 
-    expect(await idsParaExcluir(banco.cliente)).toEqual([1, 2]);
-    expect(banco.filtros.lista_itens).toEqual([["status", "assistido"]]);
+    expect(await idsParaExcluir(banco.cliente)).toEqual([1, 4]);
   });
 
   it("lança quando o banco falha, para não recomendar filme já visto", async () => {

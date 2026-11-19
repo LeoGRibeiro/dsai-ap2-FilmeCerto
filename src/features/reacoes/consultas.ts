@@ -7,12 +7,13 @@ import type { ReacaoMotor } from "@/features/recomendacao/tipos";
 import { createClient } from "@/lib/supabase/server";
 import type { ClienteSupabase } from "@/lib/supabase/token";
 
-/** Todas as reações do usuário logado (a RLS limita às dele), no formato do motor. */
+/** Reações do usuário logado a filmes (a RLS limita às dele), no formato do motor. */
 export const obterReacoes = cache(async (cliente?: ClienteSupabase): Promise<ReacaoMotor[]> => {
   const supabase = cliente ?? (await createClient());
   const { data, error } = await supabase
     .from("reacoes")
     .select("tmdb_id, reacao, titulo, generos")
+    .eq("tipo", "filme")
     .order("atualizado_em", { ascending: false });
 
   if (error) {
@@ -33,6 +34,7 @@ export async function obterReacao(tmdbId: number, cliente?: ClienteSupabase): Pr
   const { data } = await supabase
     .from("reacoes")
     .select("reacao")
+    .eq("tipo", "filme")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   return data?.reacao ?? null;
