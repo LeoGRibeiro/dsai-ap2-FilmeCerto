@@ -26,8 +26,16 @@ const G = {
 /** Um "tom" da experiência: os gêneros exigidos juntos e o nome que vai no motivo. */
 export type Tom = { nome: string; generos: number[] };
 
-/** Tons de cada experiência, em ordem ("Não é o clima" passa ao seguinte), e exclusões fixas. */
-export const TONS: Record<Experiencia, { tons: Tom[]; sem?: number[] }> = {
+/** Os tons de uma experiência, em ordem ("Não é o clima" passa ao seguinte), e exclusões fixas. */
+export type TonsDaExperiencia = {
+  tons: Tom[];
+  sem?: number[];
+  /** Gêneros de filme do perfil que, evitados, tiram a experiência inteira (série sem equivalente). */
+  evitadaSe?: number[];
+};
+
+/** Tons de cada experiência para filmes. */
+export const TONS: Record<Experiencia, TonsDaExperiencia> = {
   rir: {
     tons: [
       { nome: "comédia leve", generos: [G.comedia] },
@@ -77,7 +85,7 @@ export const TONS: Record<Experiencia, { tons: Tom[]; sem?: number[] }> = {
 /** Quantos tons cada experiência tem (o `tom` da URL vai de 0 a TOTAL_TONS - 1). */
 export const TOTAL_TONS = 3;
 
-type AjusteHumor = {
+export type AjusteHumor = {
   duracaoMax?: number;
   ordem?: OrdemDescoberta;
   lancadoAte?: string;
@@ -99,10 +107,9 @@ export const AJUSTES_HUMOR: Record<Humor, AjusteHumor> = {
 /** Classificação máxima em "família com crianças" (proposta da issue #2). */
 export const CLASSIFICACAO_FAMILIA: ClassificacaoBR = "12";
 
-export const AJUSTES_COMPANHIA: Record<
-  Companhia,
-  { classificacaoMax?: ClassificacaoBR; ordem?: OrdemDescoberta }
-> = {
+export type AjusteCompanhia = { classificacaoMax?: ClassificacaoBR; ordem?: OrdemDescoberta };
+
+export const AJUSTES_COMPANHIA: Record<Companhia, AjusteCompanhia> = {
   sozinho: {},
   "a-dois": {},
   familia: { classificacaoMax: CLASSIFICACAO_FAMILIA },
@@ -119,3 +126,34 @@ export const DURACAO_TROCA = { reducao: 20, minima: 80, base: 120 } as const;
 
 /** "Até que horas?": com menos minutos que isso, não há filme a sugerir. */
 export const TEMPO_MINIMO = 60;
+
+/**
+ * As tabelas de um tipo de título. Filmes usam as desta página; séries, as de
+ * `mapeamento-serie.ts` (SPEC/2026-11-18-series-noite.md).
+ */
+export type Mapeamento = {
+  tons: Record<Experiencia, TonsDaExperiencia>;
+  humor: Record<Humor, AjusteHumor>;
+  companhia: Record<Companhia, AjusteCompanhia>;
+  /** Gêneros excluídos em toda rodada. */
+  sempreSem: number[];
+  /** `false` quando o TMDB não filtra a classificação e ela é conferida nos detalhes. */
+  classificacaoNoTmdb: boolean;
+  /** "Muito longo": quanto encurtar, o mínimo e a base quando a duração é desconhecida. */
+  duracaoTroca: { reducao: number; minima: number; base: number };
+  /** "Até que horas?": com menos minutos que isso, não há o que sugerir. */
+  tempoMinimo: number;
+  /** Os gêneros evitados do perfil (IDs de filme) nos IDs de gênero deste tipo. */
+  evitados: (generosDeFilme: readonly number[]) => number[];
+};
+
+export const MAPEAMENTO_FILME: Mapeamento = {
+  tons: TONS,
+  humor: AJUSTES_HUMOR,
+  companhia: AJUSTES_COMPANHIA,
+  sempreSem: [],
+  classificacaoNoTmdb: true,
+  duracaoTroca: DURACAO_TROCA,
+  tempoMinimo: TEMPO_MINIMO,
+  evitados: (generos) => [...generos],
+};
