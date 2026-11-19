@@ -61,8 +61,26 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
       trailerYoutube: "trailer-serie-falso",
       classificacao: "12",
       ondeAssistir: { assinatura: [{ nome: "Netflix" }] },
+      situacao: "Returning Series",
+      proximoEpisodio: "2099-12-12",
     });
     expect(await series.obterSerie(999000001)).toBeNull();
+  });
+
+  it("obterTemporada traz 8 episódios na 1, um sem duração e um não exibido; a 99 é 404", async () => {
+    const temporada = await series.obterTemporada(1399, 1);
+    expect(temporada).toMatchObject({ numero: 1, nome: "Temporada 1", ano: 2019 });
+    expect(temporada?.episodios).toHaveLength(8);
+    expect(temporada?.episodios[2]).toMatchObject({ numero: 3, duracaoMin: null });
+    expect(temporada?.episodios[7]).toMatchObject({
+      numero: 8,
+      duracaoMin: null,
+      data: "2099-12-12",
+      nota: null,
+    });
+    expect((await series.obterTemporada(1399, 2))?.episodios).toHaveLength(8);
+    expect(await series.obterTemporada(1399, 99)).toBeNull();
+    expect(await series.obterTemporada(999000001, 1)).toBeNull();
   });
 
   it("generosSeries traz os gêneros de TV", async () => {

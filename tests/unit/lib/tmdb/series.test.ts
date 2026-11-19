@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 import { TmdbErro } from "@/lib/tmdb/cliente";
 import { criarApiSeries } from "@/lib/tmdb/series";
 
-import { chamada, detalhesSerieTmdb, montarApi, paginaTmdb, serieTmdb } from "./fixtures";
+import {
+  chamada,
+  detalhesSerieTmdb,
+  montarApi,
+  paginaTmdb,
+  serieTmdb,
+  temporadaTmdb,
+} from "./fixtures";
 
 const montar = (corpo: unknown, status?: number) => montarApi(criarApiSeries, corpo, status);
 
@@ -119,6 +126,8 @@ describe("obterSerie", () => {
       trailerYoutube: "oficial",
       criacao: ["David Benioff", "D. B. Weiss"],
       classificacao: "16",
+      situacao: "Returning Series",
+      proximoEpisodio: "2026-12-12",
       ondeAssistir: {
         assinatura: [{ id: 8, nome: "Netflix", logoPath: "/netflix.jpg" }],
         aluguel: [{ id: 2, nome: "Apple TV", logoPath: null }],
@@ -157,6 +166,8 @@ describe("obterSerie", () => {
       "created_by",
       "content_ratings",
       "videos",
+      "status",
+      "next_episode_to_air",
     ]) {
       delete corpo[campo];
     }
@@ -168,6 +179,8 @@ describe("obterSerie", () => {
       criacao: [],
       classificacao: null,
       trailerYoutube: null,
+      situacao: null,
+      proximoEpisodio: null,
     });
   });
 
@@ -181,6 +194,62 @@ describe("obterSerie", () => {
     await expect(api.obterSerie(1399)).rejects.toThrow(
       new TmdbErro("Resposta inesperada do TMDB", null),
     );
+  });
+});
+
+describe("obterTemporada", () => {
+  it("chama /tv/{id}/season/{n} com 24 h de cache e converte os episódios", async () => {
+    const { api, fetchFalso } = montar(temporadaTmdb());
+
+    expect(await api.obterTemporada(1399, 1)).toEqual({
+      numero: 1,
+      nome: "Temporada 1",
+      sinopse: "O inverno está chegando.",
+      ano: 2011,
+      posterPath: "/t1.jpg",
+      episodios: [
+        {
+          numero: 1,
+          nome: "O Inverno Está Chegando",
+          sinopse: "Ned Stark recebe uma visita.",
+          duracaoMin: 62,
+          data: "2011-04-17",
+          stillPath: "/e1.jpg",
+          nota: 8.1,
+        },
+        // Duração 0 e nota sem votos viram null.
+        {
+          numero: 2,
+          nome: "A Estrada do Rei",
+          sinopse: "",
+          duracaoMin: null,
+          data: "2099-04-24",
+          stillPath: null,
+          nota: null,
+        },
+      ],
+    });
+    const { url, revalidate } = chamada(fetchFalso);
+    expect(url.pathname).toBe("/3/tv/1399/season/1");
+    expect(url.searchParams.get("language")).toBe("pt-BR");
+    expect(revalidate).toBe(24 * 3600);
+  });
+
+  it("aceita a temporada sem episódios, datas nem pôster", async () => {
+    const { api } = montar(
+      temporadaTmdb({ episodes: undefined, air_date: null, poster_path: null, overview: null }),
+    );
+    expect(await api.obterTemporada(1399, 1)).toMatchObject({
+      sinopse: "",
+      ano: null,
+      posterPath: null,
+      episodios: [],
+    });
+  });
+
+  it("devolve null para 404", async () => {
+    const { api } = montar({ status_code: 34 }, 404);
+    expect(await api.obterTemporada(1399, 99)).toBeNull();
   });
 });
 

@@ -17,8 +17,10 @@ import {
   detalhesSerieTmdb,
   generosTmdb,
   serieTmdb,
+  temporadaTmdb,
   type DetalhesSerieTmdb,
   type SerieTmdb,
+  type TemporadaTmdb,
 } from "@/lib/tmdb/esquemas";
 import type {
   ClassificacaoBR,
@@ -27,6 +29,7 @@ import type {
   Pagina,
   SerieDetalhes,
   SerieResumo,
+  TemporadaDetalhes,
 } from "@/lib/tmdb/tipos";
 
 const HORA = 3600;
@@ -93,6 +96,27 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     criacao: serie.created_by.map((pessoa) => pessoa.name),
     classificacao: classificacaoDe(serie),
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
+    situacao: serie.status,
+    proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,
+  };
+}
+
+function paraTemporada(temporada: TemporadaTmdb): TemporadaDetalhes {
+  return {
+    numero: temporada.season_number,
+    nome: temporada.name,
+    sinopse: temporada.overview,
+    ano: anoDe(temporada.air_date),
+    posterPath: temporada.poster_path,
+    episodios: temporada.episodes.map((episodio) => ({
+      numero: episodio.episode_number,
+      nome: episodio.name,
+      sinopse: episodio.overview,
+      duracaoMin: episodio.runtime || null,
+      data: episodio.air_date,
+      stillPath: episodio.still_path,
+      nota: episodio.vote_count > 0 ? episodio.vote_average : null,
+    })),
   };
 }
 
@@ -117,6 +141,14 @@ export function criarApiSeries(cliente: ClienteTmdb) {
           CACHE_SERIE,
         );
         return paraDetalhes(validar(detalhesSerieTmdb, dados));
+      });
+    },
+
+    /** Temporada `numero` com os episódios; `null` se a série ou a temporada não existem. */
+    obterTemporada(serieId: number, numero: number): Promise<TemporadaDetalhes | null> {
+      return nuloSe404(async () => {
+        const dados = await cliente.requisitar(`/tv/${serieId}/season/${numero}`, {}, CACHE_SERIE);
+        return paraTemporada(validar(temporadaTmdb, dados));
       });
     },
 
@@ -148,5 +180,7 @@ const api = () => (padrao ??= criarApiSeries(clienteTmdbPadrao()));
 export const descobrirSeries: ApiSeries["descobrirSeries"] = (...args) =>
   api().descobrirSeries(...args);
 export const obterSerie: ApiSeries["obterSerie"] = (...args) => api().obterSerie(...args);
+export const obterTemporada: ApiSeries["obterTemporada"] = (...args) =>
+  api().obterTemporada(...args);
 export const generosSeries: ApiSeries["generosSeries"] = () => api().generosSeries();
 export const buscarSeries: ApiSeries["buscarSeries"] = (...args) => api().buscarSeries(...args);

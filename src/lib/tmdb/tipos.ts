@@ -101,6 +101,37 @@ export type SerieDetalhes = Omit<SerieResumo, "generos"> & {
   /** Classificação indicativa no Brasil. */
   classificacao: ClassificacaoBR | null;
   ondeAssistir: OndeAssistir | null;
+  /**
+   * `status` do TMDB, sem tradução ("Returning Series", "Ended"...). Opcional, como
+   * `proximoEpisodio`, para quem monta detalhes à mão (o wizard) não precisar dele.
+   */
+  situacao?: string | null;
+  /** Data de exibição do próximo episódio, `AAAA-MM-DD`. */
+  proximoEpisodio?: string | null;
+};
+
+export type Episodio = {
+  numero: number;
+  nome: string;
+  sinopse: string;
+  /** Duração em minutos; `null` quando o TMDB não sabe (ou manda 0). */
+  duracaoMin: number | null;
+  /** Data de exibição, `AAAA-MM-DD`. */
+  data: string | null;
+  stillPath: string | null;
+  /** Nota média; `null` sem votos. */
+  nota: number | null;
+};
+
+/** Uma temporada com os episódios, para a página `/serie/{id}/temporada/{n}`. */
+export type TemporadaDetalhes = {
+  numero: number;
+  nome: string;
+  sinopse: string;
+  /** Ano de estreia da temporada. */
+  ano: number | null;
+  posterPath: string | null;
+  episodios: Episodio[];
 };
 
 /**

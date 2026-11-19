@@ -121,6 +121,8 @@ export function detalhesSerieTmdb(sobrescrever: Record<string, unknown> = {}) {
     ],
     episode_run_time: [50, 61],
     last_episode_to_air: { runtime: 80 },
+    status: "Returning Series",
+    next_episode_to_air: { air_date: "2026-12-12", runtime: null },
     seasons: [
       {
         season_number: 2,
@@ -149,6 +151,41 @@ export function detalhesSerieTmdb(sobrescrever: Record<string, unknown> = {}) {
         { iso_3166_1: "BR", rating: "16" },
       ],
     },
+    ...sobrescrever,
+  };
+}
+
+/** Temporada com episódios (`/tv/{id}/season/{n}`): um sem duração e um ainda sem votos. */
+export function temporadaTmdb(sobrescrever: Record<string, unknown> = {}) {
+  return {
+    _id: "abc",
+    season_number: 1,
+    name: "Temporada 1",
+    overview: "O inverno está chegando.",
+    air_date: "2011-04-17",
+    poster_path: "/t1.jpg",
+    episodes: [
+      {
+        episode_number: 1,
+        name: "O Inverno Está Chegando",
+        overview: "Ned Stark recebe uma visita.",
+        runtime: 62,
+        air_date: "2011-04-17",
+        still_path: "/e1.jpg",
+        vote_average: 8.1,
+        vote_count: 300,
+      },
+      {
+        episode_number: 2,
+        name: "A Estrada do Rei",
+        overview: "",
+        runtime: 0,
+        air_date: "2099-04-24",
+        still_path: null,
+        vote_average: 0,
+        vote_count: 0,
+      },
+    ],
     ...sobrescrever,
   };
 }
