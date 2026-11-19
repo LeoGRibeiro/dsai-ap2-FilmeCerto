@@ -45,6 +45,10 @@ export function motivoDaNoite(
   const humor = TRECHOS.humor[respostas.humor];
   const experiencia = TRECHOS.experiencia[respostas.experiencia];
   const companhia = TRECHOS.companhia[respostas.companhia];
-  const filmeDaNoite = `${tom.nome}, nota ${nota.format(filme.nota)}, ${ondeVer(provedor)}`;
-  return `${humor}, ${experiencia} e ${companhia}: ${filmeDaNoite}.`;
+  return `${humor}, ${experiencia} e ${companhia}: ${trechoDoFilme(tom, filme, provedor)}`;
+}
+
+/** O fim do motivo, igual no wizard e na "Noite a dois": "comédia leve, nota 7,8, está na Netflix." */
+export function trechoDoFilme(tom: Tom, filme: { nota: number }, provedor: Provedor | null) {
+  return `${tom.nome}, nota ${nota.format(filme.nota)}, ${ondeVer(provedor)}.`;
 }
