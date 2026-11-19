@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import type { Reacao } from "@/features/reacoes/opcoes";
 import type { ReacaoMotor } from "@/features/recomendacao/tipos";
+import { lerMidia, type Midia } from "@/lib/midia";
 import { createClient } from "@/lib/supabase/server";
 import type { ClienteSupabase } from "@/lib/supabase/token";
 
@@ -28,13 +29,17 @@ export const obterReacoes = cache(async (cliente?: ClienteSupabase): Promise<Rea
   }));
 });
 
-/** Reação do usuário logado a um filme, ou `null`. */
-export async function obterReacao(tmdbId: number, cliente?: ClienteSupabase): Promise<Reacao | null> {
+/** Reação do usuário logado a um filme (o ID sozinho) ou a uma série, ou `null`. */
+export async function obterReacao(
+  alvo: number | Midia,
+  cliente?: ClienteSupabase,
+): Promise<Reacao | null> {
+  const { tipo, tmdbId } = lerMidia(alvo);
   const supabase = cliente ?? (await createClient());
   const { data } = await supabase
     .from("reacoes")
     .select("reacao")
-    .eq("tipo", "filme")
+    .eq("tipo", tipo)
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
   return data?.reacao ?? null;

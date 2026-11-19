@@ -4,7 +4,7 @@ type Escrita = { tabela: string; op: "upsert" | "delete"; valor?: unknown; filtr
 type Erro = { code: string; message: string } | null;
 
 /**
- * Supabase em memória para testar leituras sem banco: aplica os `.eq()` sobre as linhas dadas,
+ * Supabase em memória para testar leituras sem banco: aplica os `.eq()` e `.in()` sobre as linhas dadas,
  * como o PostgREST, e `maybeSingle()` com mais de uma linha devolve erro, como o real.
  * `select` e `order` não mudam nada (as linhas já vêm na ordem do teste). Guarda as escritas;
  * o `delete` também tira as linhas que casam com os filtros.
@@ -14,8 +14,11 @@ export function bancoEmMemoria(tabelas: Record<string, Linha[]>) {
 
   const from = (tabela: string) => {
     const filtros: Filtro[] = [];
+    const inclusoes: [coluna: string, valores: readonly unknown[]][] = [];
     let escrita: Escrita | null = null;
-    const casa = (linha: Linha) => filtros.every(([coluna, valor]) => linha[coluna] === valor);
+    const casa = (linha: Linha) =>
+      filtros.every(([coluna, valor]) => linha[coluna] === valor) &&
+      inclusoes.every(([coluna, valores]) => valores.includes(linha[coluna]));
     const linhas = () => tabelas[tabela] ?? [];
 
     const executar = (): { data: Linha[] | null; error: Erro } => {
@@ -30,6 +33,10 @@ export function bancoEmMemoria(tabelas: Record<string, Linha[]>) {
       order: () => consulta,
       eq: (coluna: string, valor: unknown) => {
         filtros.push([coluna, valor]);
+        return consulta;
+      },
+      in: (coluna: string, valores: readonly unknown[]) => {
+        inclusoes.push([coluna, valores]);
         return consulta;
       },
       delete: () => {

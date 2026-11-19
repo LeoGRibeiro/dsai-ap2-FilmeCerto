@@ -12,6 +12,7 @@ vi.mock("@/features/listas/actions", () => ({ alternarLista: vi.fn(async () => (
 
 function item(tmdbId: number, sobrescrever: Partial<ItemLista> = {}): ItemLista {
   return {
+    tipo: "filme",
     tmdbId,
     status: "assistido",
     titulo: `Filme ${tmdbId}`,
@@ -27,7 +28,13 @@ describe("listaSchema", () => {
     expect(listaSchema.safeParse({ tmdbId: 550, status }).success).toBe(true);
   });
 
+  it("sem tipo é filme, e aceita série", () => {
+    expect(listaSchema.parse({ tmdbId: 550, status: "assistido" }).tipo).toBe("filme");
+    expect(listaSchema.parse({ tipo: "serie", tmdbId: 1, status: "assistido" }).tipo).toBe("serie");
+  });
+
   it.each([
+    { tipo: "anime", tmdbId: 550, status: "assistido" },
     { tmdbId: 550, status: "favorito" },
     { tmdbId: 0, status: "assistido" },
     { tmdbId: 2.5, status: "assistido" },
@@ -46,7 +53,21 @@ describe("lerAba", () => {
   });
 });
 
+/** Valores do campo `tipo` dos formulários dos botões. */
+function tiposEnviados(container: HTMLElement) {
+  return [...container.querySelectorAll<HTMLInputElement>('input[name="tipo"]')].map((i) => i.value);
+}
+
 describe("BotoesLista", () => {
+  it("envia o tipo recebido e filme sem ele", () => {
+    const serie = render(<BotoesLista tmdbId={1399} atual={null} tipo="serie" />);
+    expect(tiposEnviados(serie.container)).toEqual(["serie", "serie"]);
+    serie.unmount();
+
+    const filme = render(<BotoesLista tmdbId={550} atual={null} />);
+    expect(tiposEnviados(filme.container)).toEqual(["filme", "filme"]);
+  });
+
   it("mostra os 2 botões e marca só o status atual", () => {
     render(<BotoesLista tmdbId={550} atual="quero_assistir" />);
     expect(screen.getByRole("group", { name: "Minhas listas" })).toBeInTheDocument();
@@ -79,6 +100,21 @@ describe("GradeFilmes", () => {
     render(<GradeFilmes aba="assistidos" itens={[item(1, { reacao: "amei" }), item(2)]} />);
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText("Amei")).toBeInTheDocument();
+  });
+
+  it("filme e série de mesmo ID levam cada um à sua página, e a série diz 'Série'", () => {
+    render(
+      <GradeFilmes
+        aba="quero"
+        itens={[item(1399, { tipo: "serie", titulo: "Série 1399" }), item(1399)]}
+      />,
+    );
+    const serie = screen.getByRole("link", { name: "Série 1399 (2020), série" });
+    expect(serie).toHaveAttribute("href", "/serie/1399");
+    expect(serie).toHaveTextContent("Série · 2020");
+    const filme = screen.getByRole("link", { name: "Filme 1399 (2020)" });
+    expect(filme).toHaveAttribute("href", "/filme/1399");
+    expect(filme).not.toHaveTextContent("Série");
   });
 
   it("mostra a mensagem de vazio", () => {

@@ -35,9 +35,10 @@ export function GradeFilmes({ aba, itens }: { aba: Aba; itens: ItemLista[] }) {
       {itens.map((item) => {
         const Icone = item.reacao ? ICONES_REACAO[item.reacao] : null;
         return (
-          <li key={item.tmdbId} className="flex flex-col gap-2">
+          <li key={`${item.tipo}-${item.tmdbId}`} className="flex flex-col gap-2">
             <CartaoFilme
               filme={{
+                tipo: item.tipo,
                 id: item.tmdbId,
                 titulo: item.titulo,
                 posterPath: item.posterPath,

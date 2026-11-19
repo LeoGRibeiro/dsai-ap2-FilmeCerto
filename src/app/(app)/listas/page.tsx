@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Minhas listas" };
 
 export default async function ListasPage({ searchParams }: PageProps<"/listas">) {
   const aba = lerAba((await searchParams).aba);
-  const itens = await obterItensLista();
+  const itens = await obterItensLista(undefined, ["filme", "serie"]);
   const daAba = itens.filter((item) => item.status === STATUS_DA_ABA[aba]);
 
   return (

@@ -11,7 +11,13 @@ describe("reacaoSchema", () => {
     expect(reacaoSchema.safeParse({ tmdbId: 550, reacao }).success).toBe(true);
   });
 
+  it("sem tipo é filme, e aceita série", () => {
+    expect(reacaoSchema.parse({ tmdbId: 550, reacao: "amei" }).tipo).toBe("filme");
+    expect(reacaoSchema.parse({ tipo: "serie", tmdbId: 1, reacao: "amei" }).tipo).toBe("serie");
+  });
+
   it.each([
+    { tipo: "anime", tmdbId: 550, reacao: "amei" },
     { tmdbId: 550, reacao: "odiei" },
     { tmdbId: 0, reacao: "amei" },
     { tmdbId: -3, reacao: "amei" },
@@ -22,6 +28,17 @@ describe("reacaoSchema", () => {
 });
 
 describe("BotoesReacao", () => {
+  it("envia o tipo recebido em cada botão, e filme sem ele", () => {
+    const tipos = (container: HTMLElement) =>
+      [...container.querySelectorAll<HTMLInputElement>('input[name="tipo"]')].map((i) => i.value);
+    const serie = render(<BotoesReacao tmdbId={1399} atual={null} tipo="serie" />);
+    expect(tipos(serie.container)).toEqual(["serie", "serie", "serie"]);
+    serie.unmount();
+
+    const filme = render(<BotoesReacao tmdbId={550} atual={null} />);
+    expect(tipos(filme.container)).toEqual(["filme", "filme", "filme"]);
+  });
+
   it("mostra os 3 rótulos e nenhum marcado sem reação", () => {
     render(<BotoesReacao tmdbId={550} atual={null} />);
     const grupo = screen.getByRole("group", { name: "O que achou?" });
