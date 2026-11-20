@@ -52,6 +52,30 @@ describe("EsseNao", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it("direciona o foco ao primeiro motivo usando somente o teclado", async () => {
+    abrir();
+
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "Esse não" })).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByRole("button", { name: "Já vi" })).toHaveFocus();
+  });
+
+  it("direciona o foco ao título ao abrir a confirmação de 'Já vi'", async () => {
+    abrir();
+
+    await userEvent.click(screen.getByRole("button", { name: "Esse não" }));
+    await userEvent.click(screen.getByRole("button", { name: "Já vi" }));
+
+    expect(
+      screen.getByRole("heading", {
+        name: /Quer marcar Clube da Luta como “Já assisti”/,
+      }),
+    ).toHaveFocus();
+  });
+
   it.each([
     ["Não é o clima", "nao-e-o-clima", "/noite?r=clima"],
     ["Muito longo", "muito-longo", "/noite?r=longo"],

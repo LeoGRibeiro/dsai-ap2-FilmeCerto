@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { alternarLista } from "@/features/listas/actions";
@@ -29,6 +29,13 @@ export function EsseNao({ proximas, trocasRestantes, destaque }: Props) {
   const [etapa, setEtapa] = useState<"botao" | "motivos" | "ja-vi">("botao");
   const [erro, setErro] = useState<string>();
   const [trocando, iniciar] = useTransition();
+  const primeiroMotivoRef = useRef<HTMLButtonElement>(null);
+  const tituloJaViRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (etapa === "motivos") primeiroMotivoRef.current?.focus();
+    if (etapa === "ja-vi") tituloJaViRef.current?.focus();
+  }, [etapa]);
 
   if (!proximas) {
     return (
@@ -82,6 +89,7 @@ export function EsseNao({ proximas, trocasRestantes, destaque }: Props) {
           {MOTIVOS_TROCA.map((motivo) => (
             <Button
               key={motivo}
+              ref={motivo === "ja-vi" ? primeiroMotivoRef : undefined}
               variant="outline"
               className="h-12 text-base"
               disabled={trocando}
@@ -93,26 +101,26 @@ export function EsseNao({ proximas, trocasRestantes, destaque }: Props) {
         </div>
       )}
       {etapa === "ja-vi" && (
-        <div className="flex flex-col gap-3">
-          <p>
-            Quer marcar <strong>{destaque.titulo}</strong> como “Já assisti”? Assim ele sai também
-            das suas recomendações.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button className="h-12 text-base" disabled={trocando} onClick={marcarETrocar}>
-              Marcar e trocar
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12 text-base"
-              disabled={trocando}
-              onClick={() => trocar(proximas["ja-vi"])}
-            >
-              Só trocar
-            </Button>
-          </div>
-        </div>
-      )}
+  <div className="flex flex-col gap-3">
+    <h2 ref={tituloJaViRef} tabIndex={-1} className="text-base font-semibold">
+      Quer marcar <strong>{destaque.titulo}</strong> como “Já assisti”? Assim ele sai também
+      das suas recomendações.
+    </h2>
+    <div className="flex flex-wrap gap-2">
+      <Button className="h-12 text-base" disabled={trocando} onClick={marcarETrocar}>
+        Marcar e trocar
+      </Button>
+      <Button
+        variant="outline"
+        className="h-12 text-base"
+        disabled={trocando}
+        onClick={() => trocar(proximas["ja-vi"])}
+      >
+        Só trocar
+      </Button>
+    </div>
+  </div>
+)}
       {erro && (
         <p role="alert" className="text-destructive text-sm">
           {erro}
