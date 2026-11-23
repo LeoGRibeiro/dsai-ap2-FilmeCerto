@@ -1,5 +1,6 @@
 import "server-only";
 
+import { CLASSIFICACOES_BR } from "@/lib/tmdb/classificacao";
 import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
 import {
   anoDe,
@@ -43,9 +44,6 @@ const ORDENS: Record<OrdemDescoberta, string> = {
   nota: "vote_average.desc",
   lancamento: "first_air_date.desc",
 };
-
-/** Classificações do Brasil, da mais leve à mais restrita. */
-export const CLASSIFICACOES_BR: readonly ClassificacaoBR[] = ["L", "10", "12", "14", "16", "18"];
 
 function paraResumo(serie: SerieTmdb): SerieResumo {
   return {

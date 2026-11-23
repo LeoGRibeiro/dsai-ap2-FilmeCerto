@@ -32,7 +32,11 @@ describe("RLS dos filtros de conteúdo", () => {
       .select("classificacao_max, modo");
     expect(mudado.data).toEqual([{ classificacao_max: "12", modo: "bloquear" }]);
 
-    const apagado = await a.cliente.from("filtros_conteudo").delete().eq("usuario_id", a.id).select();
+    const apagado = await a.cliente
+      .from("filtros_conteudo")
+      .delete()
+      .eq("usuario_id", a.id)
+      .select();
     expect(apagado.data).toHaveLength(1);
     expect((await a.cliente.from("filtros_conteudo").select("modo")).data).toEqual([]);
 
@@ -49,7 +53,11 @@ describe("RLS dos filtros de conteúdo", () => {
       .select();
     expect(mudanca.data).toEqual([]);
 
-    const apagado = await b.cliente.from("filtros_conteudo").delete().eq("usuario_id", a.id).select();
+    const apagado = await b.cliente
+      .from("filtros_conteudo")
+      .delete()
+      .eq("usuario_id", a.id)
+      .select();
     expect(apagado.data).toEqual([]);
 
     const deA = await a.cliente.from("filtros_conteudo").select("classificacao_max, modo");

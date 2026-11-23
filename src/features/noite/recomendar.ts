@@ -5,7 +5,8 @@ import { filtrosJuntos, motivoJuntos } from "@/features/noite/juntos";
 import { motivoDaNoite, provedorDaNoite } from "@/features/noite/motivo";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
 import type { ApiFilmes } from "@/lib/tmdb/filmes";
-import { CLASSIFICACOES_BR, type ApiSeries } from "@/lib/tmdb/series";
+import { ateAClassificacao } from "@/lib/tmdb/classificacao";
+import type { ApiSeries } from "@/lib/tmdb/series";
 import type {
   ClassificacaoBR,
   FilmeDetalhes,
@@ -80,16 +81,6 @@ function fonteDeFilmes(api: ApiNoite): Fonte {
     descobrir: (filtros) => api.descobrirFilmes(filtros),
     detalhar: (id) => api.obterFilme(id),
   };
-}
-
-/** Classificação conhecida e até `maxima`; sem classificação BR, não passa. */
-function ateAClassificacao(
-  classificacao: ClassificacaoBR | null | undefined,
-  maxima: ClassificacaoBR,
-) {
-  return (
-    !!classificacao && CLASSIFICACOES_BR.indexOf(classificacao) <= CLASSIFICACOES_BR.indexOf(maxima)
-  );
 }
 
 /** O TMDB falhou e a rodada ficou sem filmes: refazer as perguntas não resolveria. */
