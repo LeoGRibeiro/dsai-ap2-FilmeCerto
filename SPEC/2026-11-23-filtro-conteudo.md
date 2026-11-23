@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-23
 - **Componente:** filtro-conteudo (perfil, recomendações, busca, listas e páginas de filme e série)
-- **Status:** aprovada para implementação
+- **Status:** substituída por [2026-11-23-filtro-idade.md](2026-11-23-filtro-idade.md)
 - **Substitui:** nenhuma
 - **Pedido:** novo pedido do cliente, feito depois das seções 3.1 a 3.6 do [pedido original](../docs/ap2/pedido-do-cliente.md), que já foram entregues
 - **Issue:** #38
