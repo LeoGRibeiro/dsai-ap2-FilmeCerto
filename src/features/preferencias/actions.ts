@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { gravarOnboarding } from "@/features/preferencias/gravar";
@@ -41,5 +42,8 @@ export async function salvarPreferencias(
     return { mensagem: ERRO_GENERICO };
   }
 
+  // O layout de (app) pode estar no cache do cliente, pré-carregado quando ainda mandava para
+  // o onboarding: sem limpar, /dashboard e /onboarding se redirecionam em loop.
+  revalidatePath("/", "layout");
   redirect("/dashboard");
 }

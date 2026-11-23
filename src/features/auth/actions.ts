@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { z } from "zod";
 
@@ -12,6 +13,15 @@ import { createClient } from "@/lib/supabase/server";
 function texto(formData: FormData, campo: string): string {
   const valor = formData.get(campo);
   return typeof valor === "string" ? valor : "";
+}
+
+/**
+ * A sessão mudou: limpa o cache do roteador antes de redirecionar, para nenhum layout
+ * pré-carregado com a sessão anterior ser reaproveitado (SPEC/2026-11-23-navegacao-rapida.md).
+ */
+function redirecionarComSessaoNova(destino: string): never {
+  revalidatePath("/", "layout");
+  redirect(destino);
 }
 
 function primeiroErroPorCampo<Campo extends string>(erro: z.ZodError) {
@@ -45,7 +55,7 @@ export async function entrar(
     return { mensagem: traduzirErroAuth(error.code), valores };
   }
 
-  redirect(sanitizarNext(texto(formData, "next")));
+  redirecionarComSessaoNova(sanitizarNext(texto(formData, "next")));
 }
 
 export async function cadastrar(
@@ -73,11 +83,11 @@ export async function cadastrar(
     return { mensagem: traduzirErroAuth(error.code), valores };
   }
 
-  redirect("/onboarding");
+  redirecionarComSessaoNova("/onboarding");
 }
 
 export async function sair(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/");
+  redirecionarComSessaoNova("/");
 }
