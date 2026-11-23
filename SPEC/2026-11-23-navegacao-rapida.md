@@ -46,7 +46,7 @@ A Vercel roda em `iad1` e o Supabase em `us-east-1`, então a distância entre o
 
 | Tema | Decisão |
 | --- | --- |
-| Onde fica o `loading.tsx` | Um genérico em `src/app/(app)/loading.tsx` (cobre busca, listas, perfil, métricas e temporada) e específicos onde a tela tem forma própria: `dashboard/`, `noite/`, `filme/[id]/` e `serie/[id]/` |
+| Onde fica o `loading.tsx` | Um genérico em `src/app/(app)/loading.tsx` (cobre busca, listas, perfil e métricas) e específicos onde a tela tem forma própria: `dashboard/`, `noite/` (cobre também a sala da "Noite a dois"), `filme/[id]/` e `serie/[id]/` (cobre também a temporada, que usa o mesmo cabeçalho) |
 | Esqueletos | Peças comuns em `src/components/layout/esqueleto.tsx` (`Bloco` e `EsqueletoPagina`), reaproveitadas por todos os `loading.tsx`. O dashboard reaproveita `EsqueletoSecoes` |
 | Acessibilidade do esqueleto | `role="status"`, `aria-busy="true"` e um texto só para leitor de tela ("Carregando…"), como o `EsqueletoNoite` |
 | Sessão no proxy | `updateSession` chama `getClaims()`; o usuário é `{ id: claims.sub, email: claims.email }`. O `getClaims()` continua renovando a sessão quando o token está para vencer, então os cookies seguem sendo atualizados pelo proxy |
