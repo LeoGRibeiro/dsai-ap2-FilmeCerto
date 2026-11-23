@@ -13,7 +13,7 @@ Fazer cada clique na área logada trocar a tela na hora e encurtar o tempo que o
 1. **Esqueleto imediato.** Toda rota de `(app)` passa a ter um `loading.tsx`, com um esqueleto no formato da tela de destino. O clique troca a URL e mostra o esqueleto sem esperar o servidor; o conteúdo entra quando chega.
 2. **Sessão sem ida ao Auth.** O proxy e `obterUsuarioAtual` validam o JWT com `supabase.auth.getClaims()` em vez de `getUser()`.
 3. **Layout em paralelo.** O layout de `(app)` lê usuário e preferências ao mesmo tempo, em vez de um depois do outro.
-4. **Busca sem recarregar.** A busca do header usa `<Form>` de `next/form`: buscar é uma navegação do cliente, não um recarregamento do documento.
+4. **Busca sem recarregar.** A busca do header e as de `/busca` usam `<Form>` de `next/form`: buscar é uma navegação do cliente, não um recarregamento do documento.
 
 ## Por quê
 
@@ -55,7 +55,8 @@ A Vercel roda em `iad1` e o Supabase em `us-east-1`, então a distância entre o
 | Sessão revogada | Com `getClaims()`, uma sessão encerrada em outro aparelho só deixa de valer para as páginas quando o access token vence (1 h, padrão do Supabase). A RLS do banco continua exigindo um JWT válido em toda consulta, e as actions recusam na hora |
 | Projeto com segredo simétrico | Se o projeto voltar para HS256, o `getClaims()` faz a ida ao Auth sozinho (igual ao `getUser()`): fica mais lento, não inseguro |
 | Layout de `(app)` | `Promise.all([exigirUsuario(), obterPreferencias()])`: a consulta de preferências não depende do id (a RLS filtra pelo JWT) |
-| Busca do header | `<Form action="/busca">` de `next/form`, com o mesmo campo `q`. Sem JavaScript, continua sendo um formulário GET comum |
+| Busca do header e da página | `<Form action="/busca">` de `next/form` no header e nos dois formulários de `/busca` (por nome e por filtros), com os mesmos campos. Sem JavaScript, continua sendo um formulário GET comum |
+| Campos depois da navegação | Com a navegação pelo cliente, a página de busca não remonta e o `defaultValue` manteria a busca anterior. Cada formulário de `/busca` recebe uma `key` com o texto ou os filtros atuais, para remontar quando a URL muda |
 | Pré-carregamento | Sem mudar o `prefetch` dos links: o padrão do Next, com `loading.tsx`, pré-carrega só até o esqueleto, sem rodar o TMDB das páginas |
 
 ## Banco de dados
@@ -70,7 +71,8 @@ Nenhuma mudança.
 4. `obterUsuarioAtual` devolve `id`, `email` e `nome` a partir das claims e de `perfis`, sem chamar `getUser()`; sem claims, devolve `null`. *Teste:* `tests/unit/features/auth/sessao.test.ts`.
 5. O layout de `(app)` começa a ler as preferências antes de o usuário terminar de carregar e manda para `/onboarding` quem não tem preferências. *Teste:* `tests/unit/app/layout-app.test.tsx`.
 6. Buscar pelo header leva a `/busca?q=...` sem recarregar o documento. *Teste:* `tests/e2e/busca.spec.ts` marca o `window` antes da busca e confere que a marca continua lá depois.
-7. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
+7. Buscar de novo já estando em `/busca` mostra nos campos da página a busca nova, não a anterior. *Teste:* `tests/unit/features/busca/formularios-busca.test.tsx` e `tests/e2e/busca.spec.ts`.
+8. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
 
 ## Fora do escopo
 
