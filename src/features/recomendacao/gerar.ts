@@ -1,5 +1,6 @@
 import "server-only";
 
+import { descobrirComFiltro, semBloqueados } from "@/features/filtro-conteudo/aplicar";
 import { GENEROS } from "@/features/preferencias/generos";
 import { motivoParecido, motivoPorGeneros, tituloParecidos } from "@/features/recomendacao/motivo";
 import { agregarParecidos } from "@/features/recomendacao/parecidos";
@@ -7,25 +8,46 @@ import { planejar, type Consulta } from "@/features/recomendacao/planejar";
 import { bonusPorGenero, pontuar } from "@/features/recomendacao/ranquear";
 import { criarGerador } from "@/features/recomendacao/semente";
 import type { EntradaMotor, Recomendacao, Secao } from "@/features/recomendacao/tipos";
-import { descobrirFilmes, recomendacoesDe, type ApiFilmes } from "@/lib/tmdb/filmes";
+import {
+  classificacaoFilme,
+  descobrirFilmes,
+  recomendacoesDe,
+  type ApiFilmes,
+} from "@/lib/tmdb/filmes";
 import type { FilmeResumo } from "@/lib/tmdb/tipos";
 
-export type ApiMotor = Pick<ApiFilmes, "descobrirFilmes" | "recomendacoesDe">;
+export type ApiMotor = Pick<
+  ApiFilmes,
+  "descobrirFilmes" | "recomendacoesDe" | "classificacaoFilme"
+>;
 
-const API_PADRAO: ApiMotor = { descobrirFilmes, recomendacoesDe };
+const API_PADRAO: ApiMotor = { descobrirFilmes, recomendacoesDe, classificacaoFilme };
 const MAX_POR_SECAO = 20;
 const TITULO_STREAMINGS = "Nos seus streamings";
 const MOTIVO_STREAMINGS = "Num dos seus streamings";
 
 type Resultado = { consulta: Consulta; filmes: FilmeResumo[] | null };
 
-async function executar(consulta: Consulta, api: ApiMotor): Promise<Resultado> {
+async function executar(
+  consulta: Consulta,
+  api: ApiMotor,
+  filtro: EntradaMotor["filtro"] = null,
+): Promise<Resultado> {
   try {
-    const pagina =
-      consulta.tipo === "parecidos"
-        ? await api.recomendacoesDe(consulta.origem.tmdbId)
-        : await api.descobrirFilmes(consulta.filtros);
-    return { consulta, filmes: pagina.itens };
+    if (consulta.tipo !== "parecidos") {
+      // Com filtro por idade, o TMDB já tira o +18 da descoberta.
+      const descobrir = descobrirComFiltro(api.descobrirFilmes, filtro);
+      return { consulta, filmes: (await descobrir(consulta.filtros)).itens };
+    }
+    // O /recommendations não filtra por classificação: com filtro, cada filme é conferido.
+    const { itens } = await api.recomendacoesDe(consulta.origem.tmdbId);
+    const filmes = await semBloqueados(
+      itens,
+      filtro,
+      ({ id }) => ({ tipo: "filme", tmdbId: id }),
+      ({ tmdbId }) => api.classificacaoFilme(tmdbId),
+    );
+    return { consulta, filmes };
   } catch (erro) {
     console.error(`[recomendacao] consulta ${consulta.tipo} falhou:`, erro);
     return { consulta, filmes: null };
@@ -48,7 +70,9 @@ export async function gerarRecomendacoes(
   const { preferencias, reacoes = [] } = entrada;
   const gerador = criarGerador(entrada.usuarioId, entrada.data, entrada.rodada ?? 0);
   const plano = planejar(entrada, gerador);
-  const resultados = await Promise.all(plano.map((consulta) => executar(consulta, api)));
+  const resultados = await Promise.all(
+    plano.map((consulta) => executar(consulta, api, entrada.filtro)),
+  );
 
   // Filmes com qualquer reação já foram vistos: não voltam como recomendação.
   const bloqueados = new Set([...(entrada.excluir ?? []), ...reacoes.map((r) => r.tmdbId)]);

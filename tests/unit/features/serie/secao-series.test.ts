@@ -33,6 +33,8 @@ function apiFalsa({ total = 20, falhar = false } = {}) {
       { id: DRAMA, nome: "Drama" },
       { id: SCI_FI_FANTASIA, nome: "Sci-Fi & Fantasy" },
     ]),
+    // A série 2 é +18; as outras, 14.
+    classificacaoSerie: vi.fn(async (id: number) => (id === 2 ? ("18" as const) : "14")),
   } satisfies ApiSecaoSeries;
 }
 
@@ -126,6 +128,18 @@ describe("montarSecaoSeries", () => {
     expect(ids).not.toContain(1);
     expect(ids).not.toContain(3);
     expect(ids?.[0]).toBe(2);
+  });
+
+  it("sem filtro, não consulta classificação; com filtro, a série +18 sai", async () => {
+    const sem = apiFalsa();
+    const semFiltro = await montarSecaoSeries(entrada(), sem);
+    expect(sem.classificacaoSerie).not.toHaveBeenCalled();
+    expect(semFiltro?.filmes.map((cartao) => cartao.id)).toContain(2);
+
+    const com = apiFalsa();
+    const comFiltro = await montarSecaoSeries(entrada({ filtro: "18" }), com);
+    expect(comFiltro?.filmes.map((cartao) => cartao.id).slice(0, 3)).toEqual([1, 3, 4]);
+    expect(comFiltro?.filmes).toHaveLength(12);
   });
 
   it("com menos de 4 séries restantes, a seção é null", async () => {

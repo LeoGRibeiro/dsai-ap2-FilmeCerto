@@ -1,5 +1,9 @@
 import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
-import { bloqueado } from "@/features/filtro-conteudo/regras";
+import {
+  bloqueado,
+  limiteDasRecomendacoes,
+  limiteMaisRestrito,
+} from "@/features/filtro-conteudo/regras";
 import type { Midia } from "@/lib/midia";
 import type { ClassificacaoBR } from "@/lib/tmdb/tipos";
 
@@ -45,4 +49,22 @@ export async function semBloqueados<T>(
     console.error(`[filtro-conteudo] ${falhas} classificações falharam; os títulos saíram.`);
   }
   return itens.filter((_, indice) => mantem[indice]);
+}
+
+/**
+ * Envolve um `descobrirFilmes`: com filtro, toda consulta leva `classificacaoMax` de no máximo 16
+ * (o TMDB tira o 18, e também os filmes sem classificação do Brasil). Um limite menor que já
+ * venha nos filtros, como o 12 da família, continua valendo. Sem filtro, a função é a mesma.
+ */
+export function descobrirComFiltro<F extends { classificacaoMax?: ClassificacaoBR }, R>(
+  descobrir: (filtros?: F) => Promise<R>,
+  filtro: FiltroConteudo,
+): (filtros?: F) => Promise<R> {
+  const limite = limiteDasRecomendacoes(filtro);
+  if (!limite) return descobrir;
+  return (filtros) =>
+    descobrir({
+      ...filtros,
+      classificacaoMax: limiteMaisRestrito(filtros?.classificacaoMax, limite)!,
+    } as F);
 }

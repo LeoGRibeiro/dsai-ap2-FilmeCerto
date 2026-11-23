@@ -43,6 +43,7 @@ export function contexto(sobrescrever: Partial<ContextoTool> = {}): ContextoTool
     motor: {
       descobrirFilmes: vi.fn(async () => ({ itens: [resumo(1), resumo(2)], pagina: 1, totalPaginas: 1, totalResultados: 2 })),
       recomendacoesDe: vi.fn(async () => ({ itens: [], pagina: 1, totalPaginas: 0, totalResultados: 0 })),
+      classificacaoFilme: vi.fn(async () => "12" as const),
     },
     agora: () => new Date("2026-10-13T12:00:00-03:00"),
     ...sobrescrever,

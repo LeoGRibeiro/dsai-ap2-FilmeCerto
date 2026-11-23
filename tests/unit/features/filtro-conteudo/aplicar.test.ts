@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   CONSULTAS_SIMULTANEAS,
+  descobrirComFiltro,
   semBloqueados,
   type Classificar,
 } from "@/features/filtro-conteudo/aplicar";
@@ -57,5 +58,34 @@ describe("semBloqueados", () => {
     const lista = await semBloqueados(itens(...ids), "14", comoFilme, classificar);
     expect(lista).toHaveLength(30);
     expect(pico).toBe(CONSULTAS_SIMULTANEAS);
+  });
+});
+
+describe("descobrirComFiltro", () => {
+  type Filtros = { generos?: number[]; classificacaoMax?: ClassificacaoBR };
+  const descobrir = () => vi.fn(async (filtros?: Filtros) => filtros);
+
+  it("sem filtro, devolve a mesma função", () => {
+    const original = descobrir();
+    expect(descobrirComFiltro(original, null)).toBe(original);
+  });
+
+  it("com filtro, toda consulta vai até 16, mantendo os outros filtros", async () => {
+    const original = descobrir();
+    expect(await descobrirComFiltro(original, "10")({ generos: [35] })).toEqual({
+      generos: [35],
+      classificacaoMax: "16",
+    });
+    expect(await descobrirComFiltro(original, "18")()).toEqual({ classificacaoMax: "16" });
+  });
+
+  it("um limite menor que já vem nos filtros (a família, 12) continua valendo", async () => {
+    const original = descobrir();
+    expect(await descobrirComFiltro(original, "14")({ classificacaoMax: "12" })).toEqual({
+      classificacaoMax: "12",
+    });
+    expect(await descobrirComFiltro(original, "14")({ classificacaoMax: "18" })).toEqual({
+      classificacaoMax: "16",
+    });
   });
 });

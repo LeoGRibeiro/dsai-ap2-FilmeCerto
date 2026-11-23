@@ -1,3 +1,4 @@
+import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import type { Duracao, Frequencia } from "@/features/preferencias/opcoes";
 import type { Reacao } from "@/features/reacoes/opcoes";
 import type { TipoMidia } from "@/lib/midia";
@@ -30,6 +31,8 @@ export type EntradaMotor = {
   reacoes?: ReacaoMotor[];
   /** IDs do TMDB que nunca devem aparecer. */
   excluir?: number[];
+  /** Filtro por idade: com ele, nada +18 (SPEC/2026-11-23-filtro-idade.md). Padrão: sem filtro. */
+  filtro?: FiltroConteudo;
 };
 
 export type Recomendacao = FilmeResumo & {

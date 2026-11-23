@@ -48,6 +48,8 @@ function apiFalsa(falharGenero?: number, { falharStreamings = false } = {}): Api
     recomendacoesDe: vi.fn(async (id: number) =>
       pagina([filme(id + 1, { titulo: `Parecido ${id}` }), filme(5000)]),
     ),
+    // 702 é +18; o resto, 12.
+    classificacaoFilme: vi.fn(async (id: number) => (id === 702 ? ("18" as const) : "12")),
   };
 }
 
@@ -183,5 +185,41 @@ describe("gerarRecomendacoes", () => {
 
     const parecidos = secoes.find((s) => s.id === "parecidos-700");
     expect(parecidos?.filmes.map((f) => f.id)).toEqual([702]);
+  });
+
+  describe("filtro por idade", () => {
+    const comParecidos = (filtro: EntradaMotor["filtro"]) => ({
+      ...entrada,
+      filtro,
+      reacoes: [{ tmdbId: 700, titulo: "Interestelar", reacao: "amei" as const, generos: [878] }],
+    });
+    const apiComParecidos = () => {
+      const api = apiFalsa();
+      api.recomendacoesDe = vi.fn(async () => pagina([filme(701), filme(702), filme(703)]));
+      return api;
+    };
+
+    it("sem filtro, não consulta classificação nem limita a descoberta", async () => {
+      const api = apiComParecidos();
+      const secoes = await gerarRecomendacoes(comParecidos(null), api);
+
+      expect(api.classificacaoFilme).not.toHaveBeenCalled();
+      for (const [filtros] of vi.mocked(api.descobrirFilmes).mock.calls) {
+        expect(filtros?.classificacaoMax).toBeUndefined();
+      }
+      const parecidos = secoes.find((s) => s.id === "parecidos-700");
+      expect(parecidos?.filmes.map((f) => f.id)).toContain(702);
+    });
+
+    it("com filtro, toda descoberta vai até 16 e o parecido +18 sai", async () => {
+      const api = apiComParecidos();
+      const secoes = await gerarRecomendacoes(comParecidos("14"), api);
+
+      const chamadas = vi.mocked(api.descobrirFilmes).mock.calls;
+      expect(chamadas.length).toBeGreaterThan(0);
+      for (const [filtros] of chamadas) expect(filtros?.classificacaoMax).toBe("16");
+      const parecidos = secoes.find((s) => s.id === "parecidos-700");
+      expect(parecidos?.filmes.map((f) => f.id)).toEqual([701, 703]);
+    });
   });
 });

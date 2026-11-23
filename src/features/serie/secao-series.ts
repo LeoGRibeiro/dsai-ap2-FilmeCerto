@@ -1,12 +1,22 @@
+import { semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import type { Frequencia } from "@/features/preferencias/opcoes";
 import { motivoPorGeneros } from "@/features/recomendacao/motivo";
 import { PERFIS } from "@/features/recomendacao/perfil";
 import type { Recomendacao, Secao } from "@/features/recomendacao/tipos";
 import { generosEmTv, TV } from "@/features/serie/generos";
-import { descobrirSeries, generosSeries, type ApiSeries } from "@/lib/tmdb/series";
+import {
+  classificacaoSerie,
+  descobrirSeries,
+  generosSeries,
+  type ApiSeries,
+} from "@/lib/tmdb/series";
 import type { FiltrosDescobertaSerie } from "@/lib/tmdb/tipos";
 
-export type ApiSecaoSeries = Pick<ApiSeries, "descobrirSeries" | "generosSeries">;
+export type ApiSecaoSeries = Pick<
+  ApiSeries,
+  "descobrirSeries" | "generosSeries" | "classificacaoSerie"
+>;
 
 export type EntradaSecaoSeries = {
   /** Gêneros de filme do perfil: viram gêneros de TV aqui. */
@@ -15,9 +25,11 @@ export type EntradaSecaoSeries = {
   rodada: number;
   /** IDs de séries com reação ou numa lista: não voltam na seção. */
   excluir: number[];
+  /** Filtro por idade: o `/discover/tv` não filtra por classificação, então cada série é conferida. */
+  filtro?: FiltroConteudo;
 };
 
-const API_PADRAO: ApiSecaoSeries = { descobrirSeries, generosSeries };
+const API_PADRAO: ApiSecaoSeries = { descobrirSeries, generosSeries, classificacaoSerie };
 
 export const TITULO_SECAO_SERIES = "Séries para hoje à noite";
 const MAX_SERIES = 12;
@@ -80,15 +92,18 @@ export async function montarSecaoSeries(
 
   const fora = new Set(entrada.excluir);
   const { favoritos } = generosDoPerfil(entrada.preferencias);
-  const series: Recomendacao[] = resultado.itens
-    .filter((serie) => !fora.has(serie.id))
-    .slice(0, MAX_SERIES)
-    .map((serie) => ({
-      ...serie,
-      tipo: "serie",
-      motivo: motivoPorGeneros(serie.generos, favoritos, generosTv),
-      // A ordem já vem do TMDB, por popularidade.
-      pontuacao: serie.popularidade,
-    }));
+  const livres = await semBloqueados(
+    resultado.itens.filter((serie) => !fora.has(serie.id)),
+    entrada.filtro ?? null,
+    ({ id }) => ({ tipo: "serie", tmdbId: id }),
+    ({ tmdbId }) => api.classificacaoSerie(tmdbId),
+  );
+  const series: Recomendacao[] = livres.slice(0, MAX_SERIES).map((serie) => ({
+    ...serie,
+    tipo: "serie",
+    motivo: motivoPorGeneros(serie.generos, favoritos, generosTv),
+    // A ordem já vem do TMDB, por popularidade.
+    pontuacao: serie.popularidade,
+  }));
   return series.length < MIN_SERIES ? null : { ...base, filmes: series };
 }
