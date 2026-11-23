@@ -1,21 +1,26 @@
 #!/bin/sh
 # Regra da AP2 (AGENTS.md, seção 5): todo commit, inclusive merge local, termina com
 # os trailers "Agent:" e "Spec:", e a spec citada precisa existir no repositório.
+# Os trailers são lidos como o git os lê (`git interpret-trailers`): só contam se
+# estiverem no último parágrafo, sem linha em branco entre eles e sem nada depois.
 # Ativado por `git config core.hooksPath .githooks` (o `pnpm install` já faz).
 
 mensagem="$1"
 
 recusar() {
   echo "commit recusado: $1" >&2
-  echo "  A mensagem precisa terminar com:" >&2
+  echo "  A mensagem precisa terminar com (no mesmo parágrafo, sem nada depois):" >&2
   echo "    Agent: <ferramenta>/<modelo>   (ou: none)" >&2
   echo "    Spec: SPEC/AAAA-MM-DD-<parte>.md" >&2
   echo "  Veja AGENTS.md, seção 5." >&2
   exit 1
 }
 
-grep -qE '^Agent: .+' "$mensagem" || recusar "falta o trailer Agent:"
-spec=$(grep -m1 -E '^Spec: .+' "$mensagem" | sed -E 's/^Spec: *//; s/[[:space:]]+$//')
-[ -n "$spec" ] || recusar "falta o trailer Spec:"
+trailers=$(grep -v '^#' "$mensagem" | git interpret-trailers --parse)
+
+echo "$trailers" | grep -qE '^Agent: .+' ||
+  recusar "falta o trailer Agent: no último parágrafo"
+spec=$(echo "$trailers" | grep -m1 -E '^Spec: .+' | sed -E 's/^Spec: *//; s/[[:space:]]+$//')
+[ -n "$spec" ] || recusar "falta o trailer Spec: no último parágrafo"
 [ -f "$spec" ] || recusar "a spec \"$spec\" não existe no repositório"
 exit 0

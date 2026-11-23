@@ -78,7 +78,7 @@ Se quem mescla é a própria pessoa, sem agente, use `Agent: none`.
 
 ```bash
 # commits com os dois trailers desde a AP1 (mínimo 80%)
-t=0; ok=0; for c in $(git rev-list 4ac8b98..origin/main); do t=$((t+1)); b=$(git log -1 --format=%B $c); echo "$b" | grep -q '^Agent:' && echo "$b" | grep -q '^Spec:' && ok=$((ok+1)); done; echo "trailers: $ok/$t"
+t=0; ok=0; for c in $(git rev-list 4ac8b98..origin/main); do t=$((t+1)); a=$(git log -1 --format='%(trailers:key=Agent,valueonly)' $c); s=$(git log -1 --format='%(trailers:key=Spec,valueonly)' $c); [ -n "$a" ] && [ -n "$s" ] && ok=$((ok+1)); done; echo "trailers: $ok/$t"
 # parcela de commits de cada integrante (mínimo 30% cada)
 git shortlog -sn 4ac8b98..origin/main
 ```
@@ -91,7 +91,7 @@ git shortlog -sn 4ac8b98..origin/main
 | Clientes (autores da AP1, **não** escrevem código) | Alexsandro Costa ([@sandroccosta](https://github.com/sandroccosta)) e Jonathan Fagundes ([@jonathanfufu](https://github.com/jonathanfufu)) |
 | Professor | Gustavo Pinto |
 
-- **Prazo final:** 19/11/2026.
+- **Prazo final:** 24/11/2026.
 - **Requisitos:** [docs/ap2/pedido-do-cliente.md](docs/ap2/pedido-do-cliente.md), em ordem de prioridade.
 - **Escopo e decisões gerais:** [SPEC/2026-11-17-visao-geral-ap2.md](SPEC/2026-11-17-visao-geral-ap2.md).
 - **Backlog:** issues do GitHub, de #2 a #9.
@@ -148,6 +148,7 @@ Spec: SPEC/2026-11-17-wizard-noite.md
 ```
 
 - `Agent:` traz `<ferramenta>/<modelo>` de quem gerou o código. Escrito à mão: `Agent: none`. Gerado e editado à mão: `Agent: claude-code/claude-opus-5-5 + manual`.
+- **Formato dos trailers:** `Agent:` e `Spec:` ficam juntos no **último parágrafo**, sem linha em branco entre eles e sem nada depois (nem `Co-Authored-By`). Com uma linha em branco no meio ou um parágrafo depois, o git (`git interpret-trailers`, `%(trailers)`) deixa de reconhecê-los, embora o hook aceite. Confira com `git log -1 --format='%(trailers:key=Agent,valueonly)|%(trailers:key=Spec,valueonly)'`.
 - `Spec:` aponta a spec que o commit implementa. Commits de processo, infraestrutura e sessões citam `SPEC/2026-11-17-visao-geral-ap2.md`.
 - **Pelo menos 80% dos commits** devem ter os dois trailers. A meta é 100%. **Merges também são commits e entram na conta.** Os merges de PR levam trailers na mensagem (seção 0), e o hook `commit-msg` cobre os commits e merges locais.
 - **Commits pequenos:** a mediana tem que ficar **abaixo de 400 linhas** alteradas. Um commit por passo lógico: migration, lógica pura com testes, action, tela.
