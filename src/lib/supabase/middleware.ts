@@ -4,10 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
+/** O que o proxy precisa saber de quem está logado. */
+export type UsuarioDaSessao = { id: string; email: string };
+
 /**
  * Renova a sessão do Supabase a cada requisição e devolve a resposta com os
  * cookies atualizados, junto com o usuário autenticado (ou `null`).
  * Pensado para ser chamado a partir de `src/proxy.ts`.
+ *
+ * Usa `getClaims()`: com a chave assimétrica do projeto, o JWT é validado aqui mesmo,
+ * sem a ida ao servidor de Auth que o `getUser()` faz (SPEC/2026-11-23-navegacao-rapida.md).
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -34,11 +40,12 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Não coloque código entre a criação do cliente e getUser(): isso pode
+  // Não coloque código entre a criação do cliente e getClaims(): isso pode
   // causar logouts aleatórios difíceis de depurar.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const user: UsuarioDaSessao | null = data?.claims.sub
+    ? { id: data.claims.sub, email: data.claims.email ?? "" }
+    : null;
 
   return { response, user };
 }
