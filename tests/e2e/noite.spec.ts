@@ -305,6 +305,8 @@ test.describe("'Filme ou série?'", () => {
       .getByRole("group", { name: "Filme ou série?" })
       .getByRole("link", { name: "Série" })
       .click();
+    // Só responde depois de a 1ª tela virar a de série, senão as respostas vão para o filme.
+    await expect(page).toHaveURL("/noite?tipo=serie");
     await responder(page, ["De boa", "Ficar tenso", "Família com crianças"]);
 
     const vouVer = main(page).getByRole("button", { name: "Vou ver esse!" });
