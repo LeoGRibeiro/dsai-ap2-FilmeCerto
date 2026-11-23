@@ -14,7 +14,7 @@ Fazer cada clique na área logada trocar a tela na hora e encurtar o tempo que o
 2. **Sessão sem ida ao Auth.** O proxy e `obterUsuarioAtual` validam o JWT com `supabase.auth.getClaims()` em vez de `getUser()`.
 3. **Layout em paralelo.** O layout de `(app)` lê usuário e preferências ao mesmo tempo, em vez de um depois do outro.
 
-A busca pelo `<Form>` de `next/form` chegou a ser implementada e foi desfeita: ver "Fora do escopo".
+A busca pelo `<Form>` de `next/form` chegou a ser implementada e foi desfeita por um diagnóstico errado: ver "Fora do escopo".
 
 ## Por quê
 
@@ -74,7 +74,7 @@ Nenhuma mudança.
 
 ## Fora do escopo
 
-- **Busca sem recarregar (`next/form`), tentada e desfeita.** Trocar o `<form method="get">` do header e de `/busca` pelo `<Form>` do Next (commit `2e7a6cb`) fez 3 testes de `tests/e2e/busca.spec.ts` falharem no CI, nas duas tentativas: a URL mudava para `/busca?q=...`, mas o conteúdo da busca não aparecia. Uma reprodução mínima com o mesmo Next 16.4.6 (layout com `<Form>`, grupo com `loading.tsx`, `generateMetadata` e proxy) não mostrou o problema, e sem Docker não dá para rodar o E2E na máquina do Leonardo. O commit `783d420` desfez a mudança; a busca continua recarregando a página até a causa ser achada. Quem retomar: rodar o E2E da busca localmente com o trace do Playwright ligado.
+- **Busca sem recarregar (`next/form`), desfeita por um diagnóstico errado.** O commit `2e7a6cb` trocou o `<form method="get">` do header e de `/busca` pelo `<Form>` do Next, e o commit `783d420` desfez a troca porque 3 testes de `tests/e2e/busca.spec.ts` falharam no CI. O log tinha sido lido pela metade: foram 25 falhas, quase todas esperando o dashboard sair do esqueleto, por causa do pré-carregamento de todos os cartões (ver a decisão "Pré-carregamento"). Uma reprodução mínima com o mesmo Next 16.4.6 (sem os cartões) não mostrou problema no `<Form>`. Com o CI verde, a busca com `next/form` pode voltar num commit próprio.
 
 - Cache Components / Partial Prerendering (`cacheComponents`): mudaria o modelo de renderização de todas as páginas, o que é uma refatoração ampla demais para a véspera da entrega.
 - Mudar a região da Vercel ou do Supabase: os dois já estão na mesma região.
