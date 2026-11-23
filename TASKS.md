@@ -34,20 +34,37 @@
 - A D já traz a H e a I por `git merge`, e a J já traz a D, então os PRs de cima não conflitam com os de baixo. A sequência completa (P a J) foi mesclada numa cópia local, na ordem: sem conflito, typecheck, lint e testes unitários verdes.
 - O que cada branch deixou de fora está na seção "Fora do escopo" da spec dela e no corpo do PR.
 
-- [x] **Séries, como chegar nelas (#33, PR #35, 19/11):** spec [2026-11-19-series-descoberta.md](SPEC/2026-11-19-series-descoberta.md). Seção "Séries para hoje à noite" no dashboard, aba "Séries" na busca por nome, página `/serie/{id}/temporada/{n}` com os episódios, situação da série, tempo de cada temporada e trailer de série no funil. Nenhuma migration. A parte A foi feita direto na branch e as partes B, C e D por um agente cada, em worktrees (`feat/series-descoberta-{dashboard,busca,episodios}`), mescladas na `feat/series-descoberta` com merge commits. **Aberto, esperando a revisão do Lucas.** Ampliou o escopo do pedido 3.5: a pergunta ao cliente está na #33.
+- [x] **Séries, como chegar nelas (#33, PR #35, 19/11):** spec [2026-11-19-series-descoberta.md](SPEC/2026-11-19-series-descoberta.md). Seção "Séries para hoje à noite" no dashboard, aba "Séries" na busca por nome, página `/serie/{id}/temporada/{n}` com os episódios, situação da série, tempo de cada temporada e trailer de série no funil. Nenhuma migration. A parte A foi feita direto na branch e as partes B, C e D por um agente cada, em worktrees (`feat/series-descoberta-{dashboard,busca,episodios}`), mescladas na `feat/series-descoberta` com merge commits. Mesclado em 19/11. Ampliou o escopo do pedido 3.5: a pergunta ao cliente está na #33.
+- [x] **"Até que horas?" relativo (#31, PR #32, 19/11):** spec [2026-11-19-noite-tempo-disponivel.md](SPEC/2026-11-19-noite-tempo-disponivel.md). 1h30 a 3h a partir de agora e outro horário no seletor.
+- [x] **Acessibilidade do wizard (PR #36, Lucas, 20/11):** spec [2026-11-20-acessibilidade-wizard-noite.md](SPEC/2026-11-20-acessibilidade-wizard-noite.md). Foco no primeiro motivo do "Esse não" e no título do "Já vi".
+- [x] **Revisão do estado (23/11, branch `docs/entrega-24-11`):** issues #2 (perguntas ao cliente, respondidas com as decisões das specs) e #4 (medição, feita no PR #19) fechadas com comentário. README com o `cloc` de 23/11 e as specs novas, prazo corrigido para **24/11** no AGENTS.md e hook `commit-msg` lendo os trailers como o git.
 
-### Próximo passo
+### Situação dos critérios em 23/11 (`main` em `324ee55`)
 
-1. **Lucas:** revisar e mesclar pelo terminal os PRs abertos, conferindo o CI verde de cada um: #32 (`feat/noite-tempo-relativo`) e #35 (`feat/series-descoberta`). Os dois não mexem nos mesmos arquivos de código.
-2. **Depois de cada merge:** `curl -s https://dsai-ap2-filme-certo.vercel.app/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
-3. **Cliente:** responder a pergunta da #33 (séries no dashboard e na busca). Se não quiser a seção do dashboard, ela sai tirando o `Suspense` de `SecaoSeries` em `src/app/(app)/dashboard/page.tsx`.
+| Critério                        | Mínimo     | Medido                                                           |
+| ------------------------------- | ---------- | ---------------------------------------------------------------- |
+| Linhas novas (`cloc --diff`)    | 100 mil    | 12.996 (5.469 da aplicação e 7.527 de testes): abaixo            |
+| Parcela de commits do Lucas     | 30%        | 13 de 178 (7%): abaixo                                           |
+| Trailers (parser do git)        | 80%        | 144 de 178 (80,9%); pelo `grep`, 169 de 178                      |
+| Spec antes do código            | 100%       | 13 de 13 specs da AP2, cada uma num commit só dela               |
+| Mediana do tamanho dos commits  | < 400      | 113                                                              |
+| Cobertura das linhas novas      | 70%        | 92,7%                                                            |
+| Duplicação (`jscpd`)            | 5%         | 1,0%                                                             |
+| CI                              | verde, 80% | `main` verde; 55 de 58 builds verdes                             |
+| URL pública, segredos, críticos | —          | `/api/health` = `324ee55`; 0 críticos; 10 migrations na produção |
+
+### Próximo passo (entrega em 24/11)
+
+1. **Lucas:** revisar e mesclar pelo terminal o PR da `docs/entrega-24-11`, com trailers na mensagem do merge (nunca pelo botão: os merges dos PRs #32, #35 e #36 saíram sem trailers).
+2. **Lucas, se der tempo:** trabalho real com a conta dele, em commits pequenos e com os trailers no último parágrafo. Cada commit dele melhora a parcela de autoria.
+3. **No fim:** `/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
 
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**`.
 - [ ] Liberar o `/metricas` para o Lucas e os clientes: a pessoa cria conta no site e alguém roda no SQL Editor:
       `insert into public.equipe_metricas (usuario_id) select id from auth.users where email = '<e-mail>' on conflict do nothing;`
-- [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`).
+- [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`). Em 23/11, `supabase migration list --linked` mostrou as 10 migrations aplicadas.
 
 ## Plano até a entrega
 
@@ -205,7 +222,8 @@ Se o PR trouxer migration nova, rodar `pnpm exec supabase db push` logo depois. 
 - **Migrations e RLS** só são validadas no CI (Supabase local em Docker). Fazer push cedo e acompanhar com `gh run watch`.
 - **CI com `supabase/setup-cli`:** em `version: latest` ele falhou algumas vezes por limite da API do GitHub, antes de rodar qualquer teste (`gh run rerun <id> --failed` resolve). O PR #19 fixa a versão em 2.119.0.
 - **Parcela de commits de cada integrante (mínimo de 30%):** em 19/11, todos os 125 commits da AP2 (49 na `main` e 76 nos PRs abertos) são do Leonardo. Os 11 merges do Lucas levam a parcela dele a cerca de 8%. Só trabalho real do Lucas, com a conta dele, muda isso (nunca `--author` nem `Co-authored-by`).
-- **Trailers (mínimo de 80%):** 43 de 49 na `main`; os 6 sem trailers são os merges pelo botão do GitHub (#1, #10, #11, #13, #14 e #15). Com os PRs abertos e os merges pelo terminal, a projeção é de cerca de 95%.
+- **Parcela, 23/11:** 13 de 178 commits são do Lucas (2 sem contar merges). O merge `a9d65e6` saiu com autor "Seu Nome", de um git sem `user.name`, e não conta para ninguém: confira `git config user.name` antes de commitar.
+- **Trailers (mínimo de 80%):** em 23/11, 169 de 178 pelo `grep` e só 144 de 178 pelo parser do git. Os 9 sem trailers são merges pelo botão do GitHub (#1, #10, #11, #13, #14, #15, #32, #35 e #36). Os outros 25 têm os trailers num formato que o git não reconhece: `Co-Authored-By` num parágrafo depois do `Agent:`/`Spec:` (sessão de 19/11) ou linha em branco entre os dois (commits do PR #36). O hook agora recusa esses formatos.
 - **Duplicação:** o `jscpd` do CI mede só código (1,03%). No repositório inteiro, sem o lockfile e sem `prompts/`, dá 5,24%, quase tudo por causa do plano da AP1 `docs/superpowers/plans/2026-10-13-mcp.md`, que copia o código do MCP. Mexer nesse arquivo é decisão da dupla.
 - **Telas logadas sem Docker:** sem Supabase local, as telas novas foram verificadas por testes de componente e pelos E2E no CI (com um teste em 390x844 em cada fluxo), não a olho. Vale uma passada manual no celular depois do deploy.
 - **Nada do wizard vira preferência.** Toda resposta (inclusive "até que horas" e as da noite a dois) fica na URL ou deixa de valer depois do resultado.
