@@ -28,6 +28,7 @@ test("selo sempre; com 'Até 10 anos', aviso no 14 e bloqueio total do +18", asy
   await page.goto("/filme/500021");
   await expect(tituloDoFilme(page, 500021)).toBeVisible();
   await expect(page.getByTestId("selo-classificacao")).toContainText("Classificação: 18 anos");
+  await expect(page.getByTestId("temas-classificacao")).toHaveText("Temas: violência, medo");
   await expect(page.getByRole("note")).toHaveCount(0);
 
   await escolherFiltro(page, /Até 10 anos/);
@@ -36,6 +37,9 @@ test("selo sempre; com 'Até 10 anos', aviso no 14 e bloqueio total do +18", asy
   await page.goto("/filme/500022");
   await expect(tituloDoFilme(page, 500022)).toBeVisible();
   await expect(page.getByRole("note")).toContainText("Não recomendado para menores de 14 anos.");
+  await expect(page.getByTestId("temas-classificacao")).toContainText(
+    "segundo a classificação da Holanda",
+  );
 
   // +18 pelo link direto: bloqueado, sem o nome nem na página nem na aba.
   await page.goto("/filme/500021");

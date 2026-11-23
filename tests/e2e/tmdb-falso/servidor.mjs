@@ -96,7 +96,8 @@ function anexos(tipo, id, trailer) {
 /**
  * Classificação dos filmes (`release_dates`), pelo último dígito do ID: 1 é 18 e 2 é 14 no Brasil
  * (com uma data sem classificação antes, como no TMDB); 3 só tem a dos EUA (R, que vira 16); os
- * outros não têm nenhuma. Na busca "matrix", "matrix 1-2" é o 500021 (+18).
+ * outros não têm nenhuma. Na busca "matrix", "matrix 1-2" é o 500021 (+18). Temas: o 1 tem os do
+ * Brasil (violência e medo); o 2, só os da Holanda (linguagem imprópria).
  */
 function datasDeLancamento(id) {
   const final = id % 10;
@@ -104,7 +105,26 @@ function datasDeLancamento(id) {
   return {
     results: [
       ...(brasil
-        ? [{ iso_3166_1: "BR", release_dates: [{ certification: "" }, { certification: brasil }] }]
+        ? [
+            {
+              iso_3166_1: "BR",
+              release_dates: [
+                { certification: "", descriptors: [] },
+                {
+                  certification: brasil,
+                  descriptors: final === 1 ? ["Extreme Violence", "Fear"] : [],
+                },
+              ],
+            },
+          ]
+        : []),
+      ...(final === 2
+        ? [
+            {
+              iso_3166_1: "NL",
+              release_dates: [{ certification: "12", descriptors: ["Coarse Language"] }],
+            },
+          ]
         : []),
       ...(final === 3 ? [{ iso_3166_1: "US", release_dates: [{ certification: "R" }] }] : []),
     ],

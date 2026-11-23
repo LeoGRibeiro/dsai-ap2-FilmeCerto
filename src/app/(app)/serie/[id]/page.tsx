@@ -44,12 +44,15 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
       <Voltar />
 
-      {comoMostrar === "aviso" && <AvisoClassificacao classificacao={serie.classificacao} />}
+      {comoMostrar === "aviso" && (
+        <AvisoClassificacao classificacao={serie.classificacao} temas={serie.temas} />
+      )}
 
       <Cabecalho
         titulo={serie}
         dados={dadosDaSerie(serie)}
         classificacao={serie.classificacao}
+        temas={serie.temas}
         aviso={proximoEpisodio(serie, diaEmSaoPaulo(new Date()))}
         acoes={<AcoesTitulo midia={midia} reacao={reacao} statusLista={statusLista} />}
       />

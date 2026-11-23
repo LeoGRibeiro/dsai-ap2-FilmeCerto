@@ -1,6 +1,8 @@
 import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 
+import { listaDeTemas } from "@/features/filtro-conteudo/temas";
+import type { TemasClassificacao } from "@/lib/tmdb/classificacao";
 import type { ClassificacaoBR } from "@/lib/tmdb/tipos";
 
 /** Texto da faixa: acima do limite, ou sem classificação nenhuma. */
@@ -12,7 +14,13 @@ export function textoDoAviso(classificacao: ClassificacaoBR | null): string {
 }
 
 /** Faixa no topo da página de um título acima da idade do filtro. A página continua aberta. */
-export function AvisoClassificacao({ classificacao }: { classificacao: ClassificacaoBR | null }) {
+export function AvisoClassificacao({
+  classificacao,
+  temas = null,
+}: {
+  classificacao: ClassificacaoBR | null;
+  temas?: TemasClassificacao | null;
+}) {
   return (
     <div
       role="note"
@@ -21,8 +29,9 @@ export function AvisoClassificacao({ classificacao }: { classificacao: Classific
     >
       <TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-500" aria-hidden="true" />
       <p>
-        <strong className="font-semibold">{textoDoAviso(classificacao)}</strong> O filtro por idade
-        desta conta marca este título como não recomendado.{" "}
+        <strong className="font-semibold">{textoDoAviso(classificacao)}</strong>{" "}
+        {temas && `Temas: ${listaDeTemas(temas)}. `}O filtro por idade desta conta marca este título
+        como não recomendado.{" "}
         <Link href="/perfil#conteudo-sensivel" className="underline underline-offset-2">
           Ver o filtro
         </Link>

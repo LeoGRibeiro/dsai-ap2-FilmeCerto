@@ -66,6 +66,25 @@ describe("CabecalhoFilme", () => {
     ]);
   });
 
+  it("mostra os temas do Brasil sem nota de origem", () => {
+    render(
+      <CabecalhoFilme filme={filme({ temas: { temas: ["violencia", "medo"], pais: "BR" } })} />,
+    );
+    expect(screen.getByTestId("temas-classificacao")).toHaveTextContent(/^Temas: violência, medo$/);
+  });
+
+  it("temas de outro país dizem de onde vêm", () => {
+    render(<CabecalhoFilme filme={filme({ temas: { temas: ["linguagem"], pais: "NL" } })} />);
+    expect(screen.getByTestId("temas-classificacao")).toHaveTextContent(
+      "Temas: linguagem imprópria (segundo a classificação da Holanda)",
+    );
+  });
+
+  it("sem temas, a linha não aparece", () => {
+    render(<CabecalhoFilme filme={filme({ temas: null })} />);
+    expect(screen.queryByTestId("temas-classificacao")).not.toBeInTheDocument();
+  });
+
   it("sem classificação, a linha termina na nota", () => {
     render(<CabecalhoFilme filme={filme({ classificacao: null })} />);
     expect(screen.queryByTestId("selo-classificacao")).not.toBeInTheDocument();
@@ -80,6 +99,13 @@ describe("AvisoClassificacao", () => {
     expect(within(aviso).getByRole("link", { name: "Ver o filtro" })).toHaveAttribute(
       "href",
       "/perfil#conteudo-sensivel",
+    );
+  });
+
+  it("repete os temas, quando há", () => {
+    render(<AvisoClassificacao classificacao="16" temas={{ temas: ["drogas"], pais: "DE" }} />);
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Não recomendado para menores de 16 anos. Temas: drogas.",
     );
   });
 

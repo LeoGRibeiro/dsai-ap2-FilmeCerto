@@ -55,7 +55,9 @@ export default async function FilmePage({ params }: PageProps<"/filme/[id]">) {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
       <Voltar />
 
-      {comoMostrar === "aviso" && <AvisoClassificacao classificacao={filme.classificacao} />}
+      {comoMostrar === "aviso" && (
+        <AvisoClassificacao classificacao={filme.classificacao} temas={filme.temas} />
+      )}
 
       <CabecalhoFilme
         filme={filme}

@@ -63,7 +63,9 @@ export default async function TemporadaPage({ params }: Props) {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
       <Voltar href={`/serie/${serie.id}`} rotulo={serie.titulo} />
 
-      {comoMostrar === "aviso" && <AvisoClassificacao classificacao={serie.classificacao} />}
+      {comoMostrar === "aviso" && (
+        <AvisoClassificacao classificacao={serie.classificacao} temas={serie.temas} />
+      )}
 
       <div className="flex flex-col gap-4">
         <Cabecalho
@@ -82,6 +84,7 @@ export default async function TemporadaPage({ params }: Props) {
             tempoDaTemporada(temporada.episodios, serie.duracaoEpisodioMin, hoje),
           ]}
           classificacao={serie.classificacao}
+          temas={serie.temas}
         />
         {temporada.sinopse && <p className="max-w-3xl leading-relaxed">{temporada.sinopse}</p>}
       </div>
