@@ -4,6 +4,9 @@ import {
   ateAClassificacao,
   classificacaoDaSerie,
   classificacaoDoFilme,
+  temasDaSerie,
+  temasDoFilme,
+  traduzirTemas,
 } from "@/lib/tmdb/classificacao";
 
 const filme = (...paises: [string, ...string[]][]) =>
@@ -81,5 +84,86 @@ describe("ateAClassificacao", () => {
     expect(ateAClassificacao(null, "18")).toBe(false);
     expect(ateAClassificacao("12", "12")).toBe(true);
     expect(ateAClassificacao("14", "12")).toBe(false);
+  });
+});
+
+describe("traduzirTemas", () => {
+  it.each([
+    ["Extreme Violence", "violencia"],
+    ["Gory Scenes", "violencia"],
+    ["Injury", "violencia"],
+    ["Fear", "medo"],
+    ["Violence / Horror", "violencia"],
+    ["Threat", "medo"],
+    ["may cause anxiety", "medo"],
+    ["Sexuality", "sexo"],
+    ["Drugs", "drogas"],
+    ["Alcohol", "drogas"],
+    ["Coarse Language", "linguagem"],
+    ["Shocking Content", "impactante"],
+    ["Discrimination", "discriminacao"],
+  ])("%s vira %s", (texto, tema) => {
+    expect(traduzirTemas([texto])).toContain(tema);
+  });
+
+  it("junta sem repetir, na ordem da lista, e ignora o que não se encaixa", () => {
+    expect(
+      traduzirTemas([
+        "Shocking Content",
+        "Fear",
+        "Violence",
+        "Extreme Violence",
+        "Negative examples",
+      ]),
+    ).toEqual(["violencia", "medo", "impactante"]);
+    expect(traduzirTemas(["Not Recommended For Young Children"])).toEqual([]);
+  });
+});
+
+describe("temasDoFilme", () => {
+  const pais = (iso_3166_1: string, ...descritores: string[][]) => ({
+    iso_3166_1,
+    release_dates: descritores.map((descriptors) => ({ descriptors })),
+  });
+
+  it("os do Brasil ganham, mesmo com outros países preenchidos", () => {
+    expect(
+      temasDoFilme([pais("NL", ["Coarse Language"]), pais("BR", [], ["Extreme Violence", "Fear"])]),
+    ).toEqual({ temas: ["violencia", "medo"], pais: "BR" });
+  });
+
+  it("sem os do Brasil, os da Holanda; sem estes, os da Alemanha", () => {
+    expect(temasDoFilme([pais("DE", ["Threat"]), pais("NL", ["Violence"])])).toEqual({
+      temas: ["violencia"],
+      pais: "NL",
+    });
+    expect(temasDoFilme([pais("BR", []), pais("DE", ["Threat", "Injury"])])).toEqual({
+      temas: ["violencia", "medo"],
+      pais: "DE",
+    });
+  });
+
+  it("um país só com temas que não se encaixam passa para o próximo", () => {
+    expect(temasDoFilme([pais("BR", ["Negative examples"]), pais("NL", ["Fear"])])).toEqual({
+      temas: ["medo"],
+      pais: "NL",
+    });
+  });
+
+  it("outros países e listas vazias dão null", () => {
+    expect(temasDoFilme([pais("TR", ["Violence / Horror"]), pais("US", [])])).toBeNull();
+    expect(temasDoFilme([])).toBeNull();
+  });
+});
+
+describe("temasDaSerie", () => {
+  it("segue a mesma ordem de países", () => {
+    expect(
+      temasDaSerie([
+        { iso_3166_1: "US", descriptors: ["Violence"] },
+        { iso_3166_1: "DE", descriptors: ["Drugs"] },
+      ]),
+    ).toEqual({ temas: ["drogas"], pais: "DE" });
+    expect(temasDaSerie([{ iso_3166_1: "BR" }])).toBeNull();
   });
 });
