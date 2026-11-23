@@ -13,8 +13,7 @@ Fazer cada clique na área logada trocar a tela na hora e encurtar o tempo que o
 1. **Esqueleto imediato.** Toda rota de `(app)` passa a ter um `loading.tsx`, com um esqueleto no formato da tela de destino. O clique troca a URL e mostra o esqueleto sem esperar o servidor; o conteúdo entra quando chega.
 2. **Sessão sem ida ao Auth.** O proxy e `obterUsuarioAtual` validam o JWT com `supabase.auth.getClaims()` em vez de `getUser()`.
 3. **Layout em paralelo.** O layout de `(app)` lê usuário e preferências ao mesmo tempo, em vez de um depois do outro.
-
-A busca pelo `<Form>` de `next/form` chegou a ser implementada e foi desfeita por um diagnóstico errado: ver "Fora do escopo".
+4. **Busca sem recarregar.** A busca do header e as de `/busca` usam `<Form>` de `next/form`: buscar é uma navegação do cliente, não um recarregamento do documento.
 
 ## Por quê
 
@@ -58,6 +57,8 @@ A Vercel roda em `iad1` e o Supabase em `us-east-1`, então a distância entre o
 | Layout de `(app)` | `Promise.all([exigirUsuario(), obterPreferencias()])`: a consulta de preferências não depende do id (a RLS filtra pelo JWT) |
 | Pré-carregamento | Links de navegação (header, botões do topo, wizard) ficam com o padrão do Next: com `loading.tsx`, pré-carregam até o esqueleto quando aparecem na tela. Os cartões de filme e série (`CartaoFilme`) usam `LinkComIntencao`, que só pré-carrega com mouse em cima, toque ou foco (padrão "Hover-triggered prefetch" do guia de prefetching do Next 16), para não disparar dezenas de renderizações no servidor a cada visita ao dashboard |
 | Cache do roteador depois de mudar sessão ou preferências | Com `loading.tsx`, o layout de `(app)` entra no pré-carregamento e fica no cache do cliente, inclusive quando ele redireciona. Foi a causa dos 25 E2E vermelhos: durante o onboarding, o link "Início" do header pré-carregava `/dashboard`, cujo layout ainda mandava para `/onboarding` (sem preferências). Depois de concluir, a navegação reaproveitava esse layout e a tela ficava num loop `/dashboard` ↔ `/onboarding`, vazia. As actions que mudam o que o layout checa (`salvarPreferencias`, `entrar`, `cadastrar` e `sair`) chamam `revalidatePath("/", "layout")` antes do `redirect`, o que limpa o cache do cliente (doc do `revalidatePath`, "Revalidating all data"). As actions do perfil já faziam isso |
+| Busca do header e da página | `<Form action="/busca">` de `next/form` no header e nos dois formulários de `/busca` (por nome e por filtros), com os mesmos campos. Sem JavaScript, continua sendo um formulário GET comum. Chegou a ser desfeita (`783d420`) por um diagnóstico errado: as falhas da busca no E2E vinham do loop da linha acima, e com ele corrigido a troca volta |
+| Campos depois da navegação | Com a navegação pelo cliente, a página de busca não remonta e o `defaultValue` manteria a busca anterior. Cada formulário de `/busca` recebe uma `key` com o texto ou os filtros atuais, para remontar quando a URL muda |
 
 ## Banco de dados
 
@@ -72,11 +73,11 @@ Nenhuma mudança.
 5. O cartão de filme e série não pré-carrega só por aparecer na tela; com mouse em cima, toque ou foco, volta ao pré-carregamento padrão. *Teste:* `tests/unit/components/link-com-intencao.test.tsx`.
 6. Concluir o onboarding, entrar, cadastrar e sair limpam o cache do roteador antes de redirecionar, para nenhum layout pré-carregado com a situação anterior ser reaproveitado. *Teste:* `tests/unit/features/preferencias/actions.test.ts` e `tests/unit/features/auth/actions.test.ts`; o fluxo completo é coberto pelos E2E que passam pelo onboarding.
 7. O layout de `(app)` começa a ler as preferências antes de o usuário terminar de carregar e manda para `/onboarding` quem não tem preferências. *Teste:* `tests/unit/app/layout-app.test.tsx`.
-8. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
+8. Buscar pelo header leva a `/busca?q=...` sem recarregar o documento. *Teste:* `tests/e2e/busca.spec.ts` marca o `window` antes da busca e confere que a marca continua lá depois.
+9. Buscar de novo já estando em `/busca` mostra nos campos da página a busca nova, não a anterior. *Teste:* `tests/unit/features/busca/formularios-busca.test.tsx` e `tests/e2e/busca.spec.ts`.
+10. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
 
 ## Fora do escopo
-
-- **Busca sem recarregar (`next/form`), desfeita por um diagnóstico errado.** O commit `2e7a6cb` trocou o `<form method="get">` do header e de `/busca` pelo `<Form>` do Next, e o commit `783d420` desfez a troca porque 3 testes de `tests/e2e/busca.spec.ts` falharam no CI. O log tinha sido lido pela metade: foram 25 falhas, quase todas esperando o dashboard sair do esqueleto, por causa do loop de redirecionamento descrito na decisão "Cache do roteador depois de mudar sessão ou preferências". Uma reprodução mínima com o mesmo Next 16.4.6 não mostrou problema no `<Form>`. Com o CI verde, a busca com `next/form` pode voltar num commit próprio.
 
 - Cache Components / Partial Prerendering (`cacheComponents`): mudaria o modelo de renderização de todas as páginas, o que é uma refatoração ampla demais para a véspera da entrega.
 - Mudar a região da Vercel ou do Supabase: os dois já estão na mesma região.
