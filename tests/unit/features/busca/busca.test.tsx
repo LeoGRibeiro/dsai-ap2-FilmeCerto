@@ -6,12 +6,18 @@ import { AbasTipo } from "@/features/busca/components/formularios-busca";
 import { Paginacao } from "@/features/busca/components/paginacao";
 import { ResultadosBusca } from "@/features/busca/components/resultados-busca";
 import { filtrosParaDescoberta, lerBusca, parametrosDaBusca } from "@/features/busca/parametros";
-import { buscarFilmes, descobrirFilmes } from "@/lib/tmdb/filmes";
-import { buscarSeries } from "@/lib/tmdb/series";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
+import { buscarFilmes, classificacaoFilme, descobrirFilmes } from "@/lib/tmdb/filmes";
+import { buscarSeries, classificacaoSerie } from "@/lib/tmdb/series";
 import type { FilmeResumo, Pagina } from "@/lib/tmdb/tipos";
 
-vi.mock("@/lib/tmdb/filmes", () => ({ buscarFilmes: vi.fn(), descobrirFilmes: vi.fn() }));
-vi.mock("@/lib/tmdb/series", () => ({ buscarSeries: vi.fn() }));
+vi.mock("@/lib/tmdb/filmes", () => ({
+  buscarFilmes: vi.fn(),
+  descobrirFilmes: vi.fn(),
+  classificacaoFilme: vi.fn(),
+}));
+vi.mock("@/lib/tmdb/series", () => ({ buscarSeries: vi.fn(), classificacaoSerie: vi.fn() }));
+vi.mock("@/features/filtro-conteudo/consultas", () => ({ obterFiltro: vi.fn(async () => null) }));
 
 function filme(id: number): FilmeResumo {
   return {
@@ -250,6 +256,43 @@ describe("BuscaPage", () => {
       "href",
       "/filme/1",
     );
+  });
+
+  it("sem filtro, a busca por nome não consulta classificação", async () => {
+    vi.mocked(buscarFilmes).mockResolvedValueOnce(pagina([filme(1), filme(2)], 2));
+    await abrir({ q: "matrix" });
+    expect(classificacaoFilme).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Matrix 2 (1999)" })).toBeInTheDocument();
+  });
+
+  it("com filtro, o filme +18 some da busca por nome; o sem classificação fica", async () => {
+    vi.mocked(obterFiltro).mockResolvedValueOnce("14");
+    vi.mocked(buscarFilmes).mockResolvedValueOnce(pagina([filme(1), filme(2), filme(3)], 3));
+    vi.mocked(classificacaoFilme).mockImplementation(async (id) =>
+      id === 2 ? "18" : id === 3 ? null : "16",
+    );
+    await abrir({ q: "matrix" });
+
+    expect(screen.getByRole("link", { name: "Matrix 1 (1999)" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Matrix 2 (1999)" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Matrix 3 (1999)" })).toBeInTheDocument();
+  });
+
+  it("com filtro, a série +18 também some, e a busca por filtros vai até 16", async () => {
+    vi.mocked(obterFiltro).mockResolvedValue("10");
+    vi.mocked(buscarSeries).mockResolvedValueOnce(pagina([filme(7), filme(8)], 2));
+    vi.mocked(classificacaoSerie).mockImplementation(async (id) => (id === 7 ? "18" : "12"));
+    const { unmount } = await abrir({ q: "dark", tipo: "serie" });
+    expect(screen.queryByRole("link", { name: "Matrix 7 (1999), série" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Matrix 8 (1999), série" })).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(descobrirFilmes).mockResolvedValueOnce(pagina([filme(1)], 1));
+    await abrir({ modo: "filtros" });
+    expect(descobrirFilmes).toHaveBeenCalledWith(
+      expect.objectContaining({ classificacaoMax: "16" }),
+    );
+    vi.mocked(obterFiltro).mockResolvedValue(null);
   });
 
   it("o título da aba é Buscar sem texto e Busca: {texto} com ele", async () => {

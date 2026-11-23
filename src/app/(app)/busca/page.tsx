@@ -13,6 +13,9 @@ import {
   MIN_TEXTO,
   parametrosDaBusca,
 } from "@/features/busca/parametros";
+import { descobrirComFiltro } from "@/features/filtro-conteudo/aplicar";
+import { semBloqueadosDoTmdb } from "@/features/filtro-conteudo/classificar";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import { buscarFilmes, descobrirFilmes } from "@/lib/tmdb/filmes";
 import { buscarSeries } from "@/lib/tmdb/series";
 
@@ -27,13 +30,21 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
   const busca = lerBusca(await searchParams);
   const { modo, tipo, texto, pagina, filtros } = busca;
   const buscarPorNome = tipo === "serie" ? buscarSeries : buscarFilmes;
+  const filtro = await obterFiltro();
 
-  const resultado =
+  // Com filtro por idade, nada +18: a descoberta já vem filtrada pelo TMDB, e a busca por nome
+  // confere título a título (a página pode vir com menos itens).
+  const porNome = modo === "nome" && texto.length >= MIN_TEXTO;
+  const bruto =
     modo === "filtros"
-      ? await descobrirFilmes(filtrosParaDescoberta(filtros, pagina))
-      : texto.length >= MIN_TEXTO
+      ? await descobrirComFiltro(descobrirFilmes, filtro)(filtrosParaDescoberta(filtros, pagina))
+      : porNome
         ? await buscarPorNome(texto, pagina)
         : null;
+  const resultado =
+    bruto && porNome
+      ? { ...bruto, itens: await semBloqueadosDoTmdb(bruto.itens, filtro, tipo) }
+      : bruto;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10">

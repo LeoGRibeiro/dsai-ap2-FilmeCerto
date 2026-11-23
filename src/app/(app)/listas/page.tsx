@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import { classificarMidia } from "@/features/filtro-conteudo/classificar";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import { lerAba } from "@/features/listas/aba";
 import { AbasListas } from "@/features/listas/components/abas-listas";
 import { GradeFilmes } from "@/features/listas/components/grade-filmes";
@@ -10,7 +13,17 @@ export const metadata: Metadata = { title: "Minhas listas" };
 
 export default async function ListasPage({ searchParams }: PageProps<"/listas">) {
   const aba = lerAba((await searchParams).aba);
-  const itens = await obterItensLista(undefined, ["filme", "serie"]);
+  const [todos, filtro] = await Promise.all([
+    obterItensLista(undefined, ["filme", "serie"]),
+    obterFiltro(),
+  ]);
+  // Com filtro por idade, o +18 some da lista e da contagem, sem ser apagado.
+  const itens = await semBloqueados(
+    todos,
+    filtro,
+    ({ tipo, tmdbId }) => ({ tipo, tmdbId }),
+    classificarMidia,
+  );
   const daAba = itens.filter((item) => item.status === STATUS_DA_ABA[aba]);
 
   return (
