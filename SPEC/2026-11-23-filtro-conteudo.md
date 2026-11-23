@@ -2,8 +2,9 @@
 
 - **Data:** 2026-11-23
 - **Componente:** filtro-conteudo (perfil, recomendações, busca, listas e páginas de filme e série)
-- **Status:** aprovada para implementação, com pergunta ao cliente na issue #38
-- **Substitui:** nenhuma. **Amplia** o escopo da [visão geral](2026-11-17-visao-geral-ap2.md): a funcionalidade não está no pedido do cliente
+- **Status:** aprovada para implementação
+- **Substitui:** nenhuma
+- **Pedido:** novo pedido do cliente, feito depois das seções 3.1 a 3.6 do [pedido original](../docs/ap2/pedido-do-cliente.md), que já foram entregues
 - **Issue:** #38
 
 ## O quê
@@ -20,21 +21,16 @@ O filtro nasce **desligado** para todo mundo. Desligado, o app se comporta exata
 
 ## Por quê
 
+- **O cliente pediu** um filtro de conteúdo sensível: a pessoa liga o filtro, ou ele segue a idade de quem usa a conta, e o que passa do limite (+16, +18) é bloqueado, sai das recomendações ou aparece com as fotos borradas, em vários níveis.
 - [Pedido do cliente, seção 3.2](../docs/ap2/pedido-do-cliente.md#32-wizard-o-que-ver-hoje-a-principal), "Regras de recomendação": *"Família com crianças precisa respeitar a classificação etária"*. Hoje isso só vale dentro do wizard e só quando a resposta é "Família com crianças". Uma conta usada por um adolescente, ou um celular passado para uma criança, recebe qualquer título no dashboard, no "Me surpreenda" e na busca, com pôster, fundo e miniatura do trailer.
 - [Seção 1](../docs/ap2/pedido-do-cliente.md#1-a-visão-o-norte-de-qualquer-mudança), o filtro **"Ajuda a decidir mais rápido?"**: um título que passa do limite seria recusado de qualquer jeito. Tirá-lo da frente economiza trocas no wizard ("Esse não") e rolagem no dashboard, sem mostrar um filme a mais.
 - [Seção 1](../docs/ap2/pedido-do-cliente.md#o-que-não-queremos), "O que não queremos": *"Respostas do wizard virando preferência permanente"*. O filtro **não** sai das respostas do wizard. A pessoa o configura no perfil, de propósito. A resposta "Família com crianças" continua valendo só para aquela noite.
 
-## Pergunta para o cliente (`pergunta-cliente`, issue #38)
+## Padrões
 
-O filtro de conteúdo sensível está de acordo com o "ajuda a decidir mais rápido"? Vocês preferem outros níveis ou outro padrão?
-
-**Decisão conservadora enquanto não há resposta:**
-
-- o filtro nasce **desligado**. Quem não mexer nele não vê nenhuma mudança, nem faz chamada a mais ao TMDB;
-- ligado, um título **sem classificação conhecida conta como acima do limite** (é o mesmo critério do "Família com crianças" hoje);
-- nada do filtro entra nos eventos de métricas.
-
-Se o cliente não quiser o filtro, basta tirar a seção do `/perfil`. Sem linha na tabela, todas as telas voltam ao comportamento de hoje.
+- O filtro nasce **desligado**. Quem não mexer nele não vê nenhuma mudança, nem faz chamada a mais ao TMDB, e quem já tem conta continua como está.
+- Ligado, um título **sem classificação conhecida conta como acima do limite** (é o mesmo critério do "Família com crianças" hoje).
+- Nada do filtro entra nos eventos de métricas.
 
 ## Configuração
 
