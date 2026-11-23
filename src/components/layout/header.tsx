@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import Form from "next/form";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -34,7 +35,8 @@ export async function Header() {
 
         {usuario ? (
           <div className="text-muted-foreground flex items-center gap-3 text-sm">
-            <form action="/busca" method="get" role="search" className="relative hidden sm:block">
+            {/* `Form` do Next: buscar navega pelo cliente, sem recarregar a página. */}
+            <Form action="/busca" role="search" className="relative hidden sm:block">
               <Search
                 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
                 aria-hidden="true"
@@ -46,7 +48,7 @@ export async function Header() {
                 placeholder="Buscar filmes e séries"
                 className="h-9 w-44 pl-8 lg:w-64"
               />
-            </form>
+            </Form>
             <Link
               href="/busca"
               aria-label="Buscar filmes e séries"
