@@ -97,7 +97,9 @@ test("busca por filtros mantém os campos e mostra os filmes do gênero", async 
   await main.getByLabel("Ordenar por").selectOption({ label: "Mais bem avaliados" });
   await main.getByRole("button", { name: "Aplicar filtros" }).click();
 
-  await expect(page).toHaveURL(/modo=filtros/);
+  // A página já está em /busca?modo=filtros: espera a URL com o filtro, porque a busca agora
+  // navega pelo cliente e o Playwright não espera um recarregamento.
+  await expect(page).toHaveURL(/modo=filtros.*genero=27/);
   const url = new URL(page.url());
   expect(url.searchParams.get("genero")).toBe("27");
   expect(url.searchParams.get("duracao")).toBe("curta");
