@@ -13,7 +13,7 @@ import {
   trailerDe,
   validar,
 } from "@/lib/tmdb/comum";
-import { CACHE_CLASSIFICACAO, classificacaoDoFilme, temasDoFilme } from "@/lib/tmdb/classificacao";
+import { CACHE_CLASSIFICACAO, classificacaoDoFilme } from "@/lib/tmdb/classificacao";
 import {
   datasLancamentoTmdb,
   detalhesTmdb,
@@ -70,7 +70,6 @@ function paraDetalhes(filme: DetalhesTmdb): FilmeDetalhes {
     ondeAssistir: ondeAssistirDe(filme["watch/providers"]),
     parecidos: (filme.recommendations?.results ?? []).map(paraResumo),
     classificacao: classificacaoDoFilme(filme.release_dates.results),
-    temas: temasDoFilme(filme.release_dates.results),
   };
 }
 

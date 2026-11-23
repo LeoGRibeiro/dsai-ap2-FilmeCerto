@@ -110,11 +110,7 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
       "16",
       null,
     ]);
-    expect(await filmes.obterFilme(500021)).toMatchObject({
-      classificacao: "18",
-      temas: { temas: ["violencia", "medo"], pais: "BR" },
-    });
-    expect((await filmes.obterFilme(500022))?.temas).toEqual({ temas: ["linguagem"], pais: "NL" });
+    expect((await filmes.obterFilme(500021))?.classificacao).toBe("18");
     expect(await series.classificacaoSerie(1399)).toBe("12");
   });
 

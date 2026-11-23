@@ -1,6 +1,6 @@
 import "server-only";
 
-import { CACHE_CLASSIFICACAO, classificacaoDaSerie, temasDaSerie } from "@/lib/tmdb/classificacao";
+import { CACHE_CLASSIFICACAO, classificacaoDaSerie } from "@/lib/tmdb/classificacao";
 import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
 import {
   anoDe,
@@ -89,7 +89,6 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     elenco: elencoDe(serie.credits),
     criacao: serie.created_by.map((pessoa) => pessoa.name),
     classificacao: classificacaoDaSerie(serie.content_ratings.results),
-    temas: temasDaSerie(serie.content_ratings.results),
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
     situacao: serie.status,
     proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,

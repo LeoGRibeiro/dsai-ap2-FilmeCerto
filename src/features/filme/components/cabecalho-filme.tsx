@@ -3,8 +3,6 @@ import type { ReactNode } from "react";
 
 import { formatarDuracao, formatarNota } from "@/features/filme/formatar";
 import { SeloClassificacao } from "@/features/filtro-conteudo/components/selo-classificacao";
-import { listaDeTemas, origemDosTemas } from "@/features/filtro-conteudo/temas";
-import type { TemasClassificacao } from "@/lib/tmdb/classificacao";
 import { urlImagem } from "@/lib/tmdb/imagens";
 import type { ClassificacaoBR, FilmeDetalhes } from "@/lib/tmdb/tipos";
 
@@ -23,15 +21,12 @@ export function Cabecalho({
   titulo: filme,
   dados: itens,
   classificacao = null,
-  temas = null,
   aviso,
   acoes,
 }: {
   titulo: DadosCabecalho;
   dados: (string | null)[];
   classificacao?: ClassificacaoBR | null;
-  /** Por que tem essa classificação: "Temas: violência, medo". */
-  temas?: TemasClassificacao | null;
   aviso?: string | null;
   acoes?: ReactNode;
 }) {
@@ -80,12 +75,6 @@ export function Cabecalho({
               </li>
             )}
           </ul>
-          {temas && (
-            <p data-testid="temas-classificacao" className="text-muted-foreground text-sm">
-              Temas: {listaDeTemas(temas)}
-              {origemDosTemas(temas) && <span className="text-xs"> ({origemDosTemas(temas)})</span>}
-            </p>
-          )}
           {aviso && <p className="text-sm font-medium">{aviso}</p>}
           {filme.generos.length > 0 && (
             <ul aria-label="Gêneros" className="flex flex-wrap gap-2">
@@ -121,7 +110,6 @@ export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?:
         formatarNota(filme.nota, filme.votos),
       ]}
       classificacao={filme.classificacao}
-      temas={filme.temas}
       acoes={acoes}
     />
   );

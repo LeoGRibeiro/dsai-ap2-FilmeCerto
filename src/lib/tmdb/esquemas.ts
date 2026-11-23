@@ -115,15 +115,7 @@ export const datasLancamentoTmdb = z
     results: z.array(
       z.object({
         iso_3166_1: z.string(),
-        release_dates: z
-          .array(
-            z.object({
-              certification: z.string().default(""),
-              /** Temas da classificação, em inglês; quase sempre vazio. */
-              descriptors: z.array(z.string()).default([]),
-            }),
-          )
-          .default([]),
+        release_dates: z.array(z.object({ certification: z.string().default("") })).default([]),
       }),
     ),
   })
@@ -131,15 +123,7 @@ export const datasLancamentoTmdb = z
 
 /** `/tv/{id}/content_ratings`: uma classificação por país. */
 export const classificacoesSerieTmdb = z
-  .object({
-    results: z.array(
-      z.object({
-        iso_3166_1: z.string(),
-        rating: z.string(),
-        descriptors: z.array(z.string()).default([]),
-      }),
-    ),
-  })
+  .object({ results: z.array(z.object({ iso_3166_1: z.string(), rating: z.string() })) })
   .default({ results: [] });
 
 export const detalhesTmdb = z.object({

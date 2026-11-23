@@ -214,30 +214,6 @@ describe("obterFilme", () => {
   });
 });
 
-describe("temas no obterFilme", () => {
-  it("traz os temas do Brasil traduzidos; sem nenhum, null", async () => {
-    const comTemas = montar(
-      detalhesTmdb({
-        release_dates: {
-          results: [
-            {
-              iso_3166_1: "BR",
-              release_dates: [{ certification: "18", descriptors: ["Extreme Violence", "Fear"] }],
-            },
-          ],
-        },
-      }),
-    );
-    expect((await comTemas.api.obterFilme(951491))?.temas).toEqual({
-      temas: ["violencia", "medo"],
-      pais: "BR",
-    });
-
-    const semTemas = montar(detalhesTmdb());
-    expect((await semTemas.api.obterFilme(550))?.temas).toBeNull();
-  });
-});
-
 describe("classificacaoFilme", () => {
   it("lê as datas de lançamento, com cache de 7 dias, e fica com a mais alta do Brasil", async () => {
     const { api, fetchFalso } = montar({
