@@ -13,7 +13,8 @@ Fazer cada clique na área logada trocar a tela na hora e encurtar o tempo que o
 1. **Esqueleto imediato.** Toda rota de `(app)` passa a ter um `loading.tsx`, com um esqueleto no formato da tela de destino. O clique troca a URL e mostra o esqueleto sem esperar o servidor; o conteúdo entra quando chega.
 2. **Sessão sem ida ao Auth.** O proxy e `obterUsuarioAtual` validam o JWT com `supabase.auth.getClaims()` em vez de `getUser()`.
 3. **Layout em paralelo.** O layout de `(app)` lê usuário e preferências ao mesmo tempo, em vez de um depois do outro.
-4. **Busca sem recarregar.** A busca do header e as de `/busca` usam `<Form>` de `next/form`: buscar é uma navegação do cliente, não um recarregamento do documento.
+
+A busca pelo `<Form>` de `next/form` chegou a ser implementada e foi desfeita: ver "Fora do escopo".
 
 ## Por quê
 
@@ -55,8 +56,6 @@ A Vercel roda em `iad1` e o Supabase em `us-east-1`, então a distância entre o
 | Sessão revogada | Com `getClaims()`, uma sessão encerrada em outro aparelho só deixa de valer para as páginas quando o access token vence (1 h, padrão do Supabase). A RLS do banco continua exigindo um JWT válido em toda consulta, e as actions recusam na hora |
 | Projeto com segredo simétrico | Se o projeto voltar para HS256, o `getClaims()` faz a ida ao Auth sozinho (igual ao `getUser()`): fica mais lento, não inseguro |
 | Layout de `(app)` | `Promise.all([exigirUsuario(), obterPreferencias()])`: a consulta de preferências não depende do id (a RLS filtra pelo JWT) |
-| Busca do header e da página | `<Form action="/busca">` de `next/form` no header e nos dois formulários de `/busca` (por nome e por filtros), com os mesmos campos. Sem JavaScript, continua sendo um formulário GET comum |
-| Campos depois da navegação | Com a navegação pelo cliente, a página de busca não remonta e o `defaultValue` manteria a busca anterior. Cada formulário de `/busca` recebe uma `key` com o texto ou os filtros atuais, para remontar quando a URL muda |
 | Pré-carregamento | Sem mudar o `prefetch` dos links: o padrão do Next, com `loading.tsx`, pré-carrega só até o esqueleto, sem rodar o TMDB das páginas |
 
 ## Banco de dados
@@ -70,11 +69,11 @@ Nenhuma mudança.
 3. O proxy reconhece o usuário pelo `getClaims()` e não chama `getUser()`. Sem claims, o usuário é `null` e o proxy manda para o login. *Teste:* `tests/unit/lib/supabase/middleware.test.ts`.
 4. `obterUsuarioAtual` devolve `id`, `email` e `nome` a partir das claims e de `perfis`, sem chamar `getUser()`; sem claims, devolve `null`. *Teste:* `tests/unit/features/auth/sessao.test.ts`.
 5. O layout de `(app)` começa a ler as preferências antes de o usuário terminar de carregar e manda para `/onboarding` quem não tem preferências. *Teste:* `tests/unit/app/layout-app.test.tsx`.
-6. Buscar pelo header leva a `/busca?q=...` sem recarregar o documento. *Teste:* `tests/e2e/busca.spec.ts` marca o `window` antes da busca e confere que a marca continua lá depois.
-7. Buscar de novo já estando em `/busca` mostra nos campos da página a busca nova, não a anterior. *Teste:* `tests/unit/features/busca/formularios-busca.test.tsx` e `tests/e2e/busca.spec.ts`.
-8. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
+6. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
 
 ## Fora do escopo
+
+- **Busca sem recarregar (`next/form`), tentada e desfeita.** Trocar o `<form method="get">` do header e de `/busca` pelo `<Form>` do Next (commit `2e7a6cb`) fez 3 testes de `tests/e2e/busca.spec.ts` falharem no CI, nas duas tentativas: a URL mudava para `/busca?q=...`, mas o conteúdo da busca não aparecia. Uma reprodução mínima com o mesmo Next 16.4.6 (layout com `<Form>`, grupo com `loading.tsx`, `generateMetadata` e proxy) não mostrou o problema, e sem Docker não dá para rodar o E2E na máquina do Leonardo. O commit `783d420` desfez a mudança; a busca continua recarregando a página até a causa ser achada. Quem retomar: rodar o E2E da busca localmente com o trace do Playwright ligado.
 
 - Cache Components / Partial Prerendering (`cacheComponents`): mudaria o modelo de renderização de todas as páginas, o que é uma refatoração ampla demais para a véspera da entrega.
 - Mudar a região da Vercel ou do Supabase: os dois já estão na mesma região.
