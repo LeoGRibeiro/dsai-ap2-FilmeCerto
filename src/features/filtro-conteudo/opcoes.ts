@@ -1,54 +1,47 @@
-import type { Database } from "@/lib/supabase/database.types";
 import type { ClassificacaoBR } from "@/lib/tmdb/tipos";
 
-/** Filtro de conteúdo sensível (SPEC/2026-11-23-filtro-conteudo.md). Pode ser usado no navegador. */
+/** Filtro por idade (SPEC/2026-11-23-filtro-idade.md). Pode ser usado no navegador. */
 
-/** Limites que dá para escolher. Sem 18: um limite de 18 é o mesmo que o filtro desligado. */
-export const LIMITES = ["L", "10", "12", "14", "16"] as const satisfies readonly ClassificacaoBR[];
+/** As opções ligadas. "18" é "Sem conteúdo +18": de L a 16 fica normal. */
+export const LIMITES = ["10", "14", "18"] as const satisfies readonly ClassificacaoBR[];
 export type LimiteFiltro = (typeof LIMITES)[number];
 
-export const MODOS = ["avisar", "ocultar", "bloquear"] as const satisfies readonly ModoFiltro[];
-export type ModoFiltro = Database["public"]["Enums"]["modo_filtro_conteudo"];
+/** O filtro da conta: o limite escolhido, ou `null` em "Sem filtro" (sem linha no banco). */
+export type FiltroConteudo = LimiteFiltro | null;
 
-/** O filtro ligado; `null` quando está desligado (sem linha no banco). */
-export type FiltroConteudo = { limite: LimiteFiltro; modo: ModoFiltro };
+/** Com qualquer filtro ligado, o que pode ser recomendado: até 16, porque o 18 é bloqueado. */
+export const LIMITE_COM_FILTRO: ClassificacaoBR = "16";
 
-export const ROTULOS_LIMITE: Record<LimiteFiltro, string> = {
-  L: "Livre",
-  "10": "Até 10 anos",
-  "12": "Até 12 anos",
-  "14": "Até 14 anos",
-  "16": "Até 16 anos",
+/** Valor do formulário para "Sem filtro". */
+export const SEM_FILTRO = "sem";
+
+export type OpcaoFiltro = {
+  valor: LimiteFiltro | typeof SEM_FILTRO;
+  rotulo: string;
+  descricao: string;
 };
 
-export const ROTULOS_MODO: Record<ModoFiltro, { rotulo: string; descricao: string }> = {
-  avisar: {
-    rotulo: "Avisar",
-    descricao: "Aparece com as imagens borradas e a classificação. Um toque mostra.",
+export const OPCOES_FILTRO: readonly OpcaoFiltro[] = [
+  {
+    valor: SEM_FILTRO,
+    rotulo: "Sem filtro",
+    descricao: "Todos os títulos aparecem normalmente.",
   },
-  ocultar: {
-    rotulo: "Ocultar",
-    descricao: "Some das recomendações. Na busca e nas suas listas, aparece borrado.",
+  {
+    valor: "10",
+    rotulo: "Até 10 anos",
+    descricao: "Títulos de 12 a 16 anos abrem com um aviso. Títulos +18 ficam bloqueados.",
   },
-  bloquear: {
-    rotulo: "Bloquear",
-    descricao: "Some também da busca, e a página do título fica bloqueada.",
+  {
+    valor: "14",
+    rotulo: "Até 14 anos",
+    descricao: "Títulos de 16 anos abrem com um aviso. Títulos +18 ficam bloqueados.",
   },
-};
-
-export type FaixaIdade = { id: string; rotulo: string; filtro: FiltroConteudo | null };
-
-/**
- * "Quem usa esta conta?": cada faixa só preenche o formulário; a idade nunca é guardada.
- * A classificação diz "não recomendado para menores de X", então quem tem X anos vê X.
- */
-export const FAIXAS_IDADE: readonly FaixaIdade[] = [
-  { id: "adulto", rotulo: "Adulto", filtro: null },
-  { id: "16-17", rotulo: "16 ou 17 anos", filtro: { limite: "16", modo: "ocultar" } },
-  { id: "14-15", rotulo: "14 ou 15 anos", filtro: { limite: "14", modo: "ocultar" } },
-  { id: "12-13", rotulo: "12 ou 13 anos", filtro: { limite: "12", modo: "bloquear" } },
-  { id: "10-11", rotulo: "10 ou 11 anos", filtro: { limite: "10", modo: "bloquear" } },
-  { id: "ate-9", rotulo: "Até 9 anos", filtro: { limite: "L", modo: "bloquear" } },
+  {
+    valor: "18",
+    rotulo: "Sem conteúdo +18",
+    descricao: "Títulos +18 ficam bloqueados em todo o app.",
+  },
 ];
 
 export function ehLimite(valor: unknown): valor is LimiteFiltro {

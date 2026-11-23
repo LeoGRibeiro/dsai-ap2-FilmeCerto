@@ -1,49 +1,40 @@
-import type { FiltroConteudo, ModoFiltro } from "@/features/filtro-conteudo/opcoes";
+import { LIMITE_COM_FILTRO, type FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import { ateAClassificacao, CLASSIFICACOES_BR } from "@/lib/tmdb/classificacao";
 import type { ClassificacaoBR } from "@/lib/tmdb/tipos";
 
-/** Onde o título aparece: cada tela trata de um jeito o que passa do limite. */
-export type Tela = "recomendacao" | "busca" | "lista" | "pagina";
+/**
+ * - `normal`: o título aparece como sempre.
+ * - `aviso`: aparece, e a página dele abre com a faixa "Não recomendado para menores de X".
+ * - `bloqueado`: +18 com filtro; não aparece em lugar nenhum e a página não mostra nada dele.
+ */
+export type Tratamento = "normal" | "aviso" | "bloqueado";
 
 /**
- * - `borrado`: imagens borradas, selo e "Mostrar"; `borrado-fixo`: sem "Mostrar".
- * - `oculto`: o título sai da tela.
- * - `aviso`: a página abre com "Ver mesmo assim"; `bloqueado`: a página não mostra o conteúdo.
+ * Como tratar um título com esta classificação. Sem filtro, sempre `normal`; com filtro, 18 é
+ * bloqueado e acima do limite ou sem classificação dá aviso (nunca bloqueio).
  */
-export type Tratamento = "normal" | "borrado" | "borrado-fixo" | "oculto" | "aviso" | "bloqueado";
-
-/** A tabela "Tratamento por tela" da spec. */
-const TRATAMENTOS: Record<Tela, Record<ModoFiltro, Tratamento>> = {
-  recomendacao: { avisar: "borrado", ocultar: "oculto", bloquear: "oculto" },
-  busca: { avisar: "borrado", ocultar: "borrado", bloquear: "oculto" },
-  lista: { avisar: "borrado", ocultar: "borrado", bloquear: "borrado-fixo" },
-  pagina: { avisar: "borrado", ocultar: "aviso", bloquear: "bloqueado" },
-};
-
-/** Passa do limite: classificação acima dele ou desconhecida (`null`). */
-export function acimaDoLimite(
-  classificacao: ClassificacaoBR | null | undefined,
-  limite: ClassificacaoBR,
-): boolean {
-  return !ateAClassificacao(classificacao, limite);
-}
-
-/** Como mostrar um título nesta tela. Com o filtro desligado, sempre `normal`. */
 export function tratamento(
-  tela: Tela,
   classificacao: ClassificacaoBR | null | undefined,
-  filtro: FiltroConteudo | null,
+  filtro: FiltroConteudo,
 ): Tratamento {
-  if (!filtro || !acimaDoLimite(classificacao, filtro.limite)) return "normal";
-  return TRATAMENTOS[tela][filtro.modo];
+  if (!filtro) return "normal";
+  if (classificacao === "18") return "bloqueado";
+  return ateAClassificacao(classificacao, filtro) ? "normal" : "aviso";
 }
 
-/** O limite que tira títulos das recomendações: só com Ocultar ou Bloquear. */
-export function limiteDasRecomendacoes(filtro: FiltroConteudo | null): ClassificacaoBR | null {
-  return filtro && filtro.modo !== "avisar" ? filtro.limite : null;
+export function bloqueado(
+  classificacao: ClassificacaoBR | null | undefined,
+  filtro: FiltroConteudo,
+): boolean {
+  return tratamento(classificacao, filtro) === "bloqueado";
 }
 
-/** O menor dos limites dados (família, filtro, a outra pessoa da sala); `null` sem nenhum. */
+/** O limite que vai para as recomendações (`classificacaoMax`): `null` sem filtro. */
+export function limiteDasRecomendacoes(filtro: FiltroConteudo): ClassificacaoBR | null {
+  return filtro ? LIMITE_COM_FILTRO : null;
+}
+
+/** O menor dos limites dados (família, filtro); `null` sem nenhum. */
 export function limiteMaisRestrito(
   ...limites: (ClassificacaoBR | null | undefined)[]
 ): ClassificacaoBR | null {

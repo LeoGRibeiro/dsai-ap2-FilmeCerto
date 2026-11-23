@@ -99,23 +99,20 @@ export type Database = {
       filtros_conteudo: {
         Row: {
           atualizado_em: string;
-          classificacao_max: string;
           criado_em: string;
-          modo: Database["public"]["Enums"]["modo_filtro_conteudo"];
+          limite: string;
           usuario_id: string;
         };
         Insert: {
           atualizado_em?: string;
-          classificacao_max: string;
           criado_em?: string;
-          modo: Database["public"]["Enums"]["modo_filtro_conteudo"];
+          limite: string;
           usuario_id?: string;
         };
         Update: {
           atualizado_em?: string;
-          classificacao_max?: string;
           criado_em?: string;
-          modo?: Database["public"]["Enums"]["modo_filtro_conteudo"];
+          limite?: string;
           usuario_id?: string;
         };
         Relationships: [];
@@ -296,6 +293,10 @@ export type Database = {
         Args: { p_sala: string };
         Returns: string;
       };
+      filtro_na_sala_noite: {
+        Args: { p_sala: string };
+        Returns: boolean;
+      };
       metricas_climas: {
         Args: never;
         Returns: {
@@ -345,7 +346,6 @@ export type Database = {
     Enums: {
       duracao_preferida: "curta" | "media" | "longa" | "indiferente";
       frequencia_assistir: "raramente" | "mensal" | "semanal" | "diaria";
-      modo_filtro_conteudo: "avisar" | "ocultar" | "bloquear";
       reacao_filme: "nao-gostei" | "gostei" | "amei";
       status_lista: "quero_assistir" | "assistido";
       tipo_midia: "filme" | "serie";
@@ -462,7 +462,6 @@ export const Constants = {
     Enums: {
       duracao_preferida: ["curta", "media", "longa", "indiferente"],
       frequencia_assistir: ["raramente", "mensal", "semanal", "diaria"],
-      modo_filtro_conteudo: ["avisar", "ocultar", "bloquear"],
       reacao_filme: ["nao-gostei", "gostei", "amei"],
       status_lista: ["quero_assistir", "assistido"],
       tipo_midia: ["filme", "serie"],
