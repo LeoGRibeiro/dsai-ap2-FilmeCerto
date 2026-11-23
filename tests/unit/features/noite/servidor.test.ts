@@ -115,6 +115,7 @@ describe("obterNoite", () => {
       direcao: [],
       ondeAssistir: null,
       parecidos: [],
+      classificacao: null,
     }));
 
     const resultado = await obterNoite(respostas, ESTADO_INICIAL, {

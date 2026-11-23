@@ -61,6 +61,7 @@ function daNoite(id: number): FilmeDaNoite {
     direcao: ["Diretora"],
     ondeAssistir: null,
     parecidos: [],
+    classificacao: null,
   };
   return { filme, provedor: NETFLIX, motivo: MOTIVO };
 }

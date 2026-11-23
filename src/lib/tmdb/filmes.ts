@@ -13,8 +13,16 @@ import {
   trailerDe,
   validar,
 } from "@/lib/tmdb/comum";
-import { detalhesTmdb, filmeTmdb, type DetalhesTmdb, type FilmeTmdb } from "@/lib/tmdb/esquemas";
+import { CACHE_CLASSIFICACAO, classificacaoDoFilme } from "@/lib/tmdb/classificacao";
+import {
+  datasLancamentoTmdb,
+  detalhesTmdb,
+  filmeTmdb,
+  type DetalhesTmdb,
+  type FilmeTmdb,
+} from "@/lib/tmdb/esquemas";
 import type {
+  ClassificacaoBR,
   FilmeDetalhes,
   FilmeResumo,
   FiltrosDescoberta,
@@ -61,6 +69,7 @@ function paraDetalhes(filme: DetalhesTmdb): FilmeDetalhes {
     direcao: filme.credits.crew.filter((p) => p.job === "Director").map((p) => p.name),
     ondeAssistir: ondeAssistirDe(filme["watch/providers"]),
     parecidos: (filme.recommendations?.results ?? []).map(paraResumo),
+    classificacao: classificacaoDoFilme(filme.release_dates.results),
   };
 }
 
@@ -84,11 +93,20 @@ export function criarApiFilmes(cliente: ClienteTmdb) {
       return nuloSe404(async () => {
         const dados = await cliente.requisitar(
           `/movie/${id}`,
-          { append_to_response: "videos,credits,watch/providers,recommendations" },
+          { append_to_response: "videos,credits,watch/providers,recommendations,release_dates" },
           CACHE_FILME,
         );
         return paraDetalhes(validar(detalhesTmdb, dados));
       });
+    },
+
+    /**
+     * Só a classificação (`/movie/{id}/release_dates`), para tirar o +18 de uma lista. Lança se
+     * o TMDB falhar ou o filme não existir: quem chama decide o que fazer na dúvida.
+     */
+    async classificacaoFilme(id: number): Promise<ClassificacaoBR | null> {
+      const dados = await cliente.requisitar(`/movie/${id}/release_dates`, {}, CACHE_CLASSIFICACAO);
+      return classificacaoDoFilme(validar(datasLancamentoTmdb, dados).results);
     },
 
     async recomendacoesDe(id: number, pagina = 1): Promise<Pagina<FilmeResumo>> {
@@ -123,4 +141,6 @@ export const descobrirFilmes: ApiFilmes["descobrirFilmes"] = (...args) =>
 export const obterFilme: ApiFilmes["obterFilme"] = (...args) => api().obterFilme(...args);
 export const recomendacoesDe: ApiFilmes["recomendacoesDe"] = (...args) =>
   api().recomendacoesDe(...args);
+export const classificacaoFilme: ApiFilmes["classificacaoFilme"] = (...args) =>
+  api().classificacaoFilme(...args);
 export const buscarFilmes: ApiFilmes["buscarFilmes"] = (...args) => api().buscarFilmes(...args);

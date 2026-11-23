@@ -46,6 +46,7 @@ function detalhes(sobrescrever: Partial<FilmeDetalhes> = {}): FilmeDetalhes {
     direcao: ["David Fincher"],
     ondeAssistir: null,
     parecidos: [],
+    classificacao: null,
     ...sobrescrever,
   };
 }

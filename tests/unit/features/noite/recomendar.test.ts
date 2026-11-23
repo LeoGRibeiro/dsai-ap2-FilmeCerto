@@ -47,6 +47,7 @@ function detalhes(id: number): FilmeDetalhes {
     direcao: [],
     ondeAssistir: { link: "", assinatura: [NETFLIX], aluguel: [], compra: [] },
     parecidos: [],
+    classificacao: null,
   };
 }
 

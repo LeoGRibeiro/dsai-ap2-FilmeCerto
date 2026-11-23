@@ -104,6 +104,7 @@ function apiFalsa(falhar = false): ApiNoite {
       direcao: [],
       ondeAssistir: null,
       parecidos: [],
+      classificacao: null,
     })),
   };
 }

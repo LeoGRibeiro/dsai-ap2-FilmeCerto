@@ -146,14 +146,23 @@ describe("obterSerie", () => {
     expect((await nenhuma.api.obterSerie(1399))?.duracaoEpisodioMin).toBeNull();
   });
 
-  it("classificação sem o Brasil ou fora da lista vira null", async () => {
+  it("sem a classificação do Brasil, usa a dos EUA convertida", async () => {
     const semBrasil = montar(
-      detalhesSerieTmdb({ content_ratings: { results: [{ iso_3166_1: "US", rating: "TV-14" }] } }),
+      detalhesSerieTmdb({ content_ratings: { results: [{ iso_3166_1: "US", rating: "TV-MA" }] } }),
     );
-    expect((await semBrasil.api.obterSerie(1399))?.classificacao).toBeNull();
+    expect((await semBrasil.api.obterSerie(1399))?.classificacao).toBe("16");
+  });
 
+  it("classificação fora das tabelas, ou só de outro país, vira null", async () => {
     const desconhecida = montar(
-      detalhesSerieTmdb({ content_ratings: { results: [{ iso_3166_1: "BR", rating: "ER" }] } }),
+      detalhesSerieTmdb({
+        content_ratings: {
+          results: [
+            { iso_3166_1: "BR", rating: "ER" },
+            { iso_3166_1: "DE", rating: "16" },
+          ],
+        },
+      }),
     );
     expect((await desconhecida.api.obterSerie(1399))?.classificacao).toBeNull();
   });
@@ -302,5 +311,27 @@ describe("buscarSeries", () => {
       totalResultados: 0,
     });
     expect(fetchFalso).not.toHaveBeenCalled();
+  });
+});
+
+describe("classificacaoSerie", () => {
+  it("lê content_ratings, com cache de 7 dias, e usa a do Brasil", async () => {
+    const { api, fetchFalso } = montar({
+      id: 1399,
+      results: [
+        { iso_3166_1: "US", rating: "TV-MA" },
+        { iso_3166_1: "BR", rating: "18" },
+      ],
+    });
+
+    expect(await api.classificacaoSerie(1399)).toBe("18");
+    const { url, revalidate } = chamada(fetchFalso);
+    expect(url.pathname).toBe("/3/tv/1399/content_ratings");
+    expect(revalidate).toBe(7 * 24 * 3600);
+  });
+
+  it("sem o Brasil, converte a dos EUA", async () => {
+    const { api } = montar({ results: [{ iso_3166_1: "US", rating: "TV-Y7" }] });
+    expect(await api.classificacaoSerie(1)).toBe("10");
   });
 });
