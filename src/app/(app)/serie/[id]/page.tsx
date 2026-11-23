@@ -8,6 +8,13 @@ import { AcoesTitulo, Secao, Sinopse, Voltar } from "@/features/filme/components
 import { Trailer } from "@/features/filme/components/trailer";
 import { tituloComAno } from "@/features/filme/formatar";
 import { buscaPorId } from "@/features/filme/ler-id";
+import { AvisoClassificacao } from "@/features/filtro-conteudo/components/aviso-classificacao";
+import {
+  TITULO_BLOQUEADO,
+  TituloBloqueado,
+} from "@/features/filtro-conteudo/components/titulo-bloqueado";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
+import { bloqueado, tratamento } from "@/features/filtro-conteudo/regras";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { obterReacao } from "@/features/reacoes/consultas";
 import { diaEmSaoPaulo } from "@/features/recomendacao/semente";
@@ -19,13 +26,17 @@ import { obterSerie } from "@/lib/tmdb/series";
 const buscarSerie = buscaPorId(obterSerie);
 
 export async function generateMetadata({ params }: PageProps<"/serie/[id]">): Promise<Metadata> {
-  const serie = await buscarSerie((await params).id);
-  return { title: serie ? tituloComAno(serie) : "Série não encontrada" };
+  const [serie, filtro] = await Promise.all([buscarSerie((await params).id), obterFiltro()]);
+  if (!serie) return { title: "Série não encontrada" };
+  if (bloqueado(serie.classificacao, filtro)) return { title: TITULO_BLOQUEADO };
+  return { title: tituloComAno(serie) };
 }
 
 export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
-  const serie = await buscarSerie((await params).id);
+  const [serie, filtro] = await Promise.all([buscarSerie((await params).id), obterFiltro()]);
   if (!serie) notFound();
+  const comoMostrar = tratamento(serie.classificacao, filtro);
+  if (comoMostrar === "bloqueado") return <TituloBloqueado />;
   const midia: Midia = { tipo: "serie", tmdbId: serie.id };
   const [reacao, statusLista] = await Promise.all([obterReacao(midia), obterStatusLista(midia)]);
 
@@ -33,9 +44,12 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
       <Voltar />
 
+      {comoMostrar === "aviso" && <AvisoClassificacao classificacao={serie.classificacao} />}
+
       <Cabecalho
         titulo={serie}
         dados={dadosDaSerie(serie)}
+        classificacao={serie.classificacao}
         aviso={proximoEpisodio(serie, diaEmSaoPaulo(new Date()))}
         acoes={<AcoesTitulo midia={midia} reacao={reacao} statusLista={statusLista} />}
       />

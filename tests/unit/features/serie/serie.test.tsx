@@ -58,13 +58,12 @@ describe("formatar da série", () => {
     expect(rotuloClassificacao(classificacao)).toBe(rotulo);
   });
 
-  it("dadosDaSerie mostra ano, temporadas, situação, episódio, classificação e nota", () => {
+  it("dadosDaSerie mostra ano, temporadas, situação, episódio e nota (o selo vem à parte)", () => {
     expect(dadosDaSerie(serie())).toEqual([
       "2011",
       "2 temporadas",
       "Encerrada",
       "Episódios de 57min",
-      "16 anos",
       "★ 8.5 (25.000 votos)",
     ]);
   });
@@ -81,7 +80,7 @@ describe("formatar da série", () => {
           classificacao: null,
         }),
       ),
-    ).toEqual([null, "1 temporada", null, null, null, "★ 8.5 (25.000 votos)"]);
+    ).toEqual([null, "1 temporada", null, null, "★ 8.5 (25.000 votos)"]);
     expect(dadosDaSerie(serie({ temporadas: [], duracaoEpisodioMin: 75 }))[1]).toBeNull();
     expect(dadosDaSerie(serie({ duracaoEpisodioMin: 75 }))[3]).toBe("Episódios de 1h 15min");
   });
