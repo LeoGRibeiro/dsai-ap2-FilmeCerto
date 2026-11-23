@@ -45,6 +45,28 @@ O TMDB guarda a classificação por país: `release_dates` nos filmes e `content
 
 Uma classificação deduzida dos EUA só bloqueia com NC-17. R e TV-MA viram 16 (aviso), porque muitos desses títulos são 16 no Brasil, e bloquear de vez por uma conversão aproximada esconderia o que não precisa. Valores fora da tabela (`NR`, vazio) são ignorados.
 
+## Temas da classificação
+
+Ao lado do selo, a página do filme ou da série mostra **por que** o título tem aquela classificação, quando o TMDB sabe: "Temas: violência, medo". A faixa de aviso repete os temas. Com ou sem filtro, como o selo.
+
+O TMDB traz os temas no campo `descriptors`, que vem junto da classificação na mesma resposta dos detalhes (`release_dates` e `content_ratings`), então não há chamada a mais. Numa amostra de 23/11 com 8 filmes e 3 séries conhecidos, só 1 filme tinha os temas do Brasil; com os da Holanda e da Alemanha, 6 dos 8 filmes tinham algum. Nenhuma das séries tinha. Por isso:
+
+1. os temas **do Brasil**, quando houver;
+2. sem eles, os **da Holanda** e, sem estes, os **da Alemanha**, com a nota "segundo a classificação da Holanda" (ou "da Alemanha"), porque são os temas da classificação daquele país, que pode ser outra que a do selo;
+3. sem nenhum, nada aparece.
+
+Os temas vêm em inglês e com vocabulário diferente em cada país. Eles são traduzidos para uma lista curta, por palavra-chave, sem repetir e nesta ordem; o que não se encaixa ("Negative examples", "Not recommended for young children") é ignorado.
+
+| Tema | Palavras-chave (em qualquer parte do texto, sem diferenciar maiúsculas) |
+|---|---|
+| Violência | violen, gory, gore, injur, blood |
+| Medo | fear, horror, threat, anxiety, frighten, scar |
+| Sexo | sex, nudity |
+| Drogas | drug, alcohol, smok |
+| Linguagem imprópria | language, profan |
+| Conteúdo impactante | shock, disturb |
+| Discriminação | discrimin |
+
 ## Decisões técnicas
 
 | Tema | Decisão |
@@ -61,6 +83,7 @@ Uma classificação deduzida dos EUA só bloqueia com NC-17. R e TV-MA viram 16 
 | Noite a dois | A função nova `filtro_na_sala_noite(p_sala)` (`security definer`) diz só se **algum** dos dois participantes tem filtro, sem dizer qual. Se tiver, o resultado da sala usa o limite 16. Quem não participa da sala recebe `false` |
 | "Como foi?" | Se o título escolhido for +18 e a conta tiver filtro, a pergunta não aparece |
 | Página bloqueada | Conferida no servidor, antes de montar qualquer coisa: o `generateMetadata` e a página leem a mesma busca. A resposta não traz nome, pôster, fundo, trailer, elenco nem parecidos. Status 200 com a tela de bloqueio, para não parecer erro do app |
+| Temas | `temasDoFilme` e `temasDaSerie` (puras, em `src/lib/tmdb/classificacao.ts`) devolvem `{ temas, pais }` ou `null`. `FilmeDetalhes` e `SerieDetalhes` ganham `temas` (opcional, como `situacao`, para quem monta detalhes à mão). A página bloqueada não mostra os temas |
 | Selo | Componente `SeloClassificacao`, com as cores da classificação indicativa (Livre verde, 10 azul, 12 amarelo, 14 laranja, 16 vermelho, 18 preto) e o texto "Classificação: 14 anos" para leitores de tela. Na série, substitui o "12 anos" em texto da linha de dados. Sem classificação, nada aparece |
 | Formulário | Quatro opções num `radiogroup`, cada uma com uma linha explicando o efeito, e "Salvar". Funciona sem JavaScript, como os outros formulários do perfil |
 | Revalidação | Salvar revalida `/perfil`, `/dashboard`, `/busca`, `/listas` e o layout de `/filme` e `/serie` |
@@ -96,7 +119,8 @@ src/features/filtro-conteudo/
 7. **Páginas** (unitários dos componentes): o selo mostra a classificação e o texto para leitor de tela; a faixa de aviso aparece para quem está acima do limite e para quem não tem classificação; a tela de bloqueio não tem o nome nem imagem.
 8. **Integração nas telas** (unitários das funções de cada tela): motor, "Me surpreenda", wizard e noite a dois pedem `classificacaoMax: "16"` com filtro e não pedem sem ele; parecidos, busca, séries do dashboard e listas tiram o 18.
 9. **E2E** (`tests/e2e/filtro-conteudo.spec.ts`, em 390x844): o selo aparece na página do filme; com "Até 10 anos", a página de um filme 14 abre com o aviso; a de um filme 18, pelo link direto, mostra o bloqueio sem o título; o filme 18 não aparece na busca; com "Sem filtro", tudo volta.
-10. `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm check:secrets` sem erros, e o CI verde.
+10. **Temas** (`tests/unit/lib/tmdb/classificacao.test.ts` e unitários dos componentes): os do Brasil ganham dos da Holanda e da Alemanha; cada linha da tabela de palavras-chave; sem repetir; o que não se encaixa é ignorado; sem temas, `null`. Na página, "Temas: violência, medo" e a nota do país quando não é o Brasil; a faixa de aviso repete os temas.
+11. `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm check:secrets` sem erros, e o CI verde.
 
 ## Fora do escopo
 
