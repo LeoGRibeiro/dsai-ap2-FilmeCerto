@@ -56,7 +56,7 @@ A Vercel roda em `iad1` e o Supabase em `us-east-1`, então a distância entre o
 | Sessão revogada | Com `getClaims()`, uma sessão encerrada em outro aparelho só deixa de valer para as páginas quando o access token vence (1 h, padrão do Supabase). A RLS do banco continua exigindo um JWT válido em toda consulta, e as actions recusam na hora |
 | Projeto com segredo simétrico | Se o projeto voltar para HS256, o `getClaims()` faz a ida ao Auth sozinho (igual ao `getUser()`): fica mais lento, não inseguro |
 | Layout de `(app)` | `Promise.all([exigirUsuario(), obterPreferencias()])`: a consulta de preferências não depende do id (a RLS filtra pelo JWT) |
-| Pré-carregamento | Sem mudar o `prefetch` dos links: o padrão do Next, com `loading.tsx`, pré-carrega só até o esqueleto, sem rodar o TMDB das páginas |
+| Pré-carregamento | Links de navegação (header, botões do topo, wizard) ficam com o padrão do Next: com `loading.tsx`, pré-carregam até o esqueleto quando aparecem na tela. Os cartões de filme e série (`CartaoFilme`) usam `LinkComIntencao`, que só pré-carrega com mouse em cima, toque ou foco (padrão "Hover-triggered prefetch" do guia de prefetching do Next 16). Motivo: no primeiro CI desta branch, com todos os cartões pré-carregando, cada visita ao dashboard disparava dezenas de renderizações no servidor e a navegação de verdade ficava na fila; 25 testes E2E falharam esperando o dashboard sair do esqueleto |
 
 ## Banco de dados
 
@@ -68,8 +68,9 @@ Nenhuma mudança.
 2. Cada `loading.tsx` mostra um esqueleto com `role="status"` e o texto "Carregando" para leitor de tela. *Teste:* `tests/unit/app/loading.test.tsx`.
 3. O proxy reconhece o usuário pelo `getClaims()` e não chama `getUser()`. Sem claims, o usuário é `null` e o proxy manda para o login. *Teste:* `tests/unit/lib/supabase/middleware.test.ts`.
 4. `obterUsuarioAtual` devolve `id`, `email` e `nome` a partir das claims e de `perfis`, sem chamar `getUser()`; sem claims, devolve `null`. *Teste:* `tests/unit/features/auth/sessao.test.ts`.
-5. O layout de `(app)` começa a ler as preferências antes de o usuário terminar de carregar e manda para `/onboarding` quem não tem preferências. *Teste:* `tests/unit/app/layout-app.test.tsx`.
-6. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
+5. O cartão de filme e série não pré-carrega só por aparecer na tela; com mouse em cima, toque ou foco, volta ao pré-carregamento padrão. *Teste:* `tests/unit/components/link-com-intencao.test.tsx`.
+6. O layout de `(app)` começa a ler as preferências antes de o usuário terminar de carregar e manda para `/onboarding` quem não tem preferências. *Teste:* `tests/unit/app/layout-app.test.tsx`.
+7. Depois do deploy, a medição da issue #42 é refeita na produção: o clique troca a tela em menos de 100 ms quando o link já foi pré-carregado, e a requisição RSC de `/sobre` fica abaixo de 400 ms. O resultado vai num comentário da issue.
 
 ## Fora do escopo
 
