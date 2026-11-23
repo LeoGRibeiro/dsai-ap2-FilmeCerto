@@ -258,18 +258,22 @@ test.describe("Compartilhar a noite", () => {
 });
 
 test.describe("'Filme ou série?'", () => {
-  test("'Prefiro uma série' + 3 respostas mostram a série da noite, e 'Vou ver esse!' leva a ela", async ({
+  test("'Série' na primeira tela + 3 respostas mostram a série da noite, e 'Vou ver esse!' leva a ela", async ({
     page,
   }) => {
     await novaPessoa(page, "Vera Assis");
 
-    await main(page).getByRole("link", { name: "Prefiro uma série" }).click();
-    await expect(page).toHaveURL("/noite?tipo=serie");
+    // O dashboard só tem "O que ver hoje?"; a série é escolhida na primeira tela (issue #40).
+    await expect(main(page).getByRole("link", { name: "Prefiro uma série" })).toHaveCount(0);
+    await main(page).getByRole("link", { name: "O que ver hoje?" }).click();
     const tipo = main(page).getByRole("group", { name: "Filme ou série?" });
+    await expect(tipo.getByRole("link", { name: "Filme" })).toHaveAttribute("aria-current", "true");
+    await tipo.getByRole("link", { name: "Série" }).click();
+    await expect(page).toHaveURL("/noite?tipo=serie");
     await expect(tipo.getByRole("link", { name: "Série" })).toHaveAttribute("aria-current", "true");
     await responder(page, ["Cansado", "Rir", "A dois"]);
 
-    // 4 cliques: o do dashboard e as 3 respostas. Mesmo ID do filme 35020, outro título.
+    // 5 cliques: o do dashboard, "Série" e as 3 respostas. Mesmo ID do filme 35020, outro título.
     await expect(page).toHaveURL("/noite?tipo=serie&humor=cansado&exp=rir&com=a-dois");
     await expect(main(page).getByText("A série da sua noite")).toBeVisible();
     await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Série 35020");
@@ -294,9 +298,13 @@ test.describe("'Filme ou série?'", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await novaPessoa(page, "Wagner Paz");
 
-    const serie = main(page).getByRole("link", { name: "Prefiro uma série" });
-    await expect(serie).toBeInViewport();
-    await serie.click();
+    const botao = main(page).getByRole("link", { name: "O que ver hoje?" });
+    await expect(botao).toBeInViewport();
+    await botao.click();
+    await main(page)
+      .getByRole("group", { name: "Filme ou série?" })
+      .getByRole("link", { name: "Série" })
+      .click();
     await responder(page, ["De boa", "Ficar tenso", "Família com crianças"]);
 
     const vouVer = main(page).getByRole("button", { name: "Vou ver esse!" });

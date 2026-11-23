@@ -10,12 +10,10 @@ describe("BotaoNoite", () => {
     expect(screen.getByRole("link", { name: "O que ver hoje?" })).toHaveAttribute("href", "/noite");
   });
 
-  it("'Prefiro uma série' já responde 'Filme ou série?' no mesmo clique", () => {
+  it("é um link só: a série é escolhida na primeira tela do wizard", () => {
     render(<BotaoNoite />);
 
-    expect(screen.getByRole("link", { name: "Prefiro uma série" })).toHaveAttribute(
-      "href",
-      "/noite?tipo=serie",
-    );
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "Prefiro uma série" })).toBeNull();
   });
 });

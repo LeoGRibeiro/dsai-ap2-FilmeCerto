@@ -18,8 +18,9 @@ Projeto da disciplina **Desenvolvimento de Software Apoiado por IA** (UFPA, 2026
 O pedido dos clientes tem um filtro: cada mudança precisa ajudar a pessoa a **decidir mais rápido** o que ver hoje. Escopo e decisões gerais em [`SPEC/2026-11-17-visao-geral-ap2.md`](SPEC/2026-11-17-visao-geral-ap2.md).
 
 - **"O que ver hoje?"** (pedido 3.2 e 3.4): um botão no topo do início abre um wizard de três perguntas (humor, experiência e companhia), uma por tela. Em 4 cliques ele mostra um filme com o motivo, onde assistir, o trailer e a hora em que termina se começar agora. "Esse não" pede o motivo e troca a sugestão por outra que corrige esse motivo, com limite de trocas. Nada do wizard vira preferência: as respostas ficam só no endereço.
-- **"Até que horas?"**: um ajuste opcional no resultado que só sugere filmes que terminam até a hora escolhida, calculada no navegador.
-- **Filme ou série**: ao lado do botão, "Prefiro uma série" abre o mesmo wizard para séries (também em 4 cliques), com mapeamento próprio de gêneros de TV e a duração do episódio no resultado. Séries têm página própria (`/serie/[id]`), e reações e listas aceitam séries.
+- **"Até que horas?"**: um ajuste opcional no resultado que só sugere títulos que terminam a tempo. Dá para escolher um tempo a partir de agora (1h30 a 3h, com o horário de término ao lado) ou outro horário no seletor do celular. A conta é feita no navegador.
+- **Filme ou série**: ao lado do botão, "Prefiro uma série" abre o mesmo wizard para séries (também em 4 cliques), com mapeamento próprio de gêneros de TV e a duração do episódio no resultado. Séries têm página própria (`/serie/[id]`), com a situação da série, o tempo de cada temporada e a página de cada temporada com os episódios (`/serie/[id]/temporada/[n]`). Reações e listas aceitam séries, o início tem a seção "Séries para hoje à noite" e a busca por nome tem a aba "Séries".
+- **Acessibilidade do wizard**: navegação por teclado e foco levado para a etapa nova em "Esse não" e "Já vi".
 - **"Vou ver esse!" e "Como foi?"** (pedido 3.3): a escolha da noite fica registrada, e na volta ao app o início pergunta como foi. "Amei", "Gostei" ou "Não é pra mim" viram reação e marcam o título como "Já assisti", sem a pessoa precisar voltar à página do filme.
 - **Compartilhar**: depois da escolha, "Compartilhar" manda "Hoje vamos ver {título}, termina às {hora}" pela Web Share API ou pelo WhatsApp.
 - **Noite a dois** (pedido 3.6): "Vamos escolher juntos" cria uma sala com link; cada pessoa responde no próprio celular e o app sugere um filme que combine as duas respostas, com o motivo. A sala expira e as respostas não viram preferência.
@@ -28,24 +29,24 @@ O pedido dos clientes tem um filtro: cada mudança precisa ajudar a pessoa a **d
 
 ### Quanto código entrou
 
-`cloc --diff` contra a linha de base `4ac8b98` (10.643 linhas de código), sem Markdown, JSON, YAML, CSV, texto, SVG, lockfiles e `prompts/`. Medido em 19/11 numa cópia local com todos os PRs da AP2 (#16 a #29) mesclados na ordem:
+`cloc --diff` contra a linha de base `4ac8b98` (10.643 linhas de código), sem Markdown, JSON, YAML, CSV, texto, SVG, lockfiles e `prompts/`. Medido em 23/11 na `main` (`324ee55`, depois do PR #36):
 
 | Parte                           | Arquivos novos | Linhas novas | Linhas alteradas | Linhas removidas |
 | ------------------------------- | -------------: | -----------: | ---------------: | ---------------: |
-| Aplicação, migrations e scripts |             78 |        4.838 |              115 |              150 |
-| Testes (`tests/`)               |             58 |        6.442 |               18 |               33 |
-| **Total**                       |        **136** |   **11.280** |          **133** |          **183** |
+| Aplicação, migrations e scripts |             85 |        5.469 |              139 |              190 |
+| Testes (`tests/`)               |             62 |        7.527 |               25 |               33 |
+| **Total**                       |        **147** |   **12.996** |          **164** |          **223** |
 
-Comando (o executável do `cloc` 1.98 fora do repositório):
+Comando (o executável do `cloc` 1.98 fica fora do repositório):
 
 ```bash
-cloc --diff <base> <final> \
+cloc --git --diff 4ac8b98 HEAD \
   --exclude-dir=node_modules,vendor,dist,build,prompts \
   --exclude-lang=Markdown,JSON,YAML,CSV,Text,SVG \
   --not-match-f='(lock|\.min\.)'
 ```
 
-`<base>` e `<final>` são as árvores de `git archive 4ac8b98` e do resultado dos merges. O `cloc --git --diff` falha no Git Bash do Windows por causa do `tar`.
+A linha "Aplicação" acrescenta `tests` ao `--exclude-dir`, e a linha "Testes" acrescenta `--match-d='tests'`. No Windows, rode pelo PowerShell: no Git Bash, o `cloc --git` falha por causa do `tar`.
 
 Cada funcionalidade tem issue, spec commitada antes do código e PR aprovado pelo outro integrante. As regras de trabalho estão em [`AGENTS.md`](AGENTS.md), e o plano e o estado, em [`TASKS.md`](TASKS.md).
 
@@ -171,34 +172,37 @@ Cada parte do sistema começou por uma **spec**, commitada antes do código, com
 
 Na AP2, cada commit diz no trailer `Agent:` qual ferramenta gerou o código e no `Spec:` qual spec ele implementa. Os tokens de cada sessão estão em [`prompts/custos.md`](prompts/custos.md) (somados com `scripts/custo-sessao.mjs`, que inclui os subagentes).
 
-| Spec                                                                               | Componente                                           |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| [`2026-10-02-fundacao`](SPEC/2026-10-02-fundacao.md)                               | Base do projeto, CI, layout e atribuições            |
-| [`2026-10-02-auth`](SPEC/2026-10-02-auth.md)                                       | Cadastro, login, logout e proteção de rotas          |
-| [`2026-10-05-onboarding-preferencias`](SPEC/2026-10-05-onboarding-preferencias.md) | Primeira versão do passo a passo de preferências     |
-| [`2026-10-05-cliente-tmdb`](SPEC/2026-10-05-cliente-tmdb.md)                       | Cliente server-only da API do TMDB                   |
-| [`2026-10-05-motor-recomendacao`](SPEC/2026-10-05-motor-recomendacao.md)           | Motor de recomendação por seções                     |
-| [`2026-10-05-dashboard`](SPEC/2026-10-05-dashboard.md)                             | Seções de recomendações                              |
-| [`2026-10-05-detalhes-filme`](SPEC/2026-10-05-detalhes-filme.md)                   | Página do filme e onde assistir                      |
-| [`2026-10-05-reacoes`](SPEC/2026-10-05-reacoes.md)                                 | "Não é pra mim", "Gostei" e "Amei"                   |
-| [`2026-10-05-listas`](SPEC/2026-10-05-listas.md)                                   | "Quero assistir" e "Já assisti"                      |
-| [`2026-10-05-busca`](SPEC/2026-10-05-busca.md)                                     | Busca por nome e por filtros                         |
-| [`2026-10-05-perfil`](SPEC/2026-10-05-perfil.md)                                   | Edição de nome e preferências                        |
-| [`2026-10-05-me-surpreenda`](SPEC/2026-10-05-me-surpreenda.md)                     | Globo "Me surpreenda"                                |
-| [`2026-10-06-onboarding-assertivo`](SPEC/2026-10-06-onboarding-assertivo.md)       | Passo a passo de 7 perguntas e "Nos seus streamings" |
-| [`2026-10-06-interface`](SPEC/2026-10-06-interface.md)                             | Identidade visual e telas                            |
-| [`2026-10-13-mcp`](SPEC/2026-10-13-mcp.md)                                         | Servidor MCP e login OAuth para agentes              |
-| [`2026-11-17-visao-geral-ap2`](SPEC/2026-11-17-visao-geral-ap2.md)                 | AP2: escopo, prioridades e decisões gerais           |
-| [`2026-11-18-metricas`](SPEC/2026-11-18-metricas.md)                               | AP2: eventos de uso e página `/metricas`             |
-| [`2026-11-18-metricas-funil`](SPEC/2026-11-18-metricas-funil.md)                   | AP2: funil do wizard e detalhes no `/metricas`       |
-| [`2026-11-18-wizard-noite`](SPEC/2026-11-18-wizard-noite.md)                       | AP2: wizard "O que ver hoje?" e mapeamento           |
-| [`2026-11-18-como-foi`](SPEC/2026-11-18-como-foi.md)                               | AP2: "Vou ver esse!" e "Como foi?"                   |
-| [`2026-11-18-noite-ate-que-horas`](SPEC/2026-11-18-noite-ate-que-horas.md)         | AP2: "Até que horas?" no resultado                   |
-| [`2026-11-18-noite-compartilhar`](SPEC/2026-11-18-noite-compartilhar.md)           | AP2: compartilhar a noite escolhida                  |
-| [`2026-11-18-series-base`](SPEC/2026-11-18-series-base.md)                         | AP2: tipo filme/série no banco e cliente TMDB de TV  |
-| [`2026-11-18-series-pagina`](SPEC/2026-11-18-series-pagina.md)                     | AP2: página da série, reações e listas de séries     |
-| [`2026-11-18-series-noite`](SPEC/2026-11-18-series-noite.md)                       | AP2: séries no wizard e no "Como foi?"               |
-| [`2026-11-18-noite-a-dois`](SPEC/2026-11-18-noite-a-dois.md)                       | AP2: "Noite a dois", sala para escolher juntos       |
+| Spec                                                                                       | Componente                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [`2026-10-02-fundacao`](SPEC/2026-10-02-fundacao.md)                                       | Base do projeto, CI, layout e atribuições            |
+| [`2026-10-02-auth`](SPEC/2026-10-02-auth.md)                                               | Cadastro, login, logout e proteção de rotas          |
+| [`2026-10-05-onboarding-preferencias`](SPEC/2026-10-05-onboarding-preferencias.md)         | Primeira versão do passo a passo de preferências     |
+| [`2026-10-05-cliente-tmdb`](SPEC/2026-10-05-cliente-tmdb.md)                               | Cliente server-only da API do TMDB                   |
+| [`2026-10-05-motor-recomendacao`](SPEC/2026-10-05-motor-recomendacao.md)                   | Motor de recomendação por seções                     |
+| [`2026-10-05-dashboard`](SPEC/2026-10-05-dashboard.md)                                     | Seções de recomendações                              |
+| [`2026-10-05-detalhes-filme`](SPEC/2026-10-05-detalhes-filme.md)                           | Página do filme e onde assistir                      |
+| [`2026-10-05-reacoes`](SPEC/2026-10-05-reacoes.md)                                         | "Não é pra mim", "Gostei" e "Amei"                   |
+| [`2026-10-05-listas`](SPEC/2026-10-05-listas.md)                                           | "Quero assistir" e "Já assisti"                      |
+| [`2026-10-05-busca`](SPEC/2026-10-05-busca.md)                                             | Busca por nome e por filtros                         |
+| [`2026-10-05-perfil`](SPEC/2026-10-05-perfil.md)                                           | Edição de nome e preferências                        |
+| [`2026-10-05-me-surpreenda`](SPEC/2026-10-05-me-surpreenda.md)                             | Globo "Me surpreenda"                                |
+| [`2026-10-06-onboarding-assertivo`](SPEC/2026-10-06-onboarding-assertivo.md)               | Passo a passo de 7 perguntas e "Nos seus streamings" |
+| [`2026-10-06-interface`](SPEC/2026-10-06-interface.md)                                     | Identidade visual e telas                            |
+| [`2026-10-13-mcp`](SPEC/2026-10-13-mcp.md)                                                 | Servidor MCP e login OAuth para agentes              |
+| [`2026-11-17-visao-geral-ap2`](SPEC/2026-11-17-visao-geral-ap2.md)                         | AP2: escopo, prioridades e decisões gerais           |
+| [`2026-11-18-metricas`](SPEC/2026-11-18-metricas.md)                                       | AP2: eventos de uso e página `/metricas`             |
+| [`2026-11-18-metricas-funil`](SPEC/2026-11-18-metricas-funil.md)                           | AP2: funil do wizard e detalhes no `/metricas`       |
+| [`2026-11-18-wizard-noite`](SPEC/2026-11-18-wizard-noite.md)                               | AP2: wizard "O que ver hoje?" e mapeamento           |
+| [`2026-11-18-como-foi`](SPEC/2026-11-18-como-foi.md)                                       | AP2: "Vou ver esse!" e "Como foi?"                   |
+| [`2026-11-18-noite-ate-que-horas`](SPEC/2026-11-18-noite-ate-que-horas.md)                 | AP2: "Até que horas?" no resultado                   |
+| [`2026-11-18-noite-compartilhar`](SPEC/2026-11-18-noite-compartilhar.md)                   | AP2: compartilhar a noite escolhida                  |
+| [`2026-11-18-series-base`](SPEC/2026-11-18-series-base.md)                                 | AP2: tipo filme/série no banco e cliente TMDB de TV  |
+| [`2026-11-18-series-pagina`](SPEC/2026-11-18-series-pagina.md)                             | AP2: página da série, reações e listas de séries     |
+| [`2026-11-18-series-noite`](SPEC/2026-11-18-series-noite.md)                               | AP2: séries no wizard e no "Como foi?"               |
+| [`2026-11-18-noite-a-dois`](SPEC/2026-11-18-noite-a-dois.md)                               | AP2: "Noite a dois", sala para escolher juntos       |
+| [`2026-11-19-noite-tempo-disponivel`](SPEC/2026-11-19-noite-tempo-disponivel.md)           | AP2: "Até que horas?" relativo e com horário livre   |
+| [`2026-11-19-series-descoberta`](SPEC/2026-11-19-series-descoberta.md)                     | AP2: séries no início, na busca e episódios          |
+| [`2026-11-20-acessibilidade-wizard-noite`](SPEC/2026-11-20-acessibilidade-wizard-noite.md) | AP2: acessibilidade do wizard da noite               |
 
 ### Estrutura
 
