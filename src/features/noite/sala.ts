@@ -103,12 +103,20 @@ export async function montarResultado(
   const b = climaSchema.safeParse(linha.respostas_convidado);
   if (!a.success || !b.success) return { ok: false, mensagem: ERRO_BANCO };
 
+  // Se qualquer um dos dois tem filtro por idade, nada +18 (qualquer opção bloqueia o +18, e a
+  // sala não sabe qual é). Sem resposta do banco, vale o mais seguro: como se tivesse.
+  const comFiltro = await supabase.rpc("filtro_na_sala_noite", { p_sala: sala });
+  if (comFiltro.error) {
+    console.error("[noite-a-dois] filtro:", comFiltro.error.code, comFiltro.error.message);
+  }
+  const filtro = comFiltro.error || comFiltro.data ? "18" : null;
+
   let filmes: ResultadoSala["filmes"];
   try {
     const sugestao = await recomendarJuntos({
       a: a.data,
       b: b.data,
-      perfil: { generosEvitados: linha.evitados, streamings: linha.streamings },
+      perfil: { generosEvitados: linha.evitados, streamings: linha.streamings, filtro },
       excluir: linha.excluir,
       api,
     });

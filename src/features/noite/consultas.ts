@@ -1,5 +1,6 @@
 import "server-only";
 
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import type { Clima } from "@/features/metricas/eventos";
 import type { EstadoNoite } from "@/features/noite/estado";
 import {
@@ -42,7 +43,11 @@ export async function obterNoite(
   perfil: PerfilNoite,
 ): Promise<ResultadoNoite | null> {
   const supabase = await createClient();
-  const comum = { respostas, estado, perfil, excluir: await idsParaExcluir(supabase, estado.tipo) };
+  const [excluir, filtro] = await Promise.all([
+    idsParaExcluir(supabase, estado.tipo),
+    obterFiltro(supabase),
+  ]);
+  const comum = { respostas, estado, perfil: { ...perfil, filtro }, excluir };
   return estado.tipo === "serie"
     ? recomendarNoite({ ...comum, tipo: "serie", api: { descobrirSeries, obterSerie } })
     : recomendarNoite({ ...comum, api: { descobrirFilmes, obterFilme } });

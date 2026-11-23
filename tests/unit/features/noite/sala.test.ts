@@ -158,6 +158,28 @@ describe("montarResultado", () => {
     expect(rpc).not.toHaveBeenCalledWith("concluir_sala_noite", expect.anything());
   });
 
+  it.each([
+    ["algum dos dois tem filtro", { data: true }, "16"],
+    [
+      "a consulta do filtro falha (vale o mais seguro)",
+      { error: { code: "08006", message: "fora" } },
+      "16",
+    ],
+    ["ninguém tem filtro", { data: false }, undefined],
+  ])("quando %s, o limite da descoberta é %s", async (_, resposta, limite) => {
+    const api = apiFalsa();
+    const { cliente } = bancoFalso({
+      restricoes_sala_noite: restricoes,
+      filtro_na_sala_noite: resposta,
+      concluir_sala_noite: { data: true },
+    });
+
+    expect(await montarResultado(cliente, SALA, api)).toEqual({ ok: true });
+    for (const [filtros] of vi.mocked(api.descobrirFilmes).mock.calls) {
+      expect(filtros?.classificacaoMax).toBe(limite);
+    }
+  });
+
   it("sem as duas respostas (o resultado já foi gravado), não chama o TMDB", async () => {
     const api = apiFalsa();
     const { cliente, rpc } = bancoFalso({

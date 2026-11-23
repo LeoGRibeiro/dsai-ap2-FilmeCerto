@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import type { Clima } from "@/features/metricas/eventos";
 import { concluirNoite } from "@/features/noite/actions";
 import { idsParaExcluir, obterNoite } from "@/features/noite/consultas";
@@ -13,6 +14,7 @@ import { bancoEmMemoria } from "../../../support/banco-memoria";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/tmdb/filmes", () => ({ descobrirFilmes: vi.fn(), obterFilme: vi.fn() }));
 vi.mock("@/lib/tmdb/series", () => ({ descobrirSeries: vi.fn(), obterSerie: vi.fn() }));
+vi.mock("@/features/filtro-conteudo/consultas", () => ({ obterFiltro: vi.fn(async () => null) }));
 
 type Erro = { code: string; message: string } | null;
 type Linhas = { tmdb_id: number }[];
@@ -127,6 +129,21 @@ describe("obterNoite", () => {
     expect(resultado?.destaque.motivo).toBe(
       "Você está ansioso, quer pensar e vai ver sozinho: ficção científica, nota 8,0, não está nos seus streamings.",
     );
+    expect(descobrirFilmes).toHaveBeenCalledWith(
+      expect.not.objectContaining({ classificacaoMax: expect.anything() }),
+    );
+  });
+
+  it("com filtro por idade, a descoberta de filmes vai até 16", async () => {
+    logado({ id: "u-1" }, bancoFalso());
+    vi.mocked(obterFiltro).mockResolvedValueOnce("10");
+    vi.mocked(descobrirFilmes).mockClear();
+
+    await obterNoite(respostas, ESTADO_INICIAL, { generosEvitados: [], streamings: [] });
+
+    expect(descobrirFilmes).toHaveBeenCalledWith(
+      expect.objectContaining({ classificacaoMax: "16" }),
+    );
   });
 });
 
@@ -177,6 +194,30 @@ describe("obterNoite de série", () => {
       expect.objectContaining({ todosGeneros: [10765] }),
     );
     expect(descobrirFilmes).not.toHaveBeenCalled();
+  });
+
+  it("com filtro por idade, a série +18 não é recomendada", async () => {
+    logado({ id: "u-1" }, bancoFalso());
+    const original = vi.mocked(obterSerie).getMockImplementation()!;
+    vi.mocked(obterSerie).mockImplementation(async (id) => ({
+      ...(await original(id))!,
+      classificacao: id === 1 ? "18" : "14",
+    }));
+
+    const semFiltro = await obterNoite(
+      respostas,
+      { ...ESTADO_INICIAL, tipo: "serie" },
+      { generosEvitados: [], streamings: [] },
+    );
+    expect(semFiltro?.destaque.filme.id).toBe(1);
+
+    vi.mocked(obterFiltro).mockResolvedValueOnce("18");
+    const comFiltro = await obterNoite(
+      respostas,
+      { ...ESTADO_INICIAL, tipo: "serie" },
+      { generosEvitados: [], streamings: [] },
+    );
+    expect(comFiltro?.destaque.filme.id).toBe(2);
   });
 });
 
