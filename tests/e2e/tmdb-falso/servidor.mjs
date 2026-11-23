@@ -93,6 +93,27 @@ function anexos(tipo, id, trailer) {
   };
 }
 
+/**
+ * Classificação dos filmes (`release_dates`), pelo último dígito do ID: 1 é 18 e 2 é 14 no Brasil
+ * (com uma data sem classificação antes, como no TMDB); 3 só tem a dos EUA (R, que vira 16); os
+ * outros não têm nenhuma. Na busca "matrix", "matrix 1-2" é o 500021 (+18).
+ */
+function datasDeLancamento(id) {
+  const final = id % 10;
+  const brasil = { 1: "18", 2: "14" }[final];
+  return {
+    results: [
+      ...(brasil
+        ? [{ iso_3166_1: "BR", release_dates: [{ certification: "" }, { certification: brasil }] }]
+        : []),
+      ...(final === 3 ? [{ iso_3166_1: "US", release_dates: [{ certification: "R" }] }] : []),
+    ],
+  };
+}
+
+/** Classificação das séries (`content_ratings`): sempre 12 no Brasil. */
+const CLASSIFICACOES_SERIE = { results: [{ iso_3166_1: "BR", rating: "12" }] };
+
 /** Data em que nenhum teste vai chegar: episódio "ainda não exibido". */
 const DATA_FUTURA = "2099-12-12";
 
@@ -210,11 +231,23 @@ const servidor = createServer((req, res) => {
       tagline: "Um slogan de teste.",
       ...anexos("movie", id, "trailer-falso"),
       credits: { cast: ELENCO, crew: [{ name: "Diretora Teste", job: "Director" }] },
+      release_dates: datasDeLancamento(id),
       recommendations: pagina(
         Array.from({ length: 5 }, (_, i) => filme(id * 10 + i, `Parecido ${id}-${i + 1}`, 18, i)),
         1,
       ),
     });
+  }
+
+  const datas = url.pathname.match(/^\/3\/movie\/(\d+)\/release_dates$/);
+  if (datas) {
+    const id = Number(datas[1]);
+    return responder(res, 200, { id, ...datasDeLancamento(id) });
+  }
+
+  const classificacoesSerie = url.pathname.match(/^\/3\/tv\/(\d+)\/content_ratings$/);
+  if (classificacoesSerie) {
+    return responder(res, 200, { id: Number(classificacoesSerie[1]), ...CLASSIFICACOES_SERIE });
   }
 
   const recomendacoes = url.pathname.match(/^\/3\/movie\/(\d+)\/recommendations$/);
@@ -287,7 +320,7 @@ const servidor = createServer((req, res) => {
       created_by: [{ name: "Criadora Teste" }],
       ...anexos("tv", id, "trailer-serie-falso"),
       credits: { cast: ELENCO, crew: [] },
-      content_ratings: { results: [{ iso_3166_1: "BR", rating: "12" }] },
+      content_ratings: CLASSIFICACOES_SERIE,
       status: "Returning Series",
       next_episode_to_air: { air_date: DATA_FUTURA, runtime: null },
     });

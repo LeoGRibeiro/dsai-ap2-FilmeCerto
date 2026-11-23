@@ -102,6 +102,18 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
     expect(pagina.itens[0]).toMatchObject({ id: 500040, titulo: "matrix 2-1", generos: [878] });
   });
 
+  it("classificação: final 1 é 18, final 2 é 14, final 3 vem dos EUA (16), o resto não tem", async () => {
+    const ids = [500021, 500022, 500023, 500024];
+    expect(await Promise.all(ids.map((id) => filmes.classificacaoFilme(id)))).toEqual([
+      "18",
+      "14",
+      "16",
+      null,
+    ]);
+    expect((await filmes.obterFilme(500021))?.classificacao).toBe("18");
+    expect(await series.classificacaoSerie(1399)).toBe("12");
+  });
+
   it("o mesmo ID é um filme e uma série diferentes", async () => {
     const [filme, serie] = await Promise.all([filmes.obterFilme(1399), series.obterSerie(1399)]);
     expect(filme?.titulo).toBe("Filme 1399");
