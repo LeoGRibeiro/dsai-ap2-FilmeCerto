@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Cabecalho } from "@/features/filme/components/cabecalho-filme";
@@ -29,7 +29,7 @@ const buscarSerie = buscaPorId(obterSerie);
 
 export async function generateMetadata({ params }: PageProps<"/serie/[id]">): Promise<Metadata> {
   const [serie, filtro] = await Promise.all([buscarSerie((await params).id), obterFiltro()]);
-  if (!serie) return { title: "SÃ©rie nÃ£o encontrada" };
+  if (!serie) return { title: "Série não encontrada" };
   if (bloqueado(serie.classificacao, filtro)) return { title: TITULO_BLOQUEADO };
   return { title: tituloComAno(serie) };
 }

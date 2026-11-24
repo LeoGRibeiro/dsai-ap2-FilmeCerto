@@ -1,4 +1,4 @@
-﻿# Aviso de episódio novo
+# Aviso de episódio novo
 
 - Data: 2026-11-24
 - Componente: Séries / Notificações / Supabase
