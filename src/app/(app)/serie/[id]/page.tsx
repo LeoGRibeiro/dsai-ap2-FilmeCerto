@@ -65,7 +65,7 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
         }
       />
 
-      <Sinopse texto={serie.sinopse} rotulo="CriaÃ§Ã£o" nomes={serie.criacao} />
+      <Sinopse texto={serie.sinopse} rotulo="Criação" nomes={serie.criacao} />
 
       {serie.trailerYoutube && (
         <Secao titulo="Trailer">
