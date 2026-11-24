@@ -7,6 +7,8 @@ test("busca por nome pelo header, paginação, abrir filme e sem resultados", as
   await cadastrar(page, "Rui Tavares", emailAleatorio("e2e"));
   await concluirOnboarding(page);
 
+  // A marca no `window` some se a busca recarregar o documento (SPEC/2026-11-23-navegacao-rapida.md).
+  await page.evaluate(() => Object.assign(window, { semRecarregar: true }));
   const campo = page.getByRole("banner").getByRole("searchbox", { name: "Buscar filmes" });
   await campo.fill("matrix");
   await campo.press("Enter");
@@ -14,6 +16,7 @@ test("busca por nome pelo header, paginação, abrir filme e sem resultados", as
   await expect(page).toHaveURL("/busca?q=matrix");
   const main = page.getByRole("main");
   await expect(main.getByText("55 resultados para “matrix”")).toBeVisible();
+  expect(await page.evaluate(() => "semRecarregar" in window)).toBe(true);
   await expect(main.getByRole("listitem").first()).toBeVisible();
 
   await main.getByRole("link", { name: "Próxima" }).click();
@@ -59,6 +62,27 @@ test("busca por nome na aba Séries encontra séries e abre a página da série"
   await expect(main.getByText("Nenhuma série encontrada para “nada”.")).toBeVisible();
 });
 
+test("buscar de novo pelo header, já na busca, atualiza o campo da página sem recarregar", async ({
+  page,
+}) => {
+  await cadastrar(page, "Ivo Prates", emailAleatorio("e2e"));
+  await concluirOnboarding(page);
+
+  await page.goto("/busca?q=matrix");
+  const main = page.getByRole("main");
+  await expect(main.getByText("55 resultados para “matrix”")).toBeVisible();
+  await page.evaluate(() => Object.assign(window, { semRecarregar: true }));
+
+  const campo = page.getByRole("banner").getByRole("searchbox", { name: "Buscar filmes" });
+  await campo.fill("nada");
+  await campo.press("Enter");
+
+  await expect(page).toHaveURL("/busca?q=nada");
+  await expect(main.getByText("Nenhum filme encontrado para “nada”.")).toBeVisible();
+  await expect(main.getByRole("searchbox", { name: "Nome do filme" })).toHaveValue("nada");
+  expect(await page.evaluate(() => "semRecarregar" in window)).toBe(true);
+});
+
 test("busca por filtros mantém os campos e mostra os filmes do gênero", async ({ page }) => {
   await cadastrar(page, "Sara Moura", emailAleatorio("e2e"));
   await concluirOnboarding(page);
@@ -73,7 +97,9 @@ test("busca por filtros mantém os campos e mostra os filmes do gênero", async 
   await main.getByLabel("Ordenar por").selectOption({ label: "Mais bem avaliados" });
   await main.getByRole("button", { name: "Aplicar filtros" }).click();
 
-  await expect(page).toHaveURL(/modo=filtros/);
+  // A página já está em /busca?modo=filtros: espera a URL com o filtro, porque a busca agora
+  // navega pelo cliente e o Playwright não espera um recarregamento.
+  await expect(page).toHaveURL(/modo=filtros.*genero=27/);
   const url = new URL(page.url());
   expect(url.searchParams.get("genero")).toBe("27");
   expect(url.searchParams.get("duracao")).toBe("curta");

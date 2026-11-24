@@ -38,6 +38,8 @@
 - [x] **"Até que horas?" relativo (#31, PR #32, 19/11):** spec [2026-11-19-noite-tempo-disponivel.md](SPEC/2026-11-19-noite-tempo-disponivel.md). 1h30 a 3h a partir de agora e outro horário no seletor.
 - [x] **Acessibilidade do wizard (PR #36, Lucas, 20/11):** spec [2026-11-20-acessibilidade-wizard-noite.md](SPEC/2026-11-20-acessibilidade-wizard-noite.md). Foco no primeiro motivo do "Esse não" e no título do "Já vi".
 - [x] **Revisão do estado (23/11, branch `docs/entrega-24-11`):** issues #2 (perguntas ao cliente, respondidas com as decisões das specs) e #4 (medição, feita no PR #19) fechadas com comentário. README com o `cloc` de 23/11 e as specs novas, prazo corrigido para **24/11** no AGENTS.md e hook `commit-msg` lendo os trailers como o git.
+- [x] **Navegação lenta (#42, PR #43, 23/11, branch `fix/navegacao-rapida`):** spec [2026-11-23-navegacao-rapida.md](SPEC/2026-11-23-navegacao-rapida.md). Medido na produção: cada clique levava de 0,5 s a 1,8 s para trocar a tela, sem retorno visual. Causas: nenhuma rota de `(app)` tinha `loading.tsx` (o Next 16 não pré-carrega rota dinâmica sem ele), proxy e header chamavam `getUser()` (ida ao Auth) a cada requisição e a busca recarregava o documento. Correção: `loading.tsx` com esqueleto em todas as rotas, `getClaims()` no proxy e em `obterUsuarioAtual`, layout de `(app)` em paralelo, `next/form` nas buscas e cartões que só pré-carregam com intenção (mouse, toque ou foco). **Armadilha achada no E2E:** com `loading.tsx`, o layout de `(app)` pré-carregado fica no cache do cliente mesmo quando redireciona; sem limpar, o onboarding terminava num loop `/dashboard` ↔ `/onboarding`. Toda action que muda sessão ou preferências tem que chamar `revalidatePath("/", "layout")` antes do `redirect`. **Falta:** depois do merge, refazer a medição na produção e comentar na #42 (critério 10 da spec).
+- **Lição de processo (23/11):** `git revert --no-edit` não passa pelo hook `commit-msg` e gera commit sem trailers. Use `git revert --no-commit <sha>` e depois `git commit` com a mensagem e os trailers.
 
 ### Situação dos critérios em 23/11 (`main` em `324ee55`)
 
@@ -55,15 +57,17 @@
 
 ### Próximo passo (entrega em 24/11)
 
-1. **Lucas:** revisar e mesclar pelo terminal o PR da `docs/entrega-24-11`, com trailers na mensagem do merge (nunca pelo botão: os merges dos PRs #32, #35 e #36 saíram sem trailers).
-2. **Lucas, se der tempo:** trabalho real com a conta dele, em commits pequenos e com os trailers no último parágrafo. Cada commit dele melhora a parcela de autoria.
-3. **No fim:** `/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+1. **Lucas:** revisar e mesclar pelo terminal os PRs abertos (#41 e #43; o #39 ainda é rascunho), com trailers na mensagem do merge (nunca pelo botão: os merges dos PRs #32, #35 e #36 saíram sem trailers).
+2. **Depois do merge do #43:** medir de novo na produção, com a sessão logada no navegador, o tempo do clique até a tela trocar (`/listas`, `/dashboard`, `/noite` e as respostas do wizard) e o tempo da requisição RSC de `/sobre`. Meta da spec (critério 10): menos de 100 ms com o link pré-carregado e `/sobre` abaixo de 400 ms. Comentar o resultado na #42.
+3. **Lucas, se der tempo:** trabalho real com a conta dele, em commits pequenos e com os trailers no último parágrafo. Cada commit dele melhora a parcela de autoria.
+4. **No fim:** `/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
 
 ### Pendente de configuração manual
 
 - [ ] Confirmar no Supabase, em Authentication > URL Configuration: Site URL `https://dsai-ap2-filme-certo.vercel.app` e Redirect URLs `https://dsai-ap2-filme-certo.vercel.app/**`.
 - [ ] Liberar o `/metricas` para o Lucas e os clientes: a pessoa cria conta no site e alguém roda no SQL Editor:
       `insert into public.equipe_metricas (usuario_id) select id from auth.users where email = '<e-mail>' on conflict do nothing;`
+- [ ] Previews da Vercel quebrados: o ambiente **Preview** não tem `NEXT_PUBLIC_SUPABASE_URL` nem `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (o preview do PR #43 deu `EnvError` em 23/11). Para testar um PR antes do merge, copiar as variáveis de Production para Preview no painel da Vercel.
 - [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`). Em 23/11, `supabase migration list --linked` mostrou as 10 migrations aplicadas.
 
 ## Plano até a entrega

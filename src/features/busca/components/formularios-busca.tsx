@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import Form from "next/form";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,14 @@ export function AbasTipo({ ativa, texto }: { ativa: TipoMidia; texto: string }) 
 
 export function FormularioNome({ texto, tipo = "filme" }: { texto: string; tipo?: TipoMidia }) {
   return (
-    <form action="/busca" method="get" role="search" className="flex flex-wrap items-end gap-3">
+    // A chave remonta os campos quando a busca muda pelo header: com a navegação pelo
+    // cliente, o `defaultValue` sozinho manteria o texto da busca anterior.
+    <Form
+      key={`${tipo}:${texto}`}
+      action="/busca"
+      role="search"
+      className="flex flex-wrap items-end gap-3"
+    >
       {tipo === "serie" && <input type="hidden" name="tipo" value="serie" />}
       <div className="flex min-w-48 flex-1 flex-col gap-2">
         <Label htmlFor="busca-q">{tipo === "serie" ? "Nome da série" : "Nome do filme"}</Label>
@@ -98,15 +106,15 @@ export function FormularioNome({ texto, tipo = "filme" }: { texto: string; tipo?
       <Button type="submit" size="lg" className="h-10 px-5">
         Buscar
       </Button>
-    </form>
+    </Form>
   );
 }
 
 export function FormularioFiltros({ filtros }: { filtros: FiltrosBusca }) {
   return (
-    <form
+    <Form
+      key={JSON.stringify(filtros)}
       action="/busca"
-      method="get"
       className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-1"
     >
       <input type="hidden" name="modo" value="filtros" />
@@ -172,6 +180,6 @@ export function FormularioFiltros({ filtros }: { filtros: FiltrosBusca }) {
       <Button type="submit" size="lg" className="h-10 px-5">
         Aplicar filtros
       </Button>
-    </form>
+    </Form>
   );
 }

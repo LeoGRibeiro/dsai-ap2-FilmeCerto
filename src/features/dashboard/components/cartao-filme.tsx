@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 
+import { LinkComIntencao } from "@/components/link-com-intencao";
 import { tituloComAno } from "@/features/filme/formatar";
 import { caminhoMidia, type TipoMidia } from "@/lib/midia";
 import { urlImagem } from "@/lib/tmdb/imagens";
@@ -27,7 +27,8 @@ export function CartaoFilme({ filme }: { filme: FilmeCartao }) {
     .join(" · ");
 
   return (
-    <Link
+    // Os cartões aparecem às dezenas: só pré-carregam com intenção (ver LinkComIntencao).
+    <LinkComIntencao
       href={caminhoMidia({ tipo, tmdbId: filme.id })}
       aria-label={tipo === "serie" ? `${nome}, série` : nome}
       className="group focus-visible:ring-ring/50 flex w-40 flex-col gap-2 rounded-lg outline-none focus-visible:ring-3 md:w-44"
@@ -59,6 +60,6 @@ export function CartaoFilme({ filme }: { filme: FilmeCartao }) {
           </p>
         )}
       </div>
-    </Link>
+    </LinkComIntencao>
   );
 }
