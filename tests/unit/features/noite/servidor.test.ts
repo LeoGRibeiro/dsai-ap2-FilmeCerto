@@ -134,7 +134,7 @@ describe("obterNoite", () => {
     );
   });
 
-  it("com filtro por idade, a descoberta de filmes vai até 16", async () => {
+  it("com filtro por idade, a descoberta de filmes vai até o limite dele", async () => {
     logado({ id: "u-1" }, bancoFalso());
     vi.mocked(obterFiltro).mockResolvedValueOnce("10");
     vi.mocked(descobrirFilmes).mockClear();
@@ -142,7 +142,7 @@ describe("obterNoite", () => {
     await obterNoite(respostas, ESTADO_INICIAL, { generosEvitados: [], streamings: [] });
 
     expect(descobrirFilmes).toHaveBeenCalledWith(
-      expect.objectContaining({ classificacaoMax: "16" }),
+      expect.objectContaining({ classificacaoMax: "10" }),
     );
   });
 });

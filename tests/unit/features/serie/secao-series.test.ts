@@ -7,7 +7,7 @@ import {
   type EntradaSecaoSeries,
 } from "@/features/serie/secao-series";
 import { TmdbErro } from "@/lib/tmdb/cliente";
-import type { FiltrosDescobertaSerie, SerieResumo } from "@/lib/tmdb/tipos";
+import type { ClassificacaoBR, FiltrosDescobertaSerie, SerieResumo } from "@/lib/tmdb/tipos";
 
 import { filme } from "../recomendacao/fabrica";
 
@@ -21,6 +21,12 @@ const serie = (id: number, generos = [ACAO_AVENTURA]): SerieResumo =>
   filme(id, { titulo: `Série ${id}`, generos, popularidade: 100 - id });
 
 /** TMDB falso: `total` séries de ação e aventura; com `falhar`, o discover responde 503. */
+const CLASSIFICACOES_SERIES: Partial<Record<number, ClassificacaoBR | null>> = {
+  2: "18",
+  3: "14",
+  4: null,
+};
+
 function apiFalsa({ total = 20, falhar = false } = {}) {
   return {
     descobrirSeries: vi.fn(async (filtros: FiltrosDescobertaSerie = {}) => {
@@ -33,8 +39,8 @@ function apiFalsa({ total = 20, falhar = false } = {}) {
       { id: DRAMA, nome: "Drama" },
       { id: SCI_FI_FANTASIA, nome: "Sci-Fi & Fantasy" },
     ]),
-    // A série 2 é +18; as outras, 14.
-    classificacaoSerie: vi.fn(async (id: number) => (id === 2 ? ("18" as const) : "14")),
+    // A série 2 é +18, a 3 é 14, a 4 não tem classificação; as outras, 10.
+    classificacaoSerie: vi.fn(async (id: number) => CLASSIFICACOES_SERIES[id] ?? "10"),
   } satisfies ApiSecaoSeries;
 }
 
@@ -140,6 +146,11 @@ describe("montarSecaoSeries", () => {
     const comFiltro = await montarSecaoSeries(entrada({ filtro: "18" }), com);
     expect(comFiltro?.filmes.map((cartao) => cartao.id).slice(0, 3)).toEqual([1, 3, 4]);
     expect(comFiltro?.filmes).toHaveLength(12);
+  });
+
+  it("com Até 10 anos, sai também a série 14; a sem classificação fica", async () => {
+    const secao = await montarSecaoSeries(entrada({ filtro: "10" }), apiFalsa());
+    expect(secao?.filmes.map((cartao) => cartao.id).slice(0, 3)).toEqual([1, 4, 5]);
   });
 
   it("com menos de 4 séries restantes, a seção é null", async () => {

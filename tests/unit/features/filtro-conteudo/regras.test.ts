@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { ehLimite, OPCOES_FILTRO, type FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import {
   bloqueado,
+  foraDasRecomendacoes,
+  limiteDaBusca,
   limiteDasRecomendacoes,
   limiteMaisRestrito,
   tratamento,
@@ -44,11 +46,44 @@ describe("tratamento: a tabela de opções da spec", () => {
 });
 
 describe("limiteDasRecomendacoes", () => {
-  it("com qualquer filtro, as recomendações vão até 16; sem filtro, sem limite", () => {
-    expect(limiteDasRecomendacoes("10")).toBe("16");
-    expect(limiteDasRecomendacoes("14")).toBe("16");
+  it("as recomendações vão até o limite do filtro; com Sem conteúdo +18, até 16", () => {
+    expect(limiteDasRecomendacoes("10")).toBe("10");
+    expect(limiteDasRecomendacoes("14")).toBe("14");
     expect(limiteDasRecomendacoes("18")).toBe("16");
     expect(limiteDasRecomendacoes(null)).toBeNull();
+  });
+
+  it("a busca por filtros vai até 16 com qualquer filtro; sem filtro, sem limite", () => {
+    expect(["10", "14", "18"].map((f) => limiteDaBusca(f as FiltroConteudo))).toEqual([
+      "16",
+      "16",
+      "16",
+    ]);
+    expect(limiteDaBusca(null)).toBeNull();
+  });
+});
+
+describe("foraDasRecomendacoes", () => {
+  /** As classificações (L, 10, 12, 14, 16, 18, sem) que saem das recomendações. */
+  const saem = (filtro: FiltroConteudo) => TODAS.filter((c) => foraDasRecomendacoes(c, filtro));
+
+  it("sai o que passa do limite, o 18 inclusive; o sem classificação fica", () => {
+    expect(saem("10")).toEqual(["12", "14", "16", "18"]);
+    expect(saem("14")).toEqual(["16", "18"]);
+    expect(saem("18")).toEqual(["18"]);
+  });
+
+  it("sem filtro, nada sai", () => {
+    expect(saem(null)).toEqual([]);
+  });
+
+  it("todo título com aviso por classificação sai; o com aviso por falta dela, não", () => {
+    for (const filtro of ["10", "14", "18"] as const) {
+      for (const c of TODAS) {
+        const comAviso = tratamento(c, filtro) !== "normal";
+        expect(foraDasRecomendacoes(c, filtro)).toBe(comAviso && c !== null);
+      }
+    }
   });
 });
 

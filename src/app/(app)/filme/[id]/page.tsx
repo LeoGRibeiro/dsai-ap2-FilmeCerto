@@ -17,7 +17,7 @@ import {
   TituloBloqueado,
 } from "@/features/filtro-conteudo/components/titulo-bloqueado";
 import { obterFiltro } from "@/features/filtro-conteudo/consultas";
-import { semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import { soRecomendaveis } from "@/features/filtro-conteudo/aplicar";
 import { bloqueado, tratamento } from "@/features/filtro-conteudo/regras";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { obterReacao } from "@/features/reacoes/consultas";
@@ -43,7 +43,7 @@ export default async function FilmePage({ params }: PageProps<"/filme/[id]">) {
   const [reacao, statusLista, parecidos] = await Promise.all([
     obterReacao(filme.id),
     obterStatusLista(filme.id),
-    semBloqueados(
+    soRecomendaveis(
       filme.parecidos,
       filtro,
       ({ id }) => ({ tipo: "filme", tmdbId: id }),

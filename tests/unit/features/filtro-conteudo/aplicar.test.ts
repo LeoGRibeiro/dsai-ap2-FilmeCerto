@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   CONSULTAS_SIMULTANEAS,
-  descobrirComFiltro,
+  descobrirAte,
   semBloqueados,
+  soRecomendaveis,
   type Classificar,
 } from "@/features/filtro-conteudo/aplicar";
+import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import type { Midia } from "@/lib/midia";
 import type { ClassificacaoBR } from "@/lib/tmdb/tipos";
 
@@ -61,31 +63,55 @@ describe("semBloqueados", () => {
   });
 });
 
-describe("descobrirComFiltro", () => {
+describe("soRecomendaveis", () => {
+  const classificar = () => classificador({ 1: "L", 2: "12", 3: "14", 4: "16", 5: "18", 6: null });
+
+  it("sem filtro, devolve a mesma lista sem consultar nada", async () => {
+    const espiao = classificar();
+    expect(await soRecomendaveis(itens(1, 5), null, comoFilme, espiao)).toEqual(itens(1, 5));
+    expect(espiao).not.toHaveBeenCalled();
+  });
+
+  it.each<[FiltroConteudo, number[]]>([
+    ["10", [1, 6]],
+    ["14", [1, 2, 3, 6]],
+    ["18", [1, 2, 3, 4, 6]],
+  ])("com o filtro %s, tira o que passa do limite e mantém o sem classificação", async (f, ids) => {
+    const lista = await soRecomendaveis(itens(1, 2, 3, 4, 5, 6), f, comoFilme, classificar());
+    expect(lista).toEqual(itens(...ids));
+  });
+
+  it("uma consulta que falha tira o título", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await soRecomendaveis(itens(1, 99), "14", comoFilme, classificar())).toEqual(itens(1));
+  });
+});
+
+describe("descobrirAte", () => {
   type Filtros = { generos?: number[]; classificacaoMax?: ClassificacaoBR };
   const descobrir = () => vi.fn(async (filtros?: Filtros) => filtros);
 
-  it("sem filtro, devolve a mesma função", () => {
+  it("sem limite, devolve a mesma função", () => {
     const original = descobrir();
-    expect(descobrirComFiltro(original, null)).toBe(original);
+    expect(descobrirAte(original, null)).toBe(original);
   });
 
-  it("com filtro, toda consulta vai até 16, mantendo os outros filtros", async () => {
+  it("com limite, toda consulta vai até ele, mantendo os outros filtros", async () => {
     const original = descobrir();
-    expect(await descobrirComFiltro(original, "10")({ generos: [35] })).toEqual({
+    expect(await descobrirAte(original, "10")({ generos: [35] })).toEqual({
       generos: [35],
-      classificacaoMax: "16",
+      classificacaoMax: "10",
     });
-    expect(await descobrirComFiltro(original, "18")()).toEqual({ classificacaoMax: "16" });
+    expect(await descobrirAte(original, "16")()).toEqual({ classificacaoMax: "16" });
   });
 
   it("um limite menor que já vem nos filtros (a família, 12) continua valendo", async () => {
     const original = descobrir();
-    expect(await descobrirComFiltro(original, "14")({ classificacaoMax: "12" })).toEqual({
+    expect(await descobrirAte(original, "14")({ classificacaoMax: "12" })).toEqual({
       classificacaoMax: "12",
     });
-    expect(await descobrirComFiltro(original, "14")({ classificacaoMax: "18" })).toEqual({
-      classificacaoMax: "16",
+    expect(await descobrirAte(original, "14")({ classificacaoMax: "18" })).toEqual({
+      classificacaoMax: "14",
     });
   });
 });

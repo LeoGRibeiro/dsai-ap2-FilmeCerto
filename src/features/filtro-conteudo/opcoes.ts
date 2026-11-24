@@ -9,7 +9,7 @@ export type LimiteFiltro = (typeof LIMITES)[number];
 /** O filtro da conta: o limite escolhido, ou `null` em "Sem filtro" (sem linha no banco). */
 export type FiltroConteudo = LimiteFiltro | null;
 
-/** Com qualquer filtro ligado, o que pode ser recomendado: até 16, porque o 18 é bloqueado. */
+/** O que passa com qualquer filtro ligado: até 16, porque o 18 é bloqueado. */
 export const LIMITE_COM_FILTRO: ClassificacaoBR = "16";
 
 /** Valor do formulário para "Sem filtro". */

@@ -13,9 +13,10 @@ import {
   MIN_TEXTO,
   parametrosDaBusca,
 } from "@/features/busca/parametros";
-import { descobrirComFiltro } from "@/features/filtro-conteudo/aplicar";
+import { descobrirAte } from "@/features/filtro-conteudo/aplicar";
 import { semBloqueadosDoTmdb } from "@/features/filtro-conteudo/classificar";
 import { obterFiltro } from "@/features/filtro-conteudo/consultas";
+import { limiteDaBusca } from "@/features/filtro-conteudo/regras";
 import { buscarFilmes, descobrirFilmes } from "@/lib/tmdb/filmes";
 import { buscarSeries } from "@/lib/tmdb/series";
 
@@ -37,7 +38,10 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
   const porNome = modo === "nome" && texto.length >= MIN_TEXTO;
   const bruto =
     modo === "filtros"
-      ? await descobrirComFiltro(descobrirFilmes, filtro)(filtrosParaDescoberta(filtros, pagina))
+      ? await descobrirAte(
+          descobrirFilmes,
+          limiteDaBusca(filtro),
+        )(filtrosParaDescoberta(filtros, pagina))
       : porNome
         ? await buscarPorNome(texto, pagina)
         : null;

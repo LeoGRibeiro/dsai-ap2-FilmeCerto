@@ -1,4 +1,4 @@
-import { semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import { soRecomendaveis } from "@/features/filtro-conteudo/aplicar";
 import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import type { Frequencia } from "@/features/preferencias/opcoes";
 import { motivoPorGeneros } from "@/features/recomendacao/motivo";
@@ -92,7 +92,7 @@ export async function montarSecaoSeries(
 
   const fora = new Set(entrada.excluir);
   const { favoritos } = generosDoPerfil(entrada.preferencias);
-  const livres = await semBloqueados(
+  const livres = await soRecomendaveis(
     resultado.itens.filter((serie) => !fora.has(serie.id)),
     entrada.filtro ?? null,
     ({ id }) => ({ tipo: "serie", tmdbId: id }),

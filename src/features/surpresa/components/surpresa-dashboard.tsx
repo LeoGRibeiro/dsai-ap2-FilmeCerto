@@ -1,6 +1,7 @@
 import "server-only";
 
-import { descobrirComFiltro } from "@/features/filtro-conteudo/aplicar";
+import { descobrirAte } from "@/features/filtro-conteudo/aplicar";
+import { limiteDasRecomendacoes } from "@/features/filtro-conteudo/regras";
 import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import { GloboSurpresa } from "@/features/surpresa/components/globo-surpresa";
 import { montarGlobo } from "@/features/surpresa/montar";
@@ -20,7 +21,7 @@ export async function SurpresaDashboard({
   const filmes = await montarGlobo({
     preferencias,
     excluir,
-    api: { descobrirFilmes: descobrirComFiltro(descobrirFilmes, filtro) },
+    api: { descobrirFilmes: descobrirAte(descobrirFilmes, limiteDasRecomendacoes(filtro)) },
   });
   if (filmes.length === 0) return null;
   return <GloboSurpresa filmes={filmes} />;

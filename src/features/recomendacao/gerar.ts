@@ -1,6 +1,7 @@
 import "server-only";
 
-import { descobrirComFiltro, semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import { descobrirAte, soRecomendaveis } from "@/features/filtro-conteudo/aplicar";
+import { limiteDasRecomendacoes } from "@/features/filtro-conteudo/regras";
 import { GENEROS } from "@/features/preferencias/generos";
 import { motivoParecido, motivoPorGeneros, tituloParecidos } from "@/features/recomendacao/motivo";
 import { agregarParecidos } from "@/features/recomendacao/parecidos";
@@ -35,13 +36,13 @@ async function executar(
 ): Promise<Resultado> {
   try {
     if (consulta.tipo !== "parecidos") {
-      // Com filtro por idade, o TMDB já tira o +18 da descoberta.
-      const descobrir = descobrirComFiltro(api.descobrirFilmes, filtro);
+      // Com filtro por idade, o TMDB já tira da descoberta o que passa do limite.
+      const descobrir = descobrirAte(api.descobrirFilmes, limiteDasRecomendacoes(filtro));
       return { consulta, filmes: (await descobrir(consulta.filtros)).itens };
     }
     // O /recommendations não filtra por classificação: com filtro, cada filme é conferido.
     const { itens } = await api.recomendacoesDe(consulta.origem.tmdbId);
-    const filmes = await semBloqueados(
+    const filmes = await soRecomendaveis(
       itens,
       filtro,
       ({ id }) => ({ tipo: "filme", tmdbId: id }),

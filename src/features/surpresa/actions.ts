@@ -1,6 +1,7 @@
 "use server";
 
-import { descobrirComFiltro } from "@/features/filtro-conteudo/aplicar";
+import { descobrirAte } from "@/features/filtro-conteudo/aplicar";
+import { limiteDasRecomendacoes } from "@/features/filtro-conteudo/regras";
 import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import { idsNasListas } from "@/features/listas/consultas";
 import { obterPreferencias } from "@/features/preferencias/consultas";
@@ -30,7 +31,7 @@ export async function novoGlobo(jaVistos: unknown): Promise<FilmeGlobo[]> {
     return await montarGlobo({
       preferencias,
       excluir: [...nasListas, ...reacoes.map((r) => r.tmdbId), ...limparIds(jaVistos)],
-      api: { descobrirFilmes: descobrirComFiltro(descobrirFilmes, filtro) },
+      api: { descobrirFilmes: descobrirAte(descobrirFilmes, limiteDasRecomendacoes(filtro)) },
     });
   } catch (erro) {
     console.error("[surpresa] falha ao renovar o globo:", erro);
