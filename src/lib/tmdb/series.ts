@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 
 import { CACHE_CLASSIFICACAO, classificacaoDaSerie } from "@/lib/tmdb/classificacao";
 import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
@@ -62,7 +62,7 @@ function paraResumo(serie: SerieTmdb): SerieResumo {
   };
 }
 
-/** Média de `episode_run_time`; sem ela, a duração do último episódio exibido. */
+/** MÃ©dia de `episode_run_time`; sem ela, a duraÃ§Ã£o do Ãºltimo episÃ³dio exibido. */
 function duracaoEpisodio(serie: DetalhesSerieTmdb): number | null {
   const duracoes = serie.episode_run_time.filter((minutos) => minutos > 0);
   if (duracoes.length === 0) return serie.last_episode_to_air?.runtime || null;
@@ -92,6 +92,15 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
     situacao: serie.status,
     proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,
+    proximoEpisodioDetalhes: serie.next_episode_to_air
+      ? {
+          id: serie.next_episode_to_air.id ?? null,
+          nome: serie.next_episode_to_air.name,
+          temporadaNumero: serie.next_episode_to_air.season_number ?? null,
+          episodioNumero: serie.next_episode_to_air.episode_number ?? null,
+          data: serie.next_episode_to_air.air_date,
+        }
+      : null,
   };
 }
 
@@ -114,7 +123,7 @@ function paraTemporada(temporada: TemporadaTmdb): TemporadaDetalhes {
   };
 }
 
-/** Funções de séries sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
+/** FunÃ§Ãµes de sÃ©ries sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
 export function criarApiSeries(cliente: ClienteTmdb) {
   return {
     async descobrirSeries(filtros: FiltrosDescobertaSerie = {}): Promise<Pagina<SerieResumo>> {
@@ -127,18 +136,18 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       return paraPagina(serieTmdb, dados, paraResumo);
     },
 
-    obterSerie(id: number): Promise<SerieDetalhes | null> {
+    obterSerie(id: number, semCache = false): Promise<SerieDetalhes | null> {
       return nuloSe404(async () => {
         const dados = await cliente.requisitar(
           `/tv/${id}`,
           { append_to_response: "videos,credits,watch/providers,content_ratings" },
-          CACHE_SERIE,
+          semCache ? 0 : CACHE_SERIE,
         );
         return paraDetalhes(validar(detalhesSerieTmdb, dados));
       });
     },
 
-    /** Temporada `numero` com os episódios; `null` se a série ou a temporada não existem. */
+    /** Temporada `numero` com os episÃ³dios; `null` se a sÃ©rie ou a temporada nÃ£o existem. */
     obterTemporada(serieId: number, numero: number): Promise<TemporadaDetalhes | null> {
       return nuloSe404(async () => {
         const dados = await cliente.requisitar(`/tv/${serieId}/season/${numero}`, {}, CACHE_SERIE);
@@ -146,19 +155,19 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       });
     },
 
-    /** Só a classificação (`/tv/{id}/content_ratings`); lança se o TMDB falhar. */
+    /** SÃ³ a classificaÃ§Ã£o (`/tv/{id}/content_ratings`); lanÃ§a se o TMDB falhar. */
     async classificacaoSerie(id: number): Promise<ClassificacaoBR | null> {
       const dados = await cliente.requisitar(`/tv/${id}/content_ratings`, {}, CACHE_CLASSIFICACAO);
       return classificacaoDaSerie(validar(classificacoesSerieTmdb, dados).results);
     },
 
-    /** Gêneros de TV: outra lista que a dos filmes, com IDs próprios. */
+    /** GÃªneros de TV: outra lista que a dos filmes, com IDs prÃ³prios. */
     async generosSeries(): Promise<{ id: number; nome: string }[]> {
       const dados = await cliente.requisitar("/genre/tv/list", {}, CACHE_SERIE);
       return paraGeneros(validar(generosTmdb, dados).genres);
     },
 
-    /** Busca por nome (`/search/tv`), sem `region`: a busca de séries não filtra por país. */
+    /** Busca por nome (`/search/tv`), sem `region`: a busca de sÃ©ries nÃ£o filtra por paÃ­s. */
     async buscarSeries(texto: string, pagina = 1): Promise<Pagina<SerieResumo>> {
       const consulta = texto.trim();
       if (!consulta) return PAGINA_VAZIA;
@@ -186,3 +195,5 @@ export const generosSeries: ApiSeries["generosSeries"] = () => api().generosSeri
 export const buscarSeries: ApiSeries["buscarSeries"] = (...args) => api().buscarSeries(...args);
 export const classificacaoSerie: ApiSeries["classificacaoSerie"] = (...args) =>
   api().classificacaoSerie(...args);
+
+

@@ -1,9 +1,77 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   public: {
     Tables: {
-      contagem_climas: {
+      acompanhamentos_series: {
+        Row: {
+          criado_em: string;
+          poster_path: string | null;
+          serie_tmdb_id: number;
+          titulo: string;
+          usuario_id: string;
+        };
+        Insert: {
+          criado_em?: string;
+          poster_path?: string | null;
+          serie_tmdb_id: number;
+          titulo: string;
+          usuario_id: string;
+        };
+        Update: {
+          criado_em?: string;
+          poster_path?: string | null;
+          serie_tmdb_id?: number;
+          titulo?: string;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
+      avisos_episodios: {
+        Row: {
+          atualizado_em: string;
+          criado_em: string;
+          data_estreia: string;
+          episodio_nome: string;
+          episodio_numero: number;
+          episodio_tmdb_id: number | null;
+          id: string;
+          lido_em: string | null;
+          serie_tmdb_id: number;
+          serie_titulo: string;
+          temporada_numero: number;
+          usuario_id: string;
+        };
+        Insert: {
+          atualizado_em?: string;
+          criado_em?: string;
+          data_estreia: string;
+          episodio_nome: string;
+          episodio_numero: number;
+          episodio_tmdb_id?: number | null;
+          id?: string;
+          lido_em?: string | null;
+          serie_tmdb_id: number;
+          serie_titulo: string;
+          temporada_numero: number;
+          usuario_id: string;
+        };
+        Update: {
+          atualizado_em?: string;
+          criado_em?: string;
+          data_estreia?: string;
+          episodio_nome?: string;
+          episodio_numero?: number;
+          episodio_tmdb_id?: number | null;
+          id?: string;
+          lido_em?: string | null;
+          serie_tmdb_id?: number;
+          serie_titulo?: string;
+          temporada_numero?: number;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };      contagem_climas: {
         Row: {
           dia: string;
           pergunta: string;
@@ -468,3 +536,4 @@ export const Constants = {
     },
   },
 } as const;
+
