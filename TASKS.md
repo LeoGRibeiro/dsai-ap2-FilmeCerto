@@ -38,29 +38,33 @@
 - [x] **"Até que horas?" relativo (#31, PR #32, 19/11):** spec [2026-11-19-noite-tempo-disponivel.md](SPEC/2026-11-19-noite-tempo-disponivel.md). 1h30 a 3h a partir de agora e outro horário no seletor.
 - [x] **Acessibilidade do wizard (PR #36, Lucas, 20/11):** spec [2026-11-20-acessibilidade-wizard-noite.md](SPEC/2026-11-20-acessibilidade-wizard-noite.md). Foco no primeiro motivo do "Esse não" e no título do "Já vi".
 - [x] **Revisão do estado (23/11, branch `docs/entrega-24-11`):** issues #2 (perguntas ao cliente, respondidas com as decisões das specs) e #4 (medição, feita no PR #19) fechadas com comentário. README com o `cloc` de 23/11 e as specs novas, prazo corrigido para **24/11** no AGENTS.md e hook `commit-msg` lendo os trailers como o git.
-- [x] **Navegação lenta (#42, PR #43, 23/11, branch `fix/navegacao-rapida`):** spec [2026-11-23-navegacao-rapida.md](SPEC/2026-11-23-navegacao-rapida.md). Medido na produção: cada clique levava de 0,5 s a 1,8 s para trocar a tela, sem retorno visual. Causas: nenhuma rota de `(app)` tinha `loading.tsx` (o Next 16 não pré-carrega rota dinâmica sem ele), proxy e header chamavam `getUser()` (ida ao Auth) a cada requisição e a busca recarregava o documento. Correção: `loading.tsx` com esqueleto em todas as rotas, `getClaims()` no proxy e em `obterUsuarioAtual`, layout de `(app)` em paralelo, `next/form` nas buscas e cartões que só pré-carregam com intenção (mouse, toque ou foco). **Armadilha achada no E2E:** com `loading.tsx`, o layout de `(app)` pré-carregado fica no cache do cliente mesmo quando redireciona; sem limpar, o onboarding terminava num loop `/dashboard` ↔ `/onboarding`. Toda action que muda sessão ou preferências tem que chamar `revalidatePath("/", "layout")` antes do `redirect`. **Falta:** depois do merge, refazer a medição na produção e comentar na #42 (critério 10 da spec).
+- [x] **Navegação lenta (#42, PR #43, 23/11, branch `fix/navegacao-rapida`):** spec [2026-11-23-navegacao-rapida.md](SPEC/2026-11-23-navegacao-rapida.md). Medido na produção: cada clique levava de 0,5 s a 1,8 s para trocar a tela, sem retorno visual. Causas: nenhuma rota de `(app)` tinha `loading.tsx` (o Next 16 não pré-carrega rota dinâmica sem ele), proxy e header chamavam `getUser()` (ida ao Auth) a cada requisição e a busca recarregava o documento. Correção: `loading.tsx` com esqueleto em todas as rotas, `getClaims()` no proxy e em `obterUsuarioAtual`, layout de `(app)` em paralelo, `next/form` nas buscas e cartões que só pré-carregam com intenção (mouse, toque ou foco). **Armadilha achada no E2E:** com `loading.tsx`, o layout de `(app)` pré-carregado fica no cache do cliente mesmo quando redireciona; sem limpar, o onboarding terminava num loop `/dashboard` ↔ `/onboarding`. Toda action que muda sessão ou preferências tem que chamar `revalidatePath("/", "layout")` antes do `redirect`. Mesclado em 24/11.
+- [x] **Filtro por idade e classificação (#38, PR #39) e botões do dashboard (#40, PR #41):** mesclados em 24/11. As migrations `filtros_conteudo`, `filtro_idade` e `limite_sala_noite` já estão na produção (13 de 13 em `supabase migration list --linked`).
+- [x] **Medição da navegação na produção (24/11, `23593a8`, critério 10 da spec, [comentário na #42](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/issues/42#issuecomment-7131862129)):** do clique à tela nova, header e cartões levam de 2 a 36 ms (antes, de 507 a 1.778 ms), e o RSC de `/sobre` leva 275 ms (antes, ~700 ms). **As respostas do wizard levam de 317 a 375 ms (antes, 808 a 1.204 ms), acima dos 100 ms:** são a mesma rota `/noite`, só com o `searchParams` diferente, e o esqueleto não aparece, porque a troca espera o servidor.
 - **Lição de processo (23/11):** `git revert --no-edit` não passa pelo hook `commit-msg` e gera commit sem trailers. Use `git revert --no-commit <sha>` e depois `git commit` com a mensagem e os trailers.
 
-### Situação dos critérios em 23/11 (`main` em `324ee55`)
+### Situação dos critérios em 24/11 (`main` em `23593a8`)
 
-| Critério                        | Mínimo     | Medido                                                           |
-| ------------------------------- | ---------- | ---------------------------------------------------------------- |
-| Linhas novas (`cloc --diff`)    | 100 mil    | 12.996 (5.469 da aplicação e 7.527 de testes): abaixo            |
-| Parcela de commits do Lucas     | 30%        | 13 de 178 (7%): abaixo                                           |
-| Trailers (parser do git)        | 80%        | 144 de 178 (80,9%); pelo `grep`, 169 de 178                      |
-| Spec antes do código            | 100%       | 13 de 13 specs da AP2, cada uma num commit só dela               |
-| Mediana do tamanho dos commits  | < 400      | 113                                                              |
-| Cobertura das linhas novas      | 70%        | 92,7%                                                            |
-| Duplicação (`jscpd`)            | 5%         | 1,0%                                                             |
-| CI                              | verde, 80% | `main` verde; 55 de 58 builds verdes                             |
-| URL pública, segredos, críticos | —          | `/api/health` = `324ee55`; 0 críticos; 10 migrations na produção |
+| Critério                        | Mínimo     | Medido                                                                    |
+| ------------------------------- | ---------- | ------------------------------------------------------------------------- |
+| Linhas novas (`cloc --diff`)    | 100 mil    | 15.245 (6.376 da aplicação e 8.869 de testes): abaixo                     |
+| Parcela de commits do Lucas     | 30%        | 13 de 240 (5,4%): abaixo                                                  |
+| Trailers (parser do git)        | 80%        | 203 de 240 (84,6%)                                                        |
+| Spec antes do código            | 100%       | 17 de 17 specs da AP2, cada uma num commit só dela, antes de quem a cita  |
+| Mediana do tamanho dos commits  | < 400      | 110 (206 commits sem os merges)                                           |
+| Dias com commit                 | 2/semana   | 17, 18, 19, 20 e 23/11; 24/11                                             |
+| Cobertura das linhas novas      | 70%        | 92,1% (1.288 de 1.399)                                                    |
+| Duplicação (`jscpd`)            | 5%         | 1,04%                                                                     |
+| CI                              | verde, 80% | `main` verde; 70 de 81 builds verdes (86%)                                |
+| URL pública, segredos, críticos | —          | `/api/health` = `23593a8`; gitleaks sem vazamento; 0 críticos (13 _high_) |
+
+- Os merges dos PRs #37, #39, #41 e #43 foram feitos pelo botão do GitHub e saíram sem trailers. Mesmo assim, a parcela ficou acima de 80%, porque os PRs trouxeram commits com trailers.
 
 ### Próximo passo (entrega em 24/11)
 
-1. **Lucas:** revisar e mesclar pelo terminal os PRs abertos (#41 e #43; o #39 ainda é rascunho), com trailers na mensagem do merge (nunca pelo botão: os merges dos PRs #32, #35 e #36 saíram sem trailers).
-2. **Depois do merge do #43:** medir de novo na produção, com a sessão logada no navegador, o tempo do clique até a tela trocar (`/listas`, `/dashboard`, `/noite` e as respostas do wizard) e o tempo da requisição RSC de `/sobre`. Meta da spec (critério 10): menos de 100 ms com o link pré-carregado e `/sobre` abaixo de 400 ms. Comentar o resultado na #42.
-3. **Lucas, se der tempo:** trabalho real com a conta dele, em commits pequenos e com os trailers no último parágrafo. Cada commit dele melhora a parcela de autoria.
-4. **No fim:** `/api/health` com o SHA da `main`, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+1. **Lucas:** aprovar o PR `chore/sessoes-2026-11-24` (este arquivo e o registro da sessão de 24/11) e mesclar **pelo terminal**, com trailers. Pelo botão, a parcela de trailers cai.
+2. **No fim:** `/api/health` com o SHA da `main` depois do merge, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+3. **Se houver tempo (fora do prazo da spec):** dar retorno visual imediato no cartão de resposta do wizard (`useLinkStatus` do `next/link`), para as respostas passarem a sensação de troca na hora. Precisa de issue e de ajuste na spec `navegacao-rapida`.
 
 ### Pendente de configuração manual
 
@@ -68,7 +72,7 @@
 - [ ] Liberar o `/metricas` para o Lucas e os clientes: a pessoa cria conta no site e alguém roda no SQL Editor:
       `insert into public.equipe_metricas (usuario_id) select id from auth.users where email = '<e-mail>' on conflict do nothing;`
 - [ ] Previews da Vercel quebrados: o ambiente **Preview** não tem `NEXT_PUBLIC_SUPABASE_URL` nem `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (o preview do PR #43 deu `EnvError` em 23/11). Para testar um PR antes do merge, copiar as variáveis de Production para Preview no painel da Vercel.
-- [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`). Em 23/11, `supabase migration list --linked` mostrou as 10 migrations aplicadas.
+- [ ] Depois do merge de cada PR com migration nova: `pnpm exec supabase db push` (confira antes com `--dry-run`). Em 24/11, `supabase migration list --linked` mostrou as 13 migrations aplicadas.
 
 ## Plano até a entrega
 
