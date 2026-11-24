@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { ehLimite, type FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import { climaSchema } from "@/features/metricas/eventos";
 import { NoiteIndisponivel, recomendarJuntos, type ApiNoite } from "@/features/noite/recomendar";
 import type { ClienteSupabase } from "@/lib/supabase/token";
@@ -103,13 +104,14 @@ export async function montarResultado(
   const b = climaSchema.safeParse(linha.respostas_convidado);
   if (!a.success || !b.success) return { ok: false, mensagem: ERRO_BANCO };
 
-  // Se qualquer um dos dois tem filtro por idade, nada +18 (qualquer opção bloqueia o +18, e a
-  // sala não sabe qual é). Sem resposta do banco, vale o mais seguro: como se tivesse.
-  const comFiltro = await supabase.rpc("filtro_na_sala_noite", { p_sala: sala });
-  if (comFiltro.error) {
-    console.error("[noite-a-dois] filtro:", comFiltro.error.code, comFiltro.error.message);
+  // Vale o filtro por idade mais restrito dos dois. Sem resposta do banco (ou com um limite que
+  // não conhecemos), vale o mais seguro: "Até 10 anos".
+  const limite = await supabase.rpc("limite_filtro_sala_noite", { p_sala: sala });
+  if (limite.error) {
+    console.error("[noite-a-dois] filtro:", limite.error.code, limite.error.message);
   }
-  const filtro = comFiltro.error || comFiltro.data ? "18" : null;
+  const filtro: FiltroConteudo =
+    limite.error || (limite.data != null && !ehLimite(limite.data)) ? "10" : (limite.data ?? null);
 
   let filmes: ResultadoSala["filmes"];
   try {

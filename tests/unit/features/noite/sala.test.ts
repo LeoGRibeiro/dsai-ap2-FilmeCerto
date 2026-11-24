@@ -159,18 +159,20 @@ describe("montarResultado", () => {
   });
 
   it.each([
-    ["algum dos dois tem filtro", { data: true }, "16"],
+    ["o mais restrito dos dois é Até 14 anos", { data: "14" }, "14"],
+    ["o mais restrito dos dois é Sem conteúdo +18", { data: "18" }, "16"],
     [
       "a consulta do filtro falha (vale o mais seguro)",
       { error: { code: "08006", message: "fora" } },
-      "16",
+      "10",
     ],
-    ["ninguém tem filtro", { data: false }, undefined],
+    ["o banco devolve um limite desconhecido", { data: "12" }, "10"],
+    ["ninguém tem filtro", { data: null }, undefined],
   ])("quando %s, o limite da descoberta é %s", async (_, resposta, limite) => {
     const api = apiFalsa();
     const { cliente } = bancoFalso({
       restricoes_sala_noite: restricoes,
-      filtro_na_sala_noite: resposta,
+      limite_filtro_sala_noite: resposta,
       concluir_sala_noite: { data: true },
     });
 

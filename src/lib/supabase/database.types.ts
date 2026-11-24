@@ -293,9 +293,9 @@ export type Database = {
         Args: { p_sala: string };
         Returns: string;
       };
-      filtro_na_sala_noite: {
+      limite_filtro_sala_noite: {
         Args: { p_sala: string };
-        Returns: boolean;
+        Returns: string;
       };
       metricas_climas: {
         Args: never;
