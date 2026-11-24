@@ -6,6 +6,15 @@
 
 [![CI](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/actions/workflows/ci.yml)
 
+| Endereço                                             | O que é                                                                           |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------- |
+| <https://dsai-ap2-filme-certo.vercel.app/>           | O app (deploy da `main` na Vercel)                                                |
+| <https://dsai-ap2-filme-certo.vercel.app/api/health> | SHA do commit servido, para conferir que a produção é o último da `main`          |
+| <https://dsai-ap2-filme-certo.vercel.app/noite>      | Wizard "O que ver hoje?" (exige login)                                            |
+| <https://dsai-ap2-filme-certo.vercel.app/metricas>   | Métricas de uso (só para contas em `equipe_metricas`)                             |
+| <https://dsai-ap2-filme-certo.vercel.app/api/mcp>    | Servidor MCP para agentes (veja [abaixo](#use-o-filme-certo-pelo-seu-agente-mcp)) |
+| <https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto> | Este repositório (fork do projeto da AP1)                                         |
+
 Projeto da disciplina **Desenvolvimento de Software Apoiado por IA** (UFPA, 2026).
 
 | Etapa | Quem                                                                                                                                       | Papel                                                                                          |
@@ -17,9 +26,12 @@ Projeto da disciplina **Desenvolvimento de Software Apoiado por IA** (UFPA, 2026
 
 O pedido dos clientes tem um filtro: cada mudança precisa ajudar a pessoa a **decidir mais rápido** o que ver hoje. Escopo e decisões gerais em [`SPEC/2026-11-17-visao-geral-ap2.md`](SPEC/2026-11-17-visao-geral-ap2.md).
 
-- **"O que ver hoje?"** (pedido 3.2 e 3.4): um botão no topo do início abre um wizard de três perguntas (humor, experiência e companhia), uma por tela. Em 4 cliques ele mostra um filme com o motivo, onde assistir, o trailer e a hora em que termina se começar agora. "Esse não" pede o motivo e troca a sugestão por outra que corrige esse motivo, com limite de trocas. Nada do wizard vira preferência: as respostas ficam só no endereço.
+- **"O que ver hoje?"** (pedido 3.2 e 3.4): um botão no topo do início abre um wizard de três perguntas (humor, experiência e companhia), uma por tela, com "Voltar". Em 4 cliques ele mostra um filme com o motivo, onde assistir, o trailer e a hora em que termina se começar agora. "Esse não" pede o motivo e troca a sugestão por outra que corrige esse motivo, agora com mais duas opções menores, até o limite de trocas. "Já vi" tira o título da noite e oferece marcar "Já assisti". Nada do wizard vira preferência: as respostas ficam só no endereço. O mapeamento das respostas para gêneros, tom e classificação está em tabela na spec [`2026-11-18-wizard-noite`](SPEC/2026-11-18-wizard-noite.md).
 - **"Até que horas?"**: um ajuste opcional no resultado que só sugere títulos que terminam a tempo. Dá para escolher um tempo a partir de agora (1h30 a 3h, com o horário de término ao lado) ou outro horário no seletor do celular. A conta é feita no navegador.
-- **Filme ou série**: ao lado do botão, "Prefiro uma série" abre o mesmo wizard para séries (também em 4 cliques), com mapeamento próprio de gêneros de TV e a duração do episódio no resultado. Séries têm página própria (`/serie/[id]`), com a situação da série, o tempo de cada temporada e a página de cada temporada com os episódios (`/serie/[id]/temporada/[n]`). Reações e listas aceitam séries, o início tem a seção "Séries para hoje à noite" e a busca por nome tem a aba "Séries".
+- **Filme ou série** (pedido 3.5): a primeira tela do wizard tem o grupo "Filme ou série?", com Filme já marcado (filme continua em 4 cliques; série, em 5). Para série, o wizard usa um mapeamento próprio de gêneros de TV e mostra a duração do episódio. Séries têm página própria (`/serie/[id]`), com a situação da série, o tempo de cada temporada e a página de cada temporada com os episódios (`/serie/[id]/temporada/[n]`). Reações e listas aceitam séries, o início tem a seção "Séries para hoje à noite" e a busca por nome tem a aba "Séries".
+- **Acompanhar série** (primeira parte, PR #46): a página da série tem o botão "Acompanhar", que guarda a série na conta (tabela `acompanhamentos_series`). A verificação periódica de episódios novos e a tela de avisos ainda não foram feitas; o plano está na spec [`2026-11-24-aviso-episodio-novo`](SPEC/2026-11-24-aviso-episodio-novo.md).
+- **Filtro por idade e classificação indicativa** (pedido novo do cliente, 23/11): as páginas de filme e de série mostram o selo da classificação ("14") ao lado da nota. No `/perfil`, a seção "Conteúdo sensível" tem quatro opções: sem filtro (padrão), até 10 anos, até 14 anos e sem conteúdo +18. Com filtro, as recomendações (início, wizard, "Me surpreenda", noite a dois e parecidos) só trazem o que está dentro da idade; o que passa do limite abre só pela busca ou pelo link direto, com um aviso no topo; e o que é +18 some de tudo, sem imagens, e o link direto mostra só "Este título não está disponível com o filtro desta conta".
+- **Navegação rápida** (#42): cada clique na área logada troca a tela na hora, com um esqueleto no formato da página, e o servidor valida a sessão sem ir ao Auth a cada requisição. Medido na produção: do clique à tela nova, de 0,5–1,8 s para 2–36 ms nos links do topo e dos cartões, e de 0,8–1,2 s para 0,3–0,4 s nas respostas do wizard.
 - **Acessibilidade do wizard**: navegação por teclado e foco levado para a etapa nova em "Esse não" e "Já vi".
 - **"Vou ver esse!" e "Como foi?"** (pedido 3.3): a escolha da noite fica registrada, e na volta ao app o início pergunta como foi. "Amei", "Gostei" ou "Não é pra mim" viram reação e marcam o título como "Já assisti", sem a pessoa precisar voltar à página do filme.
 - **Compartilhar**: depois da escolha, "Compartilhar" manda "Hoje vamos ver {título}, termina às {hora}" pela Web Share API ou pelo WhatsApp.
@@ -29,13 +41,13 @@ O pedido dos clientes tem um filtro: cada mudança precisa ajudar a pessoa a **d
 
 ### Quanto código entrou
 
-`cloc --diff` contra a linha de base `4ac8b98` (10.643 linhas de código), sem Markdown, JSON, YAML, CSV, texto, SVG, lockfiles e `prompts/`. Medido em 23/11 na `main` (`324ee55`, depois do PR #36):
+`cloc --diff` contra a linha de base `4ac8b98` (10.643 linhas de código), sem Markdown, JSON, YAML, CSV, texto, SVG, lockfiles e `prompts/`. Medido em 24/11 na `main` (`7038a2e`, depois do PR #46):
 
 | Parte                           | Arquivos novos | Linhas novas | Linhas alteradas | Linhas removidas |
 | ------------------------------- | -------------: | -----------: | ---------------: | ---------------: |
-| Aplicação, migrations e scripts |             85 |        5.469 |              139 |              190 |
-| Testes (`tests/`)               |             62 |        7.527 |               25 |               33 |
-| **Total**                       |        **147** |   **12.996** |          **164** |          **223** |
+| Aplicação, migrations e scripts |            113 |        6.684 |              184 |              196 |
+| Testes (`tests/`)               |             80 |        8.869 |               30 |               32 |
+| **Total**                       |        **193** |   **15.553** |          **214** |          **228** |
 
 Comando (o executável do `cloc` 1.98 fica fora do repositório):
 
@@ -50,6 +62,25 @@ A linha "Aplicação" acrescenta `tests` ao `--exclude-dir`, e a linha "Testes" 
 
 Cada funcionalidade tem issue, spec commitada antes do código e PR aprovado pelo outro integrante. As regras de trabalho estão em [`AGENTS.md`](AGENTS.md), e o plano e o estado, em [`TASKS.md`](TASKS.md).
 
+### Situação dos critérios na entrega (24/11)
+
+Medido na `main` em `7038a2e`, com os comandos da seção 0 e da seção 10 do [`AGENTS.md`](AGENTS.md):
+
+| Critério                                  | Mínimo       | Medido                                                                            |
+| ----------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
+| Linhas novas (`cloc --diff`)              | 100 mil      | 15.553 (abaixo)                                                                   |
+| Commits com `Agent:` e `Spec:`            | 80%          | 210 de 248 (84,7%), pelo parser de trailers do git                                |
+| Parcela de commits de cada integrante     | 30% cada     | Leonardo 229, Lucas 18 (7,3%, abaixo), 1 sem autor identificado                   |
+| Spec antes do código                      | 100%         | cada spec da AP2 num commit só dela, antes do primeiro commit que a cita          |
+| Mediana do tamanho dos commits            | < 400 linhas | 110 (medido em 24/11, antes do PR #46)                                            |
+| Dias com commit                           | 2 por semana | 17, 18, 19, 20, 23 e 24/11                                                        |
+| Cobertura das linhas novas                | 70%          | 92,1% (medido em 24/11, antes do PR #46, que entrou sem testes)                   |
+| Duplicação (`jscpd`, no CI)               | até 5%       | 1,04%                                                                             |
+| CI                                        | verde / 80%  | `main` verde; 86% dos builds verdes                                               |
+| Segredos e alertas críticos               | zero         | `gitleaks` sem vazamento; 0 alertas críticos                                      |
+| URL pública com o último commit da `main` | no ar        | `/api/health` devolve `7038a2e`                                                   |
+| Sessões e custos registrados              | 100%         | [`prompts/sessoes/`](prompts/sessoes/) e [`prompts/custos.md`](prompts/custos.md) |
+
 ## Como funciona
 
 1. **Conte seu gosto.** No cadastro, um passo a passo de 7 perguntas: gêneros favoritos, gêneros que você não quer ver, duração preferida, com que frequência assiste, quais streamings assina, alguns filmes que você ama e, só pela capa, quais você não assistiria. Só as três primeiras são obrigatórias.
@@ -62,7 +93,8 @@ Cada funcionalidade tem issue, spec commitada antes do código e PR aprovado pel
 - **Avaliar filmes:** "Não é pra mim", "Gostei" e "Amei". As avaliações ajustam as próximas recomendações, e cada "Amei" gera uma seção de filmes parecidos.
 - **Minhas listas:** "Quero assistir" e "Já assisti".
 - **Buscar:** por nome ou por filtros (gênero, ano, duração e ordem).
-- **Perfil:** trocar o nome e todas as preferências do cadastro.
+- **Perfil:** trocar o nome, todas as preferências do cadastro e o filtro por idade.
+- **O que ver hoje?:** o wizard da noite, sozinho ou a dois, para filme ou série.
 
 ### Como as recomendações são feitas
 
@@ -169,6 +201,7 @@ Cada parte do sistema começou por uma **spec**, commitada antes do código, com
 | ChatGPT                        | GPT-6                                 | AP1: imagem da página inicial                                                                                                    |
 | Antigravity                    | Gemini 3.8 Flash (`gemini-3-8-flash`) | AP2: primeira versão das regras e portões de qualidade (`AGENTS.md`)                                                             |
 | Claude Code (extensão VS Code) | Claude Opus 5.5 (`claude-opus-5-5`)   | AP2: deploy, specs e implementação; na reta final, uma sessão orquestrou subagentes, um por branch, cada um num worktree próprio |
+| Não registrada no trailer      | GPT-6 (`Agent: GPT-6`)                | AP2: acompanhamento de séries (PR #46, Lucas)                                                                                    |
 
 Na AP2, cada commit diz no trailer `Agent:` qual ferramenta gerou o código e no `Spec:` qual spec ele implementa. Os tokens de cada sessão estão em [`prompts/custos.md`](prompts/custos.md) (somados com `scripts/custo-sessao.mjs`, que inclui os subagentes).
 
@@ -203,6 +236,10 @@ Na AP2, cada commit diz no trailer `Agent:` qual ferramenta gerou o código e no
 | [`2026-11-19-noite-tempo-disponivel`](SPEC/2026-11-19-noite-tempo-disponivel.md)           | AP2: "Até que horas?" relativo e com horário livre   |
 | [`2026-11-19-series-descoberta`](SPEC/2026-11-19-series-descoberta.md)                     | AP2: séries no início, na busca e episódios          |
 | [`2026-11-20-acessibilidade-wizard-noite`](SPEC/2026-11-20-acessibilidade-wizard-noite.md) | AP2: acessibilidade do wizard da noite               |
+| [`2026-11-23-filtro-conteudo`](SPEC/2026-11-23-filtro-conteudo.md)                         | AP2: filtro de conteúdo sensível (substituída)       |
+| [`2026-11-23-filtro-idade`](SPEC/2026-11-23-filtro-idade.md)                               | AP2: filtro por idade e selo da classificação        |
+| [`2026-11-23-navegacao-rapida`](SPEC/2026-11-23-navegacao-rapida.md)                       | AP2: esqueletos e sessão sem ida ao Auth             |
+| [`2026-11-24-aviso-episodio-novo`](SPEC/2026-11-24-aviso-episodio-novo.md)                 | AP2: acompanhar séries e aviso de episódio novo      |
 
 ### Estrutura
 
