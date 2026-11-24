@@ -86,6 +86,12 @@ export function detalhesTmdb(sobrescrever: Record<string, unknown> = {}) {
       },
     },
     recommendations: paginaTmdb([filmeTmdb({ id: 807, title: "Se7en" })]),
+    release_dates: {
+      results: [
+        { iso_3166_1: "US", release_dates: [{ certification: "R" }] },
+        { iso_3166_1: "BR", release_dates: [{ certification: "" }, { certification: "18" }] },
+      ],
+    },
     ...sobrescrever,
   };
 }

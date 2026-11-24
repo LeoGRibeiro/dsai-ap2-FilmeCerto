@@ -1,11 +1,14 @@
 import type { Clima } from "@/features/metricas/eventos";
 import type { EstadoNoite } from "@/features/noite/estado";
+import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
+import { limiteDasRecomendacoes } from "@/features/filtro-conteudo/regras";
 import { filtrosDaNoite } from "@/features/noite/filtros";
 import { filtrosJuntos, motivoJuntos } from "@/features/noite/juntos";
 import { motivoDaNoite, provedorDaNoite } from "@/features/noite/motivo";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
 import type { ApiFilmes } from "@/lib/tmdb/filmes";
-import { CLASSIFICACOES_BR, type ApiSeries } from "@/lib/tmdb/series";
+import { ateAClassificacao } from "@/lib/tmdb/classificacao";
+import type { ApiSeries } from "@/lib/tmdb/series";
 import type {
   ClassificacaoBR,
   FilmeDetalhes,
@@ -17,7 +20,10 @@ import type {
 
 export type ApiNoite = Pick<ApiFilmes, "descobrirFilmes" | "obterFilme">;
 export type ApiNoiteSerie = Pick<ApiSeries, "descobrirSeries" | "obterSerie">;
-export type PerfilNoite = Pick<PreferenciasInput, "generosEvitados" | "streamings">;
+export type PerfilNoite = Pick<PreferenciasInput, "generosEvitados" | "streamings"> & {
+  /** Filtro por idade: com ele, nada +18 (SPEC/2026-11-23-filtro-idade.md). */
+  filtro?: FiltroConteudo;
+};
 
 /** O que a noite usa de um filme ou de uma série. Na série, `duracaoMin` é a do episódio. */
 export type TituloNoite = Pick<
@@ -80,16 +86,6 @@ function fonteDeFilmes(api: ApiNoite): Fonte {
     descobrir: (filtros) => api.descobrirFilmes(filtros),
     detalhar: (id) => api.obterFilme(id),
   };
-}
-
-/** Classificação conhecida e até `maxima`; sem classificação BR, não passa. */
-function ateAClassificacao(
-  classificacao: ClassificacaoBR | null | undefined,
-  maxima: ClassificacaoBR,
-) {
-  return (
-    !!classificacao && CLASSIFICACOES_BR.indexOf(classificacao) <= CLASSIFICACOES_BR.indexOf(maxima)
-  );
 }
 
 /** O TMDB falhou e a rodada ficou sem filmes: refazer as perguntas não resolveria. */
@@ -213,12 +209,17 @@ function comoResultado(
 export async function recomendarNoite(entrada: Entrada): Promise<ResultadoNoite | null> {
   const { respostas, estado, perfil, excluir, tipo = "filme" } = entrada;
   const { tom, duracaoMax, tempo = null } = estado;
-  const noite = filtrosDaNoite({ respostas, tom, duracaoMax, tempo, tipo }, perfil.generosEvitados);
+  const noite = filtrosDaNoite(
+    { respostas, tom, duracaoMax, tempo, tipo },
+    perfil.generosEvitados,
+    limiteDasRecomendacoes(perfil.filtro ?? null),
+  );
   if (!noite) return null;
   const { evitados, classificacaoNosDetalhes: classificacao } = noite;
 
-  // "Até que horas?" promete que o filme (ou o episódio) termina a tempo, e a série em família
-  // não tem filtro de classificação no TMDB: os dois são conferidos nos detalhes.
+  // "Até que horas?" promete que o filme (ou o episódio) termina a tempo, e a série (em família
+  // ou com filtro por idade) não tem filtro de classificação no TMDB: os dois são conferidos
+  // nos detalhes.
   const confere = tempo !== null || classificacao !== null;
   const passa = ({ duracaoMin, classificacao: dele }: TituloNoite) =>
     (tempo === null || (duracaoMin !== null && duracaoMin <= tempo)) &&
@@ -254,7 +255,12 @@ export async function recomendarJuntos({
   excluir: number[];
   api: ApiNoite;
 }): Promise<ResultadoNoite | null> {
-  const juntos = filtrosJuntos(a, b, perfil.generosEvitados);
+  const juntos = filtrosJuntos(
+    a,
+    b,
+    perfil.generosEvitados,
+    limiteDasRecomendacoes(perfil.filtro ?? null),
+  );
   if (!juntos) return null;
   const busca = await buscarFilmes({
     filtros: juntos.filtros,

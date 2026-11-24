@@ -2,8 +2,9 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { formatarDuracao, formatarNota } from "@/features/filme/formatar";
+import { SeloClassificacao } from "@/features/filtro-conteudo/components/selo-classificacao";
 import { urlImagem } from "@/lib/tmdb/imagens";
-import type { FilmeDetalhes } from "@/lib/tmdb/tipos";
+import type { ClassificacaoBR, FilmeDetalhes } from "@/lib/tmdb/tipos";
 
 /** O que o cabeçalho mostra de um filme ou de uma série. */
 export type DadosCabecalho = Pick<
@@ -13,16 +14,19 @@ export type DadosCabecalho = Pick<
 
 /**
  * Cabeçalho da página de um título: fundo, pôster, título, linha de dados (itens `null` são
- * omitidos), um aviso abaixo dela (o próximo episódio da série), gêneros, slogan e ações.
+ * omitidos) com o selo da classificação no fim, um aviso abaixo dela (o próximo episódio da
+ * série), gêneros, slogan e ações.
  */
 export function Cabecalho({
   titulo: filme,
   dados: itens,
+  classificacao = null,
   aviso,
   acoes,
 }: {
   titulo: DadosCabecalho;
   dados: (string | null)[];
+  classificacao?: ClassificacaoBR | null;
   aviso?: string | null;
   acoes?: ReactNode;
 }) {
@@ -64,6 +68,12 @@ export function Cabecalho({
                 <span>{item}</span>
               </li>
             ))}
+            {classificacao && (
+              <li className="flex items-center gap-3">
+                {dados.length > 0 && <span aria-hidden="true">·</span>}
+                <SeloClassificacao classificacao={classificacao} />
+              </li>
+            )}
           </ul>
           {aviso && <p className="text-sm font-medium">{aviso}</p>}
           {filme.generos.length > 0 && (
@@ -89,7 +99,7 @@ export function Cabecalho({
   );
 }
 
-/** Linha de dados do filme: ano · duração · nota. */
+/** Linha de dados do filme: ano · duração · nota · selo da classificação. */
 export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?: ReactNode }) {
   return (
     <Cabecalho
@@ -99,6 +109,7 @@ export function CabecalhoFilme({ filme, acoes }: { filme: FilmeDetalhes; acoes?:
         formatarDuracao(filme.duracaoMin),
         formatarNota(filme.nota, filme.votos),
       ]}
+      classificacao={filme.classificacao}
       acoes={acoes}
     />
   );

@@ -104,6 +104,7 @@ function apiFalsa(falhar = false): ApiNoite {
       direcao: [],
       ondeAssistir: null,
       parecidos: [],
+      classificacao: null,
     })),
   };
 }
@@ -155,6 +156,30 @@ describe("montarResultado", () => {
       mensagem: "Não conseguimos buscar os filmes agora. Tente de novo em instantes.",
     });
     expect(rpc).not.toHaveBeenCalledWith("concluir_sala_noite", expect.anything());
+  });
+
+  it.each([
+    ["o mais restrito dos dois é Até 14 anos", { data: "14" }, "14"],
+    ["o mais restrito dos dois é Sem conteúdo +18", { data: "18" }, "16"],
+    [
+      "a consulta do filtro falha (vale o mais seguro)",
+      { error: { code: "08006", message: "fora" } },
+      "10",
+    ],
+    ["o banco devolve um limite desconhecido", { data: "12" }, "10"],
+    ["ninguém tem filtro", { data: null }, undefined],
+  ])("quando %s, o limite da descoberta é %s", async (_, resposta, limite) => {
+    const api = apiFalsa();
+    const { cliente } = bancoFalso({
+      restricoes_sala_noite: restricoes,
+      limite_filtro_sala_noite: resposta,
+      concluir_sala_noite: { data: true },
+    });
+
+    expect(await montarResultado(cliente, SALA, api)).toEqual({ ok: true });
+    for (const [filtros] of vi.mocked(api.descobrirFilmes).mock.calls) {
+      expect(filtros?.classificacaoMax).toBe(limite);
+    }
   });
 
   it("sem as duas respostas (o resultado já foi gravado), não chama o TMDB", async () => {

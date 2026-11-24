@@ -1,3 +1,4 @@
+import { limiteMaisRestrito } from "@/features/filtro-conteudo/regras";
 import type { Clima } from "@/features/metricas/eventos";
 import {
   MAPEAMENTO_FILME,
@@ -47,6 +48,8 @@ type Montagem = {
   semDasExperiencias?: number[];
   /** Outros limites de duração ("Muito longo", "Até que horas?"). */
   limites?: (number | null | undefined)[];
+  /** Limite de classificação do filtro por idade (16 com filtro); vale o menor com a família. */
+  limiteDoFiltro?: ClassificacaoBR | null;
   /** Tabelas do tipo; o padrão é filme. */
   mapa?: Mapeamento;
 };
@@ -62,6 +65,7 @@ export function montarFiltros({
   evitados,
   semDasExperiencias = [],
   limites = [],
+  limiteDoFiltro = null,
   mapa = MAPEAMENTO_FILME,
 }: Montagem): FiltrosNoite {
   const humores = respostas.map(({ humor }) => mapa.humor[humor]);
@@ -74,7 +78,10 @@ export function montarFiltros({
     (n) => typeof n === "number",
   );
   const lancadoAte = humores.find((h) => h.lancadoAte)?.lancadoAte;
-  const classificacao = companhias.find((c) => c.classificacaoMax)?.classificacaoMax ?? null;
+  const classificacao = limiteMaisRestrito(
+    companhias.find((c) => c.classificacaoMax)?.classificacaoMax,
+    limiteDoFiltro,
+  );
   const noTmdb = mapa.classificacaoNoTmdb ? classificacao : null;
   const ordem =
     humores.find((h) => h.ordem)?.ordem ?? companhias.find((c) => c.ordem)?.ordem ?? ORDEM_PADRAO;
@@ -109,6 +116,7 @@ export function tomPermitido(tom: Tom, evitados: readonly number[]): boolean {
 export function filtrosDaNoite(
   rodada: RodadaNoite,
   evitadosDoPerfil: readonly number[],
+  limiteDoFiltro: ClassificacaoBR | null = null,
 ): FiltrosNoite | null {
   const { respostas, tom, duracaoMax, tempo, tipo = "filme" } = rodada;
   const mapa = MAPEAMENTOS[tipo];
@@ -126,6 +134,7 @@ export function filtrosDaNoite(
     evitados,
     semDasExperiencias: experiencia.sem,
     limites: [duracaoMax, tempo],
+    limiteDoFiltro,
     mapa,
   });
 }

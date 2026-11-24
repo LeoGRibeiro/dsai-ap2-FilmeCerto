@@ -13,7 +13,7 @@ export function resumo(id: number, extra: Partial<FilmeResumo> = {}): FilmeResum
 export function detalhes(id: number, extra: Partial<FilmeDetalhes> = {}): FilmeDetalhes {
   return { ...resumo(id), generos: [{ id: 18, nome: "Drama" }], duracaoMin: 120, slogan: null,
     trailerYoutube: null, elenco: [1, 2, 3, 4, 5, 6].map((n) => ({ nome: `Ator ${n}`, personagem: "", fotoPath: null })),
-    direcao: ["Diretora"], parecidos: [],
+    direcao: ["Diretora"], parecidos: [], classificacao: null,
     ondeAssistir: { link: "x", assinatura: [{ id: 8, nome: "Netflix", logoPath: null }], aluguel: [], compra: [{ id: 2, nome: "Apple TV", logoPath: null }] },
     ...extra };
 }
@@ -43,6 +43,7 @@ export function contexto(sobrescrever: Partial<ContextoTool> = {}): ContextoTool
     motor: {
       descobrirFilmes: vi.fn(async () => ({ itens: [resumo(1), resumo(2)], pagina: 1, totalPaginas: 1, totalResultados: 2 })),
       recomendacoesDe: vi.fn(async () => ({ itens: [], pagina: 1, totalPaginas: 0, totalResultados: 0 })),
+      classificacaoFilme: vi.fn(async () => "12" as const),
     },
     agora: () => new Date("2026-10-13T12:00:00-03:00"),
     ...sobrescrever,

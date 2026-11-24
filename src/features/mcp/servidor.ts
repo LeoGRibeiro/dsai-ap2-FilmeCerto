@@ -14,7 +14,7 @@ import { marcarNaLista } from "@/features/mcp/tools/marcar-na-lista";
 import { recomendarFilmes } from "@/features/mcp/tools/recomendar-filmes";
 import { verListas } from "@/features/mcp/tools/ver-listas";
 import { clientePorToken } from "@/lib/supabase/token";
-import { buscarFilmes as buscarTmdb, descobrirFilmes, obterFilme, recomendacoesDe } from "@/lib/tmdb/filmes";
+import { buscarFilmes as buscarTmdb, classificacaoFilme, descobrirFilmes, obterFilme, recomendacoesDe } from "@/lib/tmdb/filmes";
 
 export const INSTRUCOES =
   "Servidor do Filme Certo: recomendações de filmes, listas e avaliações da conta do usuário. " +
@@ -38,7 +38,7 @@ function contextoDe(ctx: Ctx): ContextoTool | null {
     origem: getPublicOrigin(ctx.http.req),
     dados: criarDados(clientePorToken(auth.token), usuarioId),
     tmdb: { buscarFilmes: buscarTmdb, obterFilme },
-    motor: { descobrirFilmes, recomendacoesDe },
+    motor: { descobrirFilmes, recomendacoesDe, classificacaoFilme },
     agora: () => new Date(),
   };
 }

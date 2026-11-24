@@ -3,7 +3,7 @@ import { montarFiltros, tomPermitido, type FiltrosNoite } from "@/features/noite
 import { TONS, type Tom } from "@/features/noite/mapeamento";
 import { trechoDoFilme } from "@/features/noite/motivo";
 import { TRECHOS, type Experiencia } from "@/features/noite/opcoes";
-import type { Provedor } from "@/lib/tmdb/tipos";
+import type { ClassificacaoBR, Provedor } from "@/lib/tmdb/tipos";
 
 /**
  * "Noite a dois": as respostas de duas pessoas viram um só filtro e um só motivo.
@@ -61,14 +61,19 @@ export function tomJuntos(a: Clima, b: Clima, evitados: number[]): Tom | null {
  * Filtros do TMDB para as duas pessoas: o tom vem das duas experiências, e as restrições de
  * humor e companhia de cada uma valem para as duas (família de um lado só já vale).
  */
-export function filtrosJuntos(a: Clima, b: Clima, evitados: number[]): FiltrosNoite | null {
+export function filtrosJuntos(
+  a: Clima,
+  b: Clima,
+  evitados: number[],
+  limiteDoFiltro: ClassificacaoBR | null = null,
+): FiltrosNoite | null {
   const tom = tomJuntos(a, b, evitados);
   if (!tom) return null;
   const semDasExperiencias = [
     ...(TONS[a.experiencia].sem ?? []),
     ...(TONS[b.experiencia].sem ?? []),
   ];
-  return montarFiltros({ tom, respostas: [a, b], evitados, semDasExperiencias });
+  return montarFiltros({ tom, respostas: [a, b], evitados, semDasExperiencias, limiteDoFiltro });
 }
 
 /** "Os dois querem rir" ou "Um quer rir e o outro quer ficar tenso", e a família. */

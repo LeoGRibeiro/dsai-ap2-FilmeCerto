@@ -36,9 +36,11 @@ test("a página da série mostra temporadas, episódio, elenco, onde assistir e 
   const main = page.getByRole("main");
   await expect(main.getByRole("heading", { level: 1 })).toHaveText(`Série ${ID}`);
   await expect(page).toHaveTitle(/^Série 1399 \(\d{4}\) · Filme Certo$/);
-  for (const dado of ["2 temporadas", "Episódios de 45min", "12 anos"]) {
+  for (const dado of ["2 temporadas", "Episódios de 45min"]) {
     await expect(main.getByText(dado, { exact: true })).toBeVisible();
   }
+  // A classificação é o selo ao lado da nota (SPEC/2026-11-23-filtro-idade.md).
+  await expect(main.getByTestId("selo-classificacao")).toContainText("Classificação: 12 anos");
   await expect(main.getByText(`Sinopse da Série ${ID}.`)).toBeVisible();
   await expect(main.getByText("Criação: Criadora Teste")).toBeVisible();
 

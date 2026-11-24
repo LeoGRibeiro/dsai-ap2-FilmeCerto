@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { gerarRecomendacoes, type ApiMotor } from "@/features/recomendacao/gerar";
 import type { EntradaMotor } from "@/features/recomendacao/tipos";
 import { TmdbErro } from "@/lib/tmdb/cliente";
-import type { FiltrosDescoberta, Pagina } from "@/lib/tmdb/tipos";
+import type { ClassificacaoBR, FiltrosDescoberta, Pagina } from "@/lib/tmdb/tipos";
 
 import { filme } from "./fabrica";
 
@@ -15,6 +15,13 @@ const pagina = (itens: ReturnType<typeof filme>[]): Pagina<ReturnType<typeof fil
 });
 
 /** TMDB falso: "para você" devolve 30 filmes de drama/terror; cada gênero, 25 do próprio gênero. */
+/** Classificação dos parecidos: 701 é 10, 702 é +18, 703 é 14; o resto não tem. */
+const CLASSIFICACOES: Partial<Record<number, ClassificacaoBR>> = {
+  701: "10",
+  702: "18",
+  703: "14",
+};
+
 function apiFalsa(falharGenero?: number, { falharStreamings = false } = {}): ApiMotor {
   return {
     descobrirFilmes: vi.fn(async (filtros: FiltrosDescoberta = {}) => {
@@ -48,6 +55,7 @@ function apiFalsa(falharGenero?: number, { falharStreamings = false } = {}): Api
     recomendacoesDe: vi.fn(async (id: number) =>
       pagina([filme(id + 1, { titulo: `Parecido ${id}` }), filme(5000)]),
     ),
+    classificacaoFilme: vi.fn(async (id: number) => CLASSIFICACOES[id] ?? null),
   };
 }
 
@@ -183,5 +191,50 @@ describe("gerarRecomendacoes", () => {
 
     const parecidos = secoes.find((s) => s.id === "parecidos-700");
     expect(parecidos?.filmes.map((f) => f.id)).toEqual([702]);
+  });
+
+  describe("filtro por idade", () => {
+    const comParecidos = (filtro: EntradaMotor["filtro"]) => ({
+      ...entrada,
+      filtro,
+      reacoes: [{ tmdbId: 700, titulo: "Interestelar", reacao: "amei" as const, generos: [878] }],
+    });
+    const apiComParecidos = () => {
+      const api = apiFalsa();
+      api.recomendacoesDe = vi.fn(async () =>
+        pagina([filme(701), filme(702), filme(703), filme(704)]),
+      );
+      return api;
+    };
+
+    it("sem filtro, não consulta classificação nem limita a descoberta", async () => {
+      const api = apiComParecidos();
+      const secoes = await gerarRecomendacoes(comParecidos(null), api);
+
+      expect(api.classificacaoFilme).not.toHaveBeenCalled();
+      for (const [filtros] of vi.mocked(api.descobrirFilmes).mock.calls) {
+        expect(filtros?.classificacaoMax).toBeUndefined();
+      }
+      const parecidos = secoes.find((s) => s.id === "parecidos-700");
+      expect(parecidos?.filmes.map((f) => f.id)).toContain(702);
+    });
+
+    it.each<[EntradaMotor["filtro"], string, number[]]>([
+      ["10", "10", [701, 704]],
+      ["14", "14", [701, 703, 704]],
+      ["18", "16", [701, 703, 704]],
+    ])(
+      "com o filtro %s, a descoberta vai até %s e os parecidos acima do limite saem",
+      async (filtro, limite, esperados) => {
+        const api = apiComParecidos();
+        const secoes = await gerarRecomendacoes(comParecidos(filtro), api);
+
+        const chamadas = vi.mocked(api.descobrirFilmes).mock.calls;
+        expect(chamadas.length).toBeGreaterThan(0);
+        for (const [filtros] of chamadas) expect(filtros?.classificacaoMax).toBe(limite);
+        const parecidos = secoes.find((s) => s.id === "parecidos-700");
+        expect(parecidos?.filmes.map((f) => f.id)).toEqual(esperados);
+      },
+    );
   });
 });

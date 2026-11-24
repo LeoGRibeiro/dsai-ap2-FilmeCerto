@@ -109,11 +109,29 @@ const detalhesComuns = {
   "watch/providers": ondeAssistirTmdb,
 };
 
+/** `/movie/{id}/release_dates`: as classificações de cada data de lançamento, por país. */
+export const datasLancamentoTmdb = z
+  .object({
+    results: z.array(
+      z.object({
+        iso_3166_1: z.string(),
+        release_dates: z.array(z.object({ certification: z.string().default("") })).default([]),
+      }),
+    ),
+  })
+  .default({ results: [] });
+
+/** `/tv/{id}/content_ratings`: uma classificação por país. */
+export const classificacoesSerieTmdb = z
+  .object({ results: z.array(z.object({ iso_3166_1: z.string(), rating: z.string() })) })
+  .default({ results: [] });
+
 export const detalhesTmdb = z.object({
   ...baseFilme,
   ...detalhesComuns,
   runtime: z.number().nullish(),
   recommendations: paginaTmdb(filmeTmdb).optional(),
+  release_dates: datasLancamentoTmdb,
 });
 
 export const detalhesSerieTmdb = z.object({
@@ -137,9 +155,7 @@ export const detalhesSerieTmdb = z.object({
     )
     .default([]),
   created_by: z.array(z.object({ name: z.string() })).default([]),
-  content_ratings: z
-    .object({ results: z.array(z.object({ iso_3166_1: z.string(), rating: z.string() })) })
-    .default({ results: [] }),
+  content_ratings: classificacoesSerieTmdb,
 });
 
 export const generosTmdb = z.object({ genres: z.array(generoTmdb) });

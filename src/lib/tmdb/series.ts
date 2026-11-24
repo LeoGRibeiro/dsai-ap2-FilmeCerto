@@ -1,5 +1,6 @@
 import "server-only";
 
+import { CACHE_CLASSIFICACAO, classificacaoDaSerie } from "@/lib/tmdb/classificacao";
 import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
 import {
   anoDe,
@@ -14,6 +15,7 @@ import {
   validar,
 } from "@/lib/tmdb/comum";
 import {
+  classificacoesSerieTmdb,
   detalhesSerieTmdb,
   generosTmdb,
   serieTmdb,
@@ -44,9 +46,6 @@ const ORDENS: Record<OrdemDescoberta, string> = {
   lancamento: "first_air_date.desc",
 };
 
-/** Classificações do Brasil, da mais leve à mais restrita. */
-export const CLASSIFICACOES_BR: readonly ClassificacaoBR[] = ["L", "10", "12", "14", "16", "18"];
-
 function paraResumo(serie: SerieTmdb): SerieResumo {
   return {
     id: serie.id,
@@ -70,11 +69,6 @@ function duracaoEpisodio(serie: DetalhesSerieTmdb): number | null {
   return Math.round(duracoes.reduce((soma, minutos) => soma + minutos, 0) / duracoes.length);
 }
 
-function classificacaoDe(serie: DetalhesSerieTmdb): ClassificacaoBR | null {
-  const doBrasil = serie.content_ratings.results.find((r) => r.iso_3166_1 === "BR")?.rating;
-  return CLASSIFICACOES_BR.find((classificacao) => classificacao === doBrasil) ?? null;
-}
-
 function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
   return {
     ...paraResumo({ ...serie, genre_ids: [] }),
@@ -94,7 +88,7 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     trailerYoutube: trailerDe(serie.videos.results),
     elenco: elencoDe(serie.credits),
     criacao: serie.created_by.map((pessoa) => pessoa.name),
-    classificacao: classificacaoDe(serie),
+    classificacao: classificacaoDaSerie(serie.content_ratings.results),
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
     situacao: serie.status,
     proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,
@@ -152,6 +146,12 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       });
     },
 
+    /** Só a classificação (`/tv/{id}/content_ratings`); lança se o TMDB falhar. */
+    async classificacaoSerie(id: number): Promise<ClassificacaoBR | null> {
+      const dados = await cliente.requisitar(`/tv/${id}/content_ratings`, {}, CACHE_CLASSIFICACAO);
+      return classificacaoDaSerie(validar(classificacoesSerieTmdb, dados).results);
+    },
+
     /** Gêneros de TV: outra lista que a dos filmes, com IDs próprios. */
     async generosSeries(): Promise<{ id: number; nome: string }[]> {
       const dados = await cliente.requisitar("/genre/tv/list", {}, CACHE_SERIE);
@@ -184,3 +184,5 @@ export const obterTemporada: ApiSeries["obterTemporada"] = (...args) =>
   api().obterTemporada(...args);
 export const generosSeries: ApiSeries["generosSeries"] = () => api().generosSeries();
 export const buscarSeries: ApiSeries["buscarSeries"] = (...args) => api().buscarSeries(...args);
+export const classificacaoSerie: ApiSeries["classificacaoSerie"] = (...args) =>
+  api().classificacaoSerie(...args);

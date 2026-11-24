@@ -13,6 +13,10 @@ import {
   MIN_TEXTO,
   parametrosDaBusca,
 } from "@/features/busca/parametros";
+import { descobrirAte } from "@/features/filtro-conteudo/aplicar";
+import { semBloqueadosDoTmdb } from "@/features/filtro-conteudo/classificar";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
+import { limiteDaBusca } from "@/features/filtro-conteudo/regras";
 import { buscarFilmes, descobrirFilmes } from "@/lib/tmdb/filmes";
 import { buscarSeries } from "@/lib/tmdb/series";
 
@@ -27,13 +31,32 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
   const busca = lerBusca(await searchParams);
   const { modo, tipo, texto, pagina, filtros } = busca;
   const buscarPorNome = tipo === "serie" ? buscarSeries : buscarFilmes;
+  const filtro = await obterFiltro();
 
-  const resultado =
+  // Com filtro por idade, nada +18: a descoberta já vem filtrada pelo TMDB, e a busca por nome
+  // confere título a título (a página pode vir com menos itens).
+  const porNome = modo === "nome" && texto.length >= MIN_TEXTO;
+  const bruto =
     modo === "filtros"
-      ? await descobrirFilmes(filtrosParaDescoberta(filtros, pagina))
-      : texto.length >= MIN_TEXTO
+      ? await descobrirAte(
+          descobrirFilmes,
+          limiteDaBusca(filtro),
+        )(filtrosParaDescoberta(filtros, pagina))
+      : porNome
         ? await buscarPorNome(texto, pagina)
         : null;
+  const resultado =
+    bruto && porNome
+      ? { ...bruto, itens: await semBloqueadosDoTmdb(bruto.itens, filtro, tipo) }
+      : bruto;
+  // Com filtro, o total do TMDB conta os +18 que saíram da busca por nome: numa página só, vale
+  // o que sobrou; com mais páginas, não dá para saber sem classificar todas, e o número some.
+  const total =
+    resultado && porNome && filtro
+      ? resultado.totalPaginas <= 1
+        ? resultado.itens.length
+        : null
+      : undefined;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10">
@@ -58,6 +81,7 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
             tipo={tipo}
             texto={texto}
             resultado={resultado}
+            total={total}
             parametros={parametrosDaBusca(busca)}
           />
         </div>

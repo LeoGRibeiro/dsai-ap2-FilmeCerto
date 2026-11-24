@@ -41,6 +41,8 @@ export type FilmeDetalhes = Omit<FilmeResumo, "generos"> & {
   direcao: string[];
   ondeAssistir: OndeAssistir | null;
   parecidos: FilmeResumo[];
+  /** Classificação indicativa: a do Brasil ou a dos EUA convertida; `null` sem nenhuma. */
+  classificacao: ClassificacaoBR | null;
 };
 
 export type OrdemDescoberta = "popularidade" | "nota" | "lancamento";

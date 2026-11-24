@@ -13,10 +13,15 @@ type Props = {
   texto: string;
   /** `null` quando não houve consulta (texto curto demais no modo nome). */
   resultado: Pagina<FilmeResumo | SerieResumo> | null;
+  /** O número do cabeçalho; sem ele, o total do TMDB. `null`: o cabeçalho fica sem número. */
+  total?: number | null;
   parametros: Record<string, string>;
 };
 
-function cabecalho(modo: Modo, total: number, texto: string) {
+function cabecalho(modo: Modo, total: number | null, texto: string) {
+  if (total === null) {
+    return modo === "nome" ? `Resultados para “${texto}”` : "Filmes encontrados";
+  }
   const quantidade = numeroPtBr.format(total);
   if (modo === "nome") {
     return `${quantidade} ${total === 1 ? "resultado" : "resultados"} para “${texto}”`;
@@ -32,7 +37,14 @@ const TEXTOS: Record<TipoMidia, { comecar: string; nenhum: string }> = {
   },
 };
 
-export function ResultadosBusca({ modo, tipo = "filme", texto, resultado, parametros }: Props) {
+export function ResultadosBusca({
+  modo,
+  tipo = "filme",
+  texto,
+  resultado,
+  total,
+  parametros,
+}: Props) {
   if (!resultado || (modo === "nome" && texto.length < MIN_TEXTO)) {
     return <p className="text-muted-foreground">{TEXTOS[tipo].comecar}</p>;
   }
@@ -49,7 +61,9 @@ export function ResultadosBusca({ modo, tipo = "filme", texto, resultado, parame
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-muted-foreground">{cabecalho(modo, resultado.totalResultados, texto)}</p>
+      <p className="text-muted-foreground">
+        {cabecalho(modo, total === undefined ? resultado.totalResultados : total, texto)}
+      </p>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-6">
         {resultado.itens.map((item) => (
           <li key={item.id}>

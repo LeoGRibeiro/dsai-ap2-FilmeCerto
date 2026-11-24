@@ -1,5 +1,8 @@
 import "server-only";
 
+import { descobrirAte } from "@/features/filtro-conteudo/aplicar";
+import { limiteDasRecomendacoes } from "@/features/filtro-conteudo/regras";
+import type { FiltroConteudo } from "@/features/filtro-conteudo/opcoes";
 import { GloboSurpresa } from "@/features/surpresa/components/globo-surpresa";
 import { montarGlobo } from "@/features/surpresa/montar";
 import type { PreferenciasInput } from "@/features/preferencias/schema";
@@ -9,11 +12,17 @@ import { descobrirFilmes } from "@/lib/tmdb/filmes";
 export async function SurpresaDashboard({
   preferencias,
   excluir,
+  filtro,
 }: {
   preferencias: PreferenciasInput;
   excluir: number[];
+  filtro: FiltroConteudo;
 }) {
-  const filmes = await montarGlobo({ preferencias, excluir, api: { descobrirFilmes } });
+  const filmes = await montarGlobo({
+    preferencias,
+    excluir,
+    api: { descobrirFilmes: descobrirAte(descobrirFilmes, limiteDasRecomendacoes(filtro)) },
+  });
   if (filmes.length === 0) return null;
   return <GloboSurpresa filmes={filmes} />;
 }

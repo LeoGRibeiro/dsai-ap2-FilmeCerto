@@ -11,10 +11,12 @@ import {
   tempoDaTemporada,
   vizinhas,
 } from "@/features/serie/temporada";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import { obterSerie, obterTemporada } from "@/lib/tmdb/series";
 import type { Episodio, SerieDetalhes, TemporadaDetalhes } from "@/lib/tmdb/tipos";
 
 vi.mock("@/lib/tmdb/series", () => ({ obterSerie: vi.fn(), obterTemporada: vi.fn() }));
+vi.mock("@/features/filtro-conteudo/consultas", () => ({ obterFiltro: vi.fn(async () => null) }));
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
@@ -238,5 +240,30 @@ describe("página da temporada", () => {
     expect(await generateMetadata(props("1399", "0"))).toEqual({
       title: "Temporada não encontrada",
     });
+  });
+
+  it("série +18 com filtro: a temporada fica bloqueada, sem nome nem imagem, até na aba", async () => {
+    vi.mocked(obterFiltro).mockResolvedValue("18");
+    vi.mocked(obterSerie).mockResolvedValue(serie({ classificacao: "18" }));
+
+    const { container } = render(await TemporadaPage(props("1399", "2")));
+    expect(screen.getByTestId("titulo-bloqueado")).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("A Guerra dos Tronos");
+    expect(container.querySelector("img")).toBeNull();
+    expect(await generateMetadata(props("1399", "2"))).toEqual({ title: "Título indisponível" });
+  });
+
+  it("série 16 com 'Até 14 anos' abre com aviso; sem filtro, sem aviso", async () => {
+    vi.mocked(obterSerie).mockResolvedValue(serie({ classificacao: "16" }));
+    vi.mocked(obterFiltro).mockResolvedValue("14");
+    const { unmount } = render(await TemporadaPage(props("1399", "2")));
+    expect(screen.getByRole("note")).toHaveTextContent("Não recomendado para menores de 16 anos.");
+    expect(screen.getByTestId("selo-classificacao")).toHaveTextContent("16");
+    unmount();
+
+    vi.mocked(obterFiltro).mockResolvedValue(null);
+    render(await TemporadaPage(props("1399", "2")));
+    expect(screen.queryByRole("note")).toBeNull();
+    expect(screen.getByTestId("selo-classificacao")).toHaveTextContent("16");
   });
 });

@@ -32,7 +32,7 @@ export function proximoEpisodio(serie: SerieDetalhes, hoje: string): string | nu
   return eFutura(data, hoje) ? `Próximo episódio em ${formatarData(data)}` : null;
 }
 
-/** Linha de dados do cabeçalho: ano · temporadas · situação · episódio · classificação · nota. */
+/** Linha de dados do cabeçalho: ano · temporadas · situação · episódio · nota (o selo vem depois). */
 export function dadosDaSerie(serie: SerieDetalhes): (string | null)[] {
   const episodio = formatarDuracao(serie.duracaoEpisodioMin);
   return [
@@ -40,7 +40,6 @@ export function dadosDaSerie(serie: SerieDetalhes): (string | null)[] {
     serie.temporadas.length > 0 ? contar(serie.temporadas.length, "temporada", "temporadas") : null,
     rotuloSituacao(serie.situacao),
     episodio ? `Episódios de ${episodio}` : null,
-    rotuloClassificacao(serie.classificacao),
     formatarNota(serie.nota, serie.votos),
   ];
 }

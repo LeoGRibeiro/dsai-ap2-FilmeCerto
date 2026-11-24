@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,8 +12,11 @@ import { EsqueletoSecoes } from "@/features/dashboard/components/esqueleto-secoe
 import { SecaoSeries } from "@/features/dashboard/components/secao-series";
 import { SecoesRecomendadas } from "@/features/dashboard/components/secoes-recomendadas";
 import { lerRodada } from "@/features/dashboard/rodada";
+import { semBloqueados } from "@/features/filtro-conteudo/aplicar";
+import { classificarMidia } from "@/features/filtro-conteudo/classificar";
+import { obterFiltro } from "@/features/filtro-conteudo/consultas";
 import { idsNasListas } from "@/features/listas/consultas";
-import { BotaoNoite } from "@/features/noite/components/botao-noite";
+import { BotaoNoite, CLASSE_BOTAO_TOPO } from "@/features/noite/components/botao-noite";
 import { obterPreferencias } from "@/features/preferencias/consultas";
 import { resumirPreferencias } from "@/features/preferencias/resumo";
 import { obterReacoes } from "@/features/reacoes/consultas";
@@ -29,11 +33,19 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   if (!preferencias) redirect("/onboarding");
 
   const rodada = lerRodada((await searchParams).rodada);
-  const [reacoes, excluir, comoFoi] = await Promise.all([
+  const [reacoes, excluir, pergunta, filtro] = await Promise.all([
     obterReacoes(),
     idsNasListas(),
     obterComoFoi(),
+    obterFiltro(),
   ]);
+  // Com filtro, a pergunta sobre um título +18 escolhido antes não aparece.
+  const [comoFoi = null] = await semBloqueados(
+    pergunta ? [pergunta] : [],
+    filtro,
+    ({ tipo, tmdbId }) => ({ tipo, tmdbId }),
+    classificarMidia,
+  );
   const urlAtual = rodada ? `/dashboard?rodada=${rodada}` : "/dashboard";
   const proximaRodada = `/dashboard?rodada=${rodada + 1}`;
 
@@ -46,9 +58,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             {resumirPreferencias(preferencias)}
           </p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-start">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
           <BotaoNoite />
-          <Link href={proximaRodada} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <Link
+            href={proximaRodada}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), CLASSE_BOTAO_TOPO)}
+          >
             Gerar outras recomendações
           </Link>
         </div>
@@ -67,6 +82,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             rodada,
             reacoes,
             excluir,
+            filtro,
           }}
           urlAtual={urlAtual}
           proximaRodada={proximaRodada}
@@ -75,6 +91,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               <SurpresaDashboard
                 preferencias={preferencias}
                 excluir={[...excluir, ...reacoes.map((reacao) => reacao.tmdbId)]}
+                filtro={filtro}
               />
             </Suspense>
           }
@@ -82,7 +99,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       </Suspense>
 
       <Suspense key={`series-${rodada}`} fallback={<EsqueletoSecoes secoes={1} />}>
-        <SecaoSeries preferencias={preferencias} rodada={rodada} urlAtual={urlAtual} />
+        <SecaoSeries
+          preferencias={preferencias}
+          rodada={rodada}
+          urlAtual={urlAtual}
+          filtro={filtro}
+        />
       </Suspense>
     </div>
   );

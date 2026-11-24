@@ -154,7 +154,7 @@ describe("obterFilme", () => {
     const { url, revalidate } = chamada(fetchFalso);
     expect(url.pathname).toBe("/3/movie/550");
     expect(url.searchParams.get("append_to_response")).toBe(
-      "videos,credits,watch/providers,recommendations",
+      "videos,credits,watch/providers,recommendations,release_dates",
     );
     expect(url.searchParams.get("language")).toBe("pt-BR");
     expect(revalidate).toBe(24 * 3600);
@@ -168,6 +168,7 @@ describe("obterFilme", () => {
         { id: 53, nome: "Thriller" },
       ],
       duracaoMin: 139,
+      classificacao: "18",
       slogan: null,
       trailerYoutube: "oficial",
       direcao: ["David Fincher"],
@@ -210,6 +211,38 @@ describe("obterFilme", () => {
   it("devolve null para 404", async () => {
     const { api } = montar({ status_code: 34 }, 404);
     expect(await api.obterFilme(1)).toBeNull();
+  });
+});
+
+describe("classificacaoFilme", () => {
+  it("lê as datas de lançamento, com cache de 7 dias, e fica com a mais alta do Brasil", async () => {
+    const { api, fetchFalso } = montar({
+      id: 550,
+      results: [
+        { iso_3166_1: "BR", release_dates: [{ certification: "14" }, { certification: "16" }] },
+        { iso_3166_1: "US", release_dates: [{ certification: "NC-17" }] },
+      ],
+    });
+
+    expect(await api.classificacaoFilme(550)).toBe("16");
+    const { url, revalidate } = chamada(fetchFalso);
+    expect(url.pathname).toBe("/3/movie/550/release_dates");
+    expect(revalidate).toBe(7 * 24 * 3600);
+  });
+
+  it("sem o Brasil, converte a dos EUA; sem nenhuma, null", async () => {
+    const eua = montar({
+      results: [{ iso_3166_1: "US", release_dates: [{ certification: "PG-13" }] }],
+    });
+    expect(await eua.api.classificacaoFilme(1)).toBe("14");
+
+    const nenhuma = montar({ results: [] });
+    expect(await nenhuma.api.classificacaoFilme(1)).toBeNull();
+  });
+
+  it("lança quando o TMDB falha, para quem chama decidir na dúvida", async () => {
+    const { api } = montar({ status_message: "erro" }, 500);
+    await expect(api.classificacaoFilme(550)).rejects.toThrow();
   });
 });
 

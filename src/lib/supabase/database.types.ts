@@ -96,6 +96,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      filtros_conteudo: {
+        Row: {
+          atualizado_em: string;
+          criado_em: string;
+          limite: string;
+          usuario_id: string;
+        };
+        Insert: {
+          atualizado_em?: string;
+          criado_em?: string;
+          limite: string;
+          usuario_id?: string;
+        };
+        Update: {
+          atualizado_em?: string;
+          criado_em?: string;
+          limite?: string;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
       lista_itens: {
         Row: {
           adicionado_em: string;
@@ -269,6 +290,10 @@ export type Database = {
         Returns: string;
       };
       entrar_sala_noite: {
+        Args: { p_sala: string };
+        Returns: string;
+      };
+      limite_filtro_sala_noite: {
         Args: { p_sala: string };
         Returns: string;
       };
