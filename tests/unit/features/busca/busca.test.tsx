@@ -276,6 +276,24 @@ describe("BuscaPage", () => {
     expect(screen.getByRole("link", { name: "Matrix 1 (1999)" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Matrix 2 (1999)" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Matrix 3 (1999)" })).toBeInTheDocument();
+    // Numa página só, a contagem é a do que aparece, não a do TMDB.
+    expect(screen.getByText("2 resultados para “matrix”")).toBeInTheDocument();
+  });
+
+  it("com filtro e mais de uma página, o cabeçalho fica sem número", async () => {
+    vi.mocked(obterFiltro).mockResolvedValueOnce("14");
+    vi.mocked(buscarFilmes).mockResolvedValueOnce(pagina([filme(1), filme(2)], 45, 3));
+    vi.mocked(classificacaoFilme).mockImplementation(async (id) => (id === 2 ? "18" : "12"));
+    await abrir({ q: "matrix" });
+
+    expect(screen.getByText("Resultados para “matrix”")).toBeInTheDocument();
+    expect(screen.queryByText(/45/)).toBeNull();
+  });
+
+  it("sem filtro, o cabeçalho mantém o total do TMDB", async () => {
+    vi.mocked(buscarFilmes).mockResolvedValueOnce(pagina([filme(1)], 45, 3));
+    await abrir({ q: "matrix" });
+    expect(screen.getByText("45 resultados para “matrix”")).toBeInTheDocument();
   });
 
   it("com filtro, a série +18 também some, e a busca por filtros vai até 16", async () => {

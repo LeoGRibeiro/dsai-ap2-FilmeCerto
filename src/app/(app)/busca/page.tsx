@@ -49,6 +49,14 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
     bruto && porNome
       ? { ...bruto, itens: await semBloqueadosDoTmdb(bruto.itens, filtro, tipo) }
       : bruto;
+  // Com filtro, o total do TMDB conta os +18 que saíram da busca por nome: numa página só, vale
+  // o que sobrou; com mais páginas, não dá para saber sem classificar todas, e o número some.
+  const total =
+    resultado && porNome && filtro
+      ? resultado.totalPaginas <= 1
+        ? resultado.itens.length
+        : null
+      : undefined;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10">
@@ -73,6 +81,7 @@ export default async function BuscaPage({ searchParams }: PageProps<"/busca">) {
             tipo={tipo}
             texto={texto}
             resultado={resultado}
+            total={total}
             parametros={parametrosDaBusca(busca)}
           />
         </div>
