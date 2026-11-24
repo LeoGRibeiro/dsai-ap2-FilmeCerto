@@ -32,3 +32,4 @@ Como os números foram obtidos:
 | [2026-10-13-1502-claude-code.jsonl](sessoes/2026-10-13-1502-claude-code.jsonl) | claude-code | claude-opus-5-5 | 216 | 151.119 | 650.112 / 27.482.369 | não registrado na exportação |
 | [2026-10-23-2120-claude-code.jsonl](sessoes/2026-10-23-2120-claude-code.jsonl) | claude-code | claude-opus-5-5 | 52 | 20.173 | 138.383 / 1.902.185 | não registrado na exportação |
 | [2026-10-23-2130-claude-code-loop-rodada1.jsonl](sessoes/2026-10-23-2130-claude-code-loop-rodada1.jsonl) | claude-code (`-p`, loop) | claude-sonnet-5-5 | 24 | 4.315 | 35.436 / 666.895 | não registrado na exportação |
+| [2026-11-24-1810-claude-code.jsonl](sessoes/2026-11-24-1810-claude-code.jsonl) | claude-code (VS Code) | claude-opus-5-5 | 46 | 21.250 | 96.006 / 2.291.688 | não disponível (extensão VS Code) |
