@@ -1,6 +1,6 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
-/** Strings que o TMDB às vezes manda como `null` ou omite. */
+/** Strings que o TMDB Ã s vezes manda como `null` ou omite. */
 const textoOpcional = z
   .string()
   .nullish()
@@ -16,7 +16,7 @@ const numero = z
   .nullish()
   .transform((valor) => valor ?? 0);
 
-/** Campos que filme e série têm com o mesmo nome. */
+/** Campos que filme e sÃ©rie tÃªm com o mesmo nome. */
 const baseTitulo = {
   id: z.number().int(),
   overview: textoOuVazio,
@@ -34,7 +34,7 @@ const baseFilme = {
   release_date: textoOpcional,
 };
 
-/** Na série, o título é `name` e a data é a da estreia. */
+/** Na sÃ©rie, o tÃ­tulo Ã© `name` e a data Ã© a da estreia. */
 const baseSerie = {
   ...baseTitulo,
   name: z.string(),
@@ -100,7 +100,7 @@ const ondeAssistirTmdb = z
   })
   .default({ results: {} });
 
-/** Campos que os detalhes de filme e de série têm no mesmo formato. */
+/** Campos que os detalhes de filme e de sÃ©rie tÃªm no mesmo formato. */
 const detalhesComuns = {
   genres: z.array(generoTmdb).default([]),
   tagline: textoOpcional,
@@ -109,7 +109,7 @@ const detalhesComuns = {
   "watch/providers": ondeAssistirTmdb,
 };
 
-/** `/movie/{id}/release_dates`: as classificações de cada data de lançamento, por país. */
+/** `/movie/{id}/release_dates`: as classificaÃ§Ãµes de cada data de lanÃ§amento, por paÃ­s. */
 export const datasLancamentoTmdb = z
   .object({
     results: z.array(
@@ -121,7 +121,7 @@ export const datasLancamentoTmdb = z
   })
   .default({ results: [] });
 
-/** `/tv/{id}/content_ratings`: uma classificação por país. */
+/** `/tv/{id}/content_ratings`: uma classificaÃ§Ã£o por paÃ­s. */
 export const classificacoesSerieTmdb = z
   .object({ results: z.array(z.object({ iso_3166_1: z.string(), rating: z.string() })) })
   .default({ results: [] });
@@ -137,12 +137,18 @@ export const detalhesTmdb = z.object({
 export const detalhesSerieTmdb = z.object({
   ...baseSerie,
   ...detalhesComuns,
-  /** O TMDB deixou de preencher em muitas séries; vem `[]`. */
+  /** O TMDB deixou de preencher em muitas sÃ©ries; vem `[]`. */
   episode_run_time: z.array(z.number()).default([]),
   last_episode_to_air: z.object({ runtime: z.number().nullish() }).nullish(),
   /** "Returning Series", "Ended", "Canceled", "In Production", "Planned"... */
   status: textoOpcional,
-  next_episode_to_air: z.object({ air_date: textoOpcional }).nullish(),
+  next_episode_to_air: z.object({
+    id: z.number().int().nullish(),
+    name: textoOpcional,
+    season_number: z.number().int().nullish(),
+    episode_number: z.number().int().nullish(),
+    air_date: textoOpcional,
+  }).nullish(),
   seasons: z
     .array(
       z.object({
@@ -160,7 +166,7 @@ export const detalhesSerieTmdb = z.object({
 
 export const generosTmdb = z.object({ genres: z.array(generoTmdb) });
 
-/** Uma temporada com os episódios (`/tv/{id}/season/{n}`). */
+/** Uma temporada com os episÃ³dios (`/tv/{id}/season/{n}`). */
 export const temporadaTmdb = z.object({
   season_number: z.number().int(),
   name: textoOuVazio,
@@ -192,3 +198,4 @@ export type GeneroTmdb = z.infer<typeof generoTmdb>;
 export type VideosTmdb = z.infer<typeof videosTmdb>;
 export type CreditosTmdb = z.infer<typeof creditosTmdb>;
 export type OndeAssistirTmdb = z.infer<typeof ondeAssistirTmdb>;
+

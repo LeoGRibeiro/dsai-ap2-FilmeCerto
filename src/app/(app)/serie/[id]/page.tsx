@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Cabecalho } from "@/features/filme/components/cabecalho-filme";
@@ -18,6 +18,8 @@ import { bloqueado, tratamento } from "@/features/filtro-conteudo/regras";
 import { obterStatusLista } from "@/features/listas/consultas";
 import { obterReacao } from "@/features/reacoes/consultas";
 import { diaEmSaoPaulo } from "@/features/recomendacao/semente";
+import { BotaoAcompanhar } from "@/features/serie/components/botao-acompanhar";
+import { obterAcompanhamentoSerie } from "@/features/serie/consultas";
 import { Temporadas } from "@/features/serie/components/temporadas";
 import { dadosDaSerie, proximoEpisodio } from "@/features/serie/formatar";
 import type { Midia } from "@/lib/midia";
@@ -27,7 +29,7 @@ const buscarSerie = buscaPorId(obterSerie);
 
 export async function generateMetadata({ params }: PageProps<"/serie/[id]">): Promise<Metadata> {
   const [serie, filtro] = await Promise.all([buscarSerie((await params).id), obterFiltro()]);
-  if (!serie) return { title: "Série não encontrada" };
+  if (!serie) return { title: "SÃ©rie nÃ£o encontrada" };
   if (bloqueado(serie.classificacao, filtro)) return { title: TITULO_BLOQUEADO };
   return { title: tituloComAno(serie) };
 }
@@ -38,7 +40,11 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
   const comoMostrar = tratamento(serie.classificacao, filtro);
   if (comoMostrar === "bloqueado") return <TituloBloqueado />;
   const midia: Midia = { tipo: "serie", tmdbId: serie.id };
-  const [reacao, statusLista] = await Promise.all([obterReacao(midia), obterStatusLista(midia)]);
+  const [reacao, statusLista, acompanhando] = await Promise.all([
+    obterReacao(midia),
+    obterStatusLista(midia),
+    obterAcompanhamentoSerie(serie.id),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8">
@@ -51,10 +57,15 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
         dados={dadosDaSerie(serie)}
         classificacao={serie.classificacao}
         aviso={proximoEpisodio(serie, diaEmSaoPaulo(new Date()))}
-        acoes={<AcoesTitulo midia={midia} reacao={reacao} statusLista={statusLista} />}
+        acoes={
+          <>
+            <AcoesTitulo midia={midia} reacao={reacao} statusLista={statusLista} />
+            <BotaoAcompanhar tmdbId={serie.id} atual={acompanhando} />
+          </>
+        }
       />
 
-      <Sinopse texto={serie.sinopse} rotulo="Criação" nomes={serie.criacao} />
+      <Sinopse texto={serie.sinopse} rotulo="CriaÃ§Ã£o" nomes={serie.criacao} />
 
       {serie.trailerYoutube && (
         <Secao titulo="Trailer">
@@ -84,3 +95,4 @@ export default async function SeriePage({ params }: PageProps<"/serie/[id]">) {
     </div>
   );
 }
+
