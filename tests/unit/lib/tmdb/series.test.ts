@@ -144,6 +144,40 @@ describe("obterSerie", () => {
 
     const nenhuma = montar(detalhesSerieTmdb({ episode_run_time: [0], last_episode_to_air: null }));
     expect((await nenhuma.api.obterSerie(1399))?.duracaoEpisodioMin).toBeNull();
+    expect((await nenhuma.api.obterSerie(1399))?.ultimoEpisodioDetalhes).toBeNull();
+  });
+
+  it("lê o último e o próximo episódio com temporada, número, nome e data", async () => {
+    const { api } = montar(
+      detalhesSerieTmdb({
+        last_episode_to_air: {
+          id: 63056,
+          name: "O Inverno Chegou",
+          season_number: 2,
+          episode_number: 9,
+          air_date: "2026-11-20",
+          runtime: 55,
+        },
+        next_episode_to_air: { season_number: 2, episode_number: 10, air_date: "2026-12-12" },
+      }),
+    );
+
+    const serie = await api.obterSerie(1399);
+
+    expect(serie?.ultimoEpisodioDetalhes).toEqual({
+      id: 63056,
+      nome: "O Inverno Chegou",
+      temporadaNumero: 2,
+      episodioNumero: 9,
+      data: "2026-11-20",
+    });
+    expect(serie?.proximoEpisodioDetalhes).toEqual({
+      id: null,
+      nome: null,
+      temporadaNumero: 2,
+      episodioNumero: 10,
+      data: "2026-12-12",
+    });
   });
 
   it("sem a classificação do Brasil, usa a dos EUA convertida", async () => {

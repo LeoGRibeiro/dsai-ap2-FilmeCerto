@@ -118,6 +118,13 @@ const CLASSIFICACOES_SERIE = { results: [{ iso_3166_1: "BR", rating: "12" }] };
 const DATA_FUTURA = "2099-12-12";
 
 /**
+ * Hoje em São Paulo (`AAAA-MM-DD`): o último episódio exibido de toda série é de hoje, para o
+ * E2E acompanhar uma série e já ver o aviso de episódio novo no início.
+ */
+const hojeEmSaoPaulo = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+
+/**
  * Episódios de `/tv/{id}/season/{n}`. Na temporada 1, o 3 não tem duração e o 8 ainda não foi
  * exibido (sem duração nem votos); na 2, todos de 45 min.
  */
@@ -292,7 +299,14 @@ const servidor = createServer((req, res) => {
         { id: 10765, name: "Sci-Fi & Fantasy" },
       ],
       episode_run_time: [45],
-      last_episode_to_air: { runtime: 47 },
+      last_episode_to_air: {
+        id: id * 100 + 28,
+        name: "Episódio 2x8",
+        season_number: 2,
+        episode_number: 8,
+        air_date: hojeEmSaoPaulo(),
+        runtime: 47,
+      },
       seasons: [
         {
           season_number: 0,
@@ -322,7 +336,13 @@ const servidor = createServer((req, res) => {
       credits: { cast: ELENCO, crew: [] },
       content_ratings: CLASSIFICACOES_SERIE,
       status: "Returning Series",
-      next_episode_to_air: { air_date: DATA_FUTURA, runtime: null },
+      next_episode_to_air: {
+        name: "Episódio 3x1",
+        season_number: 3,
+        episode_number: 1,
+        air_date: DATA_FUTURA,
+        runtime: null,
+      },
     });
   }
 

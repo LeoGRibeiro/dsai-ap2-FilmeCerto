@@ -120,6 +120,8 @@ export type SerieDetalhes = Omit<SerieResumo, "generos"> & {
   proximoEpisodio?: string | null;
   /** Dados completos do próximo episódio informado pela TMDB. */
   proximoEpisodioDetalhes?: EpisodioPrevisto | null;
+  /** O último episódio exibido, no mesmo formato: os avisos de episódio novo usam os dois. */
+  ultimoEpisodioDetalhes?: EpisodioPrevisto | null;
 };
 
 export type Episodio = {
