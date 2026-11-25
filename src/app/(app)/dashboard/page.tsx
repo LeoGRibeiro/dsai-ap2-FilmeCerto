@@ -20,6 +20,7 @@ import { BotaoNoite, CLASSE_BOTAO_TOPO } from "@/features/noite/components/botao
 import { obterPreferencias } from "@/features/preferencias/consultas";
 import { resumirPreferencias } from "@/features/preferencias/resumo";
 import { obterReacoes } from "@/features/reacoes/consultas";
+import { AvisosEpisodios } from "@/features/serie/components/avisos-episodios";
 import {
   EsqueletoSurpresa,
   SurpresaDashboard,
@@ -71,6 +72,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
       {/* A chave troca o cartão quando outra escolha passa a ser a mais recente. */}
       {comoFoi && <PerguntaComoFoi key={comoFoi.id} pergunta={comoFoi} />}
+
+      {/* Avisos de episódio novo: leem o TMDB das séries acompanhadas, então não seguram o início. */}
+      <Suspense fallback={null}>
+        <AvisosEpisodios usuarioId={usuario.id} filtro={filtro} />
+      </Suspense>
 
       {/* A chave por rodada mostra o esqueleto de novo a cada "Gerar outras recomendações". */}
       <Suspense key={rodada} fallback={<EsqueletoSecoes />}>
