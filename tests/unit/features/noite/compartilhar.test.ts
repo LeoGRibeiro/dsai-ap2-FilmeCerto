@@ -29,15 +29,15 @@ describe("mensagemDaNoite", () => {
 });
 
 describe("urlDoFilme", () => {
-  it("junta a origem do app e a página do filme", () => {
+  it("junta a origem do app e a página pública do filme", () => {
     expect(urlDoFilme("https://filme-certo.example", 603)).toBe(
-      "https://filme-certo.example/filme/603",
+      "https://filme-certo.example/compartilhado/filme/603",
     );
   });
 
-  it("de uma série, leva à página da série", () => {
+  it("de uma série, leva à página pública da série", () => {
     expect(urlDoFilme("https://filme-certo.example", 603, "serie")).toBe(
-      "https://filme-certo.example/serie/603",
+      "https://filme-certo.example/compartilhado/serie/603",
     );
   });
 });

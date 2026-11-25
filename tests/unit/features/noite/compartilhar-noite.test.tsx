@@ -33,7 +33,9 @@ describe("CompartilharNoite sem Web Share", () => {
     const link = screen.getByRole("link", { name: "Compartilhar no WhatsApp" });
     const href = new URL(link.getAttribute("href")!);
     expect(href.origin + href.pathname).toBe("https://wa.me/");
-    expect(href.searchParams.get("text")).toBe(`${MENSAGEM}\n${window.location.origin}/filme/7`);
+    expect(href.searchParams.get("text")).toBe(
+      `${MENSAGEM}\n${window.location.origin}/compartilhado/filme/7`,
+    );
     expect(link).toHaveAttribute("target", "_blank");
     expect(link.getAttribute("rel")).toContain("noopener");
     expect(screen.queryByRole("button", { name: "Compartilhar" })).not.toBeInTheDocument();
@@ -46,7 +48,7 @@ describe("CompartilharNoite sem Web Share", () => {
       .getByRole("link", { name: "Compartilhar no WhatsApp" })
       .getAttribute("href");
     expect(new URL(href!).searchParams.get("text")).toBe(
-      `Hoje vamos ver Duna\n${window.location.origin}/filme/7`,
+      `Hoje vamos ver Duna\n${window.location.origin}/compartilhado/filme/7`,
     );
   });
 });
@@ -63,7 +65,7 @@ describe("CompartilharNoite com Web Share", () => {
 
     expect(share).toHaveBeenCalledExactlyOnceWith({
       text: "Hoje vamos ver Velozes & Furiosos #7, termina às 0h00",
-      url: `${window.location.origin}/filme/7`,
+      url: `${window.location.origin}/compartilhado/filme/7`,
     });
   });
 

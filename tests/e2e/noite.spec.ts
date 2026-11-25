@@ -249,7 +249,7 @@ test.describe("Compartilhar a noite", () => {
     expect(href.origin + href.pathname).toBe("https://wa.me/");
     const origem = new URL(page.url()).origin;
     expect(href.searchParams.get("text")).toBe(
-      `Hoje vamos ver Filme 35020, termina às 1h35\n${origem}/filme/35020`,
+      `Hoje vamos ver Filme 35020, termina às 1h35\n${origem}/compartilhado/filme/35020`,
     );
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       390,

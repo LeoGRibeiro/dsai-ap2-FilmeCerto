@@ -25,3 +25,8 @@ export const NAO_ENCONTRADO: Record<TipoMidia, string> = {
 export function caminhoMidia({ tipo, tmdbId }: Midia): string {
   return `/${tipo}/${tmdbId}`;
 }
+
+/** Página pública do título, a que vai no link do "Compartilhar" (abre sem conta). */
+export function caminhoCompartilhado(midia: Midia): string {
+  return `/compartilhado${caminhoMidia(midia)}`;
+}
