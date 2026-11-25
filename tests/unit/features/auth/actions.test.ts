@@ -85,3 +85,35 @@ describe("actions de sessão limpam o cache do roteador", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 });
+
+describe("cadastrar leva o destino do convite ao onboarding", () => {
+  const cadastro = (extra: Record<string, string>) =>
+    form({
+      nome: "Ana",
+      email: "ana@exemplo.com",
+      senha: "segredo123",
+      confirmacao: "segredo123",
+      ...extra,
+    });
+
+  it("com next, redireciona para o onboarding guardando o destino", async () => {
+    comAuth({ signUp: ok });
+
+    await expect(cadastrar({}, cadastro({ next: "/noite/juntos/abc" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    limpouERedirecionou("/onboarding?next=%2Fnoite%2Fjuntos%2Fabc");
+  });
+
+  it.each(["https://evil.com", "//evil.com", "/dashboard"])(
+    "com next=%s, vai ao onboarding sem destino",
+    async (next) => {
+      comAuth({ signUp: ok });
+
+      await expect(cadastrar({}, cadastro({ next }))).rejects.toThrow("NEXT_REDIRECT");
+
+      limpouERedirecionou("/onboarding");
+    },
+  );
+});

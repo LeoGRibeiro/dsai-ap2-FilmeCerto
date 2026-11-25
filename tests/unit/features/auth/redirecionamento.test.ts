@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DESTINO_PADRAO, sanitizarNext } from "@/features/auth/redirecionamento";
+import { caminhoComNext, DESTINO_PADRAO, sanitizarNext } from "@/features/auth/redirecionamento";
 
 describe("sanitizarNext", () => {
   it.each(["/filme/1", "/dashboard?x=1", "/dashboard"])(
@@ -26,4 +26,25 @@ describe("sanitizarNext", () => {
   it("o destino padrão é /dashboard", () => {
     expect(DESTINO_PADRAO).toBe("/dashboard");
   });
+});
+
+describe("caminhoComNext", () => {
+  it("leva o destino codificado em ?next=", () => {
+    expect(caminhoComNext("/cadastro", "/noite/juntos/abc")).toBe(
+      "/cadastro?next=%2Fnoite%2Fjuntos%2Fabc",
+    );
+  });
+
+  it("preserva a query do destino", () => {
+    expect(caminhoComNext("/onboarding", "/busca?q=a&b=1")).toBe(
+      "/onboarding?next=%2Fbusca%3Fq%3Da%26b%3D1",
+    );
+  });
+
+  it.each([DESTINO_PADRAO, undefined, ""])(
+    "sem destino próprio (%j), não muda o caminho",
+    (destino) => {
+      expect(caminhoComNext("/cadastro", destino)).toBe("/cadastro");
+    },
+  );
 });
