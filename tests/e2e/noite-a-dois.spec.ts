@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { emailAleatorio } from "../support/supabase-local";
-import { cadastrar, concluirOnboarding } from "./helpers";
+import { cadastrar, concluirOnboarding, preencherCadastro } from "./helpers";
 
 const main = (page: Page) => page.getByRole("main");
 
@@ -14,6 +14,14 @@ async function pessoa(browser: Browser, baseURL: string | undefined, nome: strin
   await cadastrar(page, nome, emailAleatorio("e2e"));
   await concluirOnboarding(page);
   return page;
+}
+
+/** Cria a sala a partir do wizard e devolve o link para mandar à outra pessoa. */
+async function criarSala(page: Page) {
+  await page.goto("/noite");
+  await main(page).getByRole("button", { name: "Vamos escolher juntos" }).click();
+  await expect(page).toHaveURL(/\/noite\/juntos\/[0-9a-f-]{36}$/);
+  return main(page).getByRole("textbox", { name: "Link da sala" }).inputValue();
 }
 
 /** Os três cartões do wizard, na sala; cada cartão precisa estar visível na tela. */
@@ -41,10 +49,7 @@ test("duas pessoas, cada uma no seu celular, veem a mesma sugestão", async ({
     pessoa(browser, baseURL, "Beto Sá"),
   ]);
 
-  await ana.goto("/noite");
-  await main(ana).getByRole("button", { name: "Vamos escolher juntos" }).click();
-  await expect(ana).toHaveURL(/\/noite\/juntos\/[0-9a-f-]{36}$/);
-  const link = await main(ana).getByRole("textbox", { name: "Link da sala" }).inputValue();
+  const link = await criarSala(ana);
   expect(link).toBe(`${baseURL}${new URL(ana.url()).pathname}`);
 
   await responderNaSala(ana, ["Animado", "Rir", "A dois"]);
@@ -88,4 +93,31 @@ test("sem sessão, o link da sala leva ao login guardando o destino", async ({ p
   const sala = `/noite/juntos/${randomUUID()}`;
   await page.goto(sala);
   await expect(page).toHaveURL(`/login?next=${encodeURIComponent(sala)}`);
+});
+
+test("convidado sem conta cria a conta, faz o onboarding e cai na sala", async ({
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const ana = await pessoa(browser, baseURL, "Ana Lima");
+  const link = await criarSala(ana);
+  await responderNaSala(ana, ["Animado", "Rir", "A dois"]);
+
+  const sala = new URL(link).pathname;
+  const next = `next=${encodeURIComponent(sala)}`;
+  const contexto = await browser.newContext({ baseURL });
+  const beto = await contexto.newPage();
+  await beto.goto(link);
+  await expect(beto).toHaveURL(`/login?${next}`);
+
+  await main(beto).getByRole("link", { name: "Criar conta" }).click();
+  await expect(beto).toHaveURL(`/cadastro?${next}`);
+  await preencherCadastro(beto, "Beto Sá", emailAleatorio("e2e"));
+  await concluirOnboarding(beto, undefined, sala);
+
+  await responderNaSala(beto, ["De boa", "Ficar tenso", "A dois"]);
+  await expect(main(beto).getByRole("heading", { level: 1 })).toHaveText("Filme 35020", {
+    timeout: 20_000,
+  });
 });

@@ -4,6 +4,11 @@ import { SENHA_TESTE } from "../support/supabase-local";
 
 export async function cadastrar(page: Page, nome: string, email: string) {
   await page.goto("/cadastro");
+  await preencherCadastro(page, nome, email);
+}
+
+/** Preenche e envia o formulário de cadastro já aberto. */
+export async function preencherCadastro(page: Page, nome: string, email: string) {
   await page.getByLabel("Nome").fill(nome);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(SENHA_TESTE);
@@ -25,10 +30,17 @@ export async function sair(page: Page) {
 
 /**
  * Conclui o wizard com os gêneros dados (padrão: Ação + Drama), filmes médios e toda semana,
- * pulando os passos opcionais (gêneros evitados, streamings e filmes).
+ * pulando os passos opcionais (gêneros evitados, streamings e filmes). `destino` é onde o
+ * onboarding termina: o dashboard ou o `next` do convite (SPEC/2026-11-25-convite-cadastro.md).
  */
-export async function concluirOnboarding(page: Page, generos = ["Ação", "Drama"]) {
-  await expect(page).toHaveURL("/onboarding");
+export async function concluirOnboarding(
+  page: Page,
+  generos = ["Ação", "Drama"],
+  destino = "/dashboard",
+) {
+  await expect(page).toHaveURL(
+    destino === "/dashboard" ? "/onboarding" : `/onboarding?next=${encodeURIComponent(destino)}`,
+  );
   const main = page.getByRole("main");
   for (const genero of generos) {
     await main.getByRole("button", { name: genero, exact: true }).click();
@@ -42,8 +54,8 @@ export async function concluirOnboarding(page: Page, generos = ["Ação", "Drama
   await main.getByRole("button", { name: "Pular" }).click();
   await main.getByRole("button", { name: "Pular" }).click();
   await main.getByRole("button", { name: "Concluir" }).click();
-  // Salvar espera as sugestões dos passos 6 e 7 (as Server Actions rodam uma por vez) e o dashboard.
-  await expect(page).toHaveURL("/dashboard", { timeout: 15_000 });
+  // Salvar espera as sugestões dos passos 6 e 7 (as Server Actions rodam uma por vez) e o destino.
+  await expect(page).toHaveURL(destino, { timeout: 15_000 });
 }
 
 /** Títulos das seções do dashboard, na ordem da página. */
