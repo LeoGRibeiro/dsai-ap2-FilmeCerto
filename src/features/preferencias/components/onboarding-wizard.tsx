@@ -31,7 +31,8 @@ function Ocultos({ nome, valores }: { nome: string; valores: (number | string)[]
   return valores.map((valor) => <input key={valor} type="hidden" name={nome} value={valor} />);
 }
 
-export function OnboardingWizard() {
+/** `next`: destino já sanitizado para depois de salvar (SPEC/2026-11-25-convite-cadastro.md). */
+export function OnboardingWizard({ next }: { next?: string }) {
   const [estado, formAction, salvando] = useActionState(salvarPreferencias, {});
   const [passo, setPasso] = useState(1);
   const [generos, setGeneros] = useState<number[]>([]);
@@ -63,6 +64,7 @@ export function OnboardingWizard() {
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="flex flex-col gap-2">
         <p className="text-muted-foreground text-sm">
           Passo {passo} de {TOTAL_PASSOS}

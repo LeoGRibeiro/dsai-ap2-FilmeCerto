@@ -16,8 +16,9 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/features/preferencias/gravar", () => ({ gravarOnboarding: vi.fn() }));
 vi.mock("@/lib/tmdb/filmes", () => ({ obterFilme: vi.fn() }));
 
-function formulario() {
+function formulario(next?: string) {
   const form = new FormData();
+  if (next !== undefined) form.set("next", next);
   form.append("generos", "28");
   form.append("generos", "18");
   form.set("duracao", "media");
@@ -54,5 +55,52 @@ describe("salvarPreferencias", () => {
     });
     expect(revalidatePath).not.toHaveBeenCalled();
     expect(redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("salvarPreferencias com o destino do convite", () => {
+  function comUsuario(user: { id: string } | null = { id: "u-1" }) {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user } }) },
+    } as never);
+    vi.mocked(gravarOnboarding).mockResolvedValue("ok" as never);
+  }
+
+  it("limpa o cache do roteador e só depois volta para a sala", async () => {
+    comUsuario();
+
+    await expect(salvarPreferencias({}, formulario("/noite/juntos/abc"))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(redirect).toHaveBeenCalledWith("/noite/juntos/abc");
+    expect(vi.mocked(revalidatePath).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(redirect).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it.each(["//evil.com", "https://evil.com"])(
+    "troca o destino externo %s pelo dashboard",
+    async (next) => {
+      comUsuario();
+
+      await expect(salvarPreferencias({}, formulario(next))).rejects.toThrow("NEXT_REDIRECT");
+
+      expect(redirect).toHaveBeenCalledWith("/dashboard");
+    },
+  );
+
+  it("sem sessão, o login guarda o onboarding com o destino", async () => {
+    comUsuario(null);
+
+    await expect(salvarPreferencias({}, formulario("/noite/juntos/abc"))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(redirect).toHaveBeenCalledWith(
+      `/login?next=${encodeURIComponent("/onboarding?next=%2Fnoite%2Fjuntos%2Fabc")}`,
+    );
+    expect(gravarOnboarding).not.toHaveBeenCalled();
   });
 });
