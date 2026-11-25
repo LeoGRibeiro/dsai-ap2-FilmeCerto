@@ -1,5 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { diaEmSaoPaulo } from "@/features/recomendacao/semente";
+import type { SerieComEpisodios } from "@/features/serie/avisos";
+import { obterAvisosNaoLidos } from "@/features/serie/consultas";
+import { definirAcompanhamento, gerarAvisos, marcarLido } from "@/features/serie/gravar";
+
 import { criarUsuario } from "../../support/supabase-local";
 
 /** RLS de `avisos_episodios` (SPEC/2026-11-25-avisos-episodios.md). */
@@ -104,5 +109,59 @@ describe("RLS dos avisos de episódio", () => {
       .select("id");
     expect(apagado.data).toHaveLength(1);
     expect((await a.cliente.from("avisos_episodios").select("id")).data).toEqual([]);
+  });
+});
+
+describe("gerarAvisos e obterAvisosNaoLidos no Supabase local", () => {
+  const hoje = diaEmSaoPaulo(new Date());
+  const serie = (proximaData: string): SerieComEpisodios => ({
+    id: 2316,
+    titulo: "The Office",
+    ultimoEpisodioDetalhes: {
+      id: 1,
+      nome: "Piloto",
+      temporadaNumero: 1,
+      episodioNumero: 1,
+      data: hoje,
+    },
+    proximoEpisodioDetalhes: {
+      id: 2,
+      nome: null,
+      temporadaNumero: 1,
+      episodioNumero: 2,
+      data: proximaData,
+    },
+  });
+
+  it("grava o episódio de hoje e o futuro, mostra só o de hoje e não duplica com data nova", async () => {
+    const c = await criarUsuario("Usuária C");
+    const { error } = await c.cliente
+      .from("acompanhamentos_series")
+      .insert({ usuario_id: c.id, serie_tmdb_id: 2316, titulo: "The Office" });
+    if (error) throw error;
+
+    await gerarAvisos(c.cliente, c.id, async () => serie("2099-01-01"));
+    await gerarAvisos(c.cliente, c.id, async () => serie("2099-02-01"));
+
+    const gravados = await c.cliente
+      .from("avisos_episodios")
+      .select("episodio_numero, data_estreia")
+      .order("episodio_numero");
+    expect(gravados.data).toEqual([
+      { episodio_numero: 1, data_estreia: hoje },
+      { episodio_numero: 2, data_estreia: "2099-02-01" },
+    ]);
+
+    const naoLidos = await obterAvisosNaoLidos(c.cliente, c.id, hoje);
+    expect(naoLidos).toEqual([
+      expect.objectContaining({ serieTitulo: "The Office", temporada: 1, episodio: 1 }),
+    ]);
+
+    expect(await marcarLido(c.cliente, c.id, naoLidos[0]!.id)).toBe(true);
+    await gerarAvisos(c.cliente, c.id, async () => serie("2099-02-01"));
+    expect(await obterAvisosNaoLidos(c.cliente, c.id, hoje)).toEqual([]);
+
+    expect(await definirAcompanhamento(c.cliente, c.id, 2316, false)).toEqual({ ok: true });
+    expect((await c.cliente.from("avisos_episodios").select("id")).data).toEqual([]);
   });
 });
