@@ -19,13 +19,20 @@ function hojeEmSaoPaulo() {
   return `${dia}/${mes}/${ano}`;
 }
 
+/**
+ * Clica no botão de acompanhar e espera a Server Action terminar: enquanto ela roda, o botão fica
+ * desabilitado e o `aria-pressed` é só o palpite da tela.
+ */
+async function alternar(page: Page, de: string, para: string, marcado: "true" | "false") {
+  await page.getByRole("button", { name: de }).click();
+  const botao = page.getByRole("button", { name: para });
+  await expect(botao).toBeEnabled();
+  await expect(botao).toHaveAttribute("aria-pressed", marcado);
+}
+
 async function acompanhar(page: Page) {
   await page.goto(`/serie/${ID}`);
-  await page.getByRole("button", { name: "Avisar sobre novos episódios" }).click();
-  await expect(page.getByRole("button", { name: "Acompanhando" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await alternar(page, "Avisar sobre novos episódios", "Acompanhando", "true");
 }
 
 test("acompanhar uma série com episódio de hoje mostra o aviso no início até marcar como lido", async ({
@@ -68,7 +75,9 @@ test("deixar de acompanhar tira o aviso do início", async ({ page }) => {
   await expect(cartao(page).getByText(AVISO)).toBeVisible();
 
   await page.goto(`/serie/${ID}`);
-  await page.getByRole("button", { name: "Acompanhando" }).click();
+  await alternar(page, "Acompanhando", "Avisar sobre novos episódios", "false");
+  // Recarregada, a página mostra o que está no banco, não o palpite.
+  await page.reload();
   await expect(page.getByRole("button", { name: "Avisar sobre novos episódios" })).toHaveAttribute(
     "aria-pressed",
     "false",
