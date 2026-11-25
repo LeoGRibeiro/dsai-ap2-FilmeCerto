@@ -88,6 +88,12 @@ function fonteDeFilmes(api: ApiNoite): Fonte {
   };
 }
 
+/** O menor dos limites de duração informados, ou `null` sem nenhum. */
+function menorLimite(...limites: (number | null)[]): number | null {
+  const validos = limites.filter((minutos): minutos is number => minutos !== null);
+  return validos.length > 0 ? Math.min(...validos) : null;
+}
+
 /** O TMDB falhou e a rodada ficou sem filmes: refazer as perguntas não resolveria. */
 export class NoiteIndisponivel extends Error {
   constructor() {
@@ -133,7 +139,7 @@ type Busca = {
   /** IDs que nunca entram ("Já assisti", reações, já mostrados). */
   bloqueados: number[];
   fonte: Fonte;
-  /** Conferência nos detalhes (horário, classificação): lê candidatos a mais. */
+  /** Conferência nos detalhes (duração prometida, classificação): lê candidatos a mais. */
   passa?: (titulo: TituloNoite) => boolean;
 };
 
@@ -217,12 +223,13 @@ export async function recomendarNoite(entrada: Entrada): Promise<ResultadoNoite 
   if (!noite) return null;
   const { evitados, classificacaoNosDetalhes: classificacao } = noite;
 
-  // "Até que horas?" promete que o filme (ou o episódio) termina a tempo, e a série (em família
-  // ou com filtro por idade) não tem filtro de classificação no TMDB: os dois são conferidos
-  // nos detalhes.
-  const confere = tempo !== null || classificacao !== null;
+  // "Até que horas?" e "Muito longo" prometem um limite de duração que o `with_runtime.lte` do
+  // TMDB não garante (#49), e a série (em família ou com filtro por idade) não tem filtro de
+  // classificação no TMDB: os dois são conferidos nos detalhes.
+  const limite = menorLimite(tempo, duracaoMax);
+  const confere = limite !== null || classificacao !== null;
   const passa = ({ duracaoMin, classificacao: dele }: TituloNoite) =>
-    (tempo === null || (duracaoMin !== null && duracaoMin <= tempo)) &&
+    (limite === null || (duracaoMin !== null && duracaoMin <= limite)) &&
     (classificacao === null || ateAClassificacao(dele, classificacao));
   const busca = await buscarFilmes({
     filtros: noite.filtros,
