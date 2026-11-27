@@ -26,6 +26,7 @@ import {
 } from "@/lib/tmdb/esquemas";
 import type {
   ClassificacaoBR,
+  EpisodioPrevisto,
   FiltrosDescobertaSerie,
   OrdemDescoberta,
   Pagina,
@@ -69,6 +70,17 @@ function duracaoEpisodio(serie: DetalhesSerieTmdb): number | null {
   return Math.round(duracoes.reduce((soma, minutos) => soma + minutos, 0) / duracoes.length);
 }
 
+function paraEpisodio(episodio: DetalhesSerieTmdb["next_episode_to_air"]): EpisodioPrevisto | null {
+  if (!episodio) return null;
+  return {
+    id: episodio.id ?? null,
+    nome: episodio.name,
+    temporadaNumero: episodio.season_number ?? null,
+    episodioNumero: episodio.episode_number ?? null,
+    data: episodio.air_date,
+  };
+}
+
 function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
   return {
     ...paraResumo({ ...serie, genre_ids: [] }),
@@ -92,15 +104,8 @@ function paraDetalhes(serie: DetalhesSerieTmdb): SerieDetalhes {
     ondeAssistir: ondeAssistirDe(serie["watch/providers"]),
     situacao: serie.status,
     proximoEpisodio: serie.next_episode_to_air?.air_date ?? null,
-    proximoEpisodioDetalhes: serie.next_episode_to_air
-      ? {
-          id: serie.next_episode_to_air.id ?? null,
-          nome: serie.next_episode_to_air.name,
-          temporadaNumero: serie.next_episode_to_air.season_number ?? null,
-          episodioNumero: serie.next_episode_to_air.episode_number ?? null,
-          data: serie.next_episode_to_air.air_date,
-        }
-      : null,
+    proximoEpisodioDetalhes: paraEpisodio(serie.next_episode_to_air),
+    ultimoEpisodioDetalhes: paraEpisodio(serie.last_episode_to_air),
   };
 }
 

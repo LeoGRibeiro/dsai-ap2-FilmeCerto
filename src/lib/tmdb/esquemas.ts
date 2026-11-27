@@ -134,21 +134,27 @@ export const detalhesTmdb = z.object({
   release_dates: datasLancamentoTmdb,
 });
 
-export const detalhesSerieTmdb = z.object({
-  ...baseSerie,
-  ...detalhesComuns,
-  /** O TMDB deixou de preencher em muitas séries; vem `[]`. */
-  episode_run_time: z.array(z.number()).default([]),
-  last_episode_to_air: z.object({ runtime: z.number().nullish() }).nullish(),
-  /** "Returning Series", "Ended", "Canceled", "In Production", "Planned"... */
-  status: textoOpcional,
-  next_episode_to_air: z.object({
+/** `last_episode_to_air` e `next_episode_to_air` dos detalhes da série: mesmo formato. */
+const episodioSerieTmdb = z
+  .object({
     id: z.number().int().nullish(),
     name: textoOpcional,
     season_number: z.number().int().nullish(),
     episode_number: z.number().int().nullish(),
     air_date: textoOpcional,
-  }).nullish(),
+    runtime: z.number().nullish(),
+  })
+  .nullish();
+
+export const detalhesSerieTmdb = z.object({
+  ...baseSerie,
+  ...detalhesComuns,
+  /** O TMDB deixou de preencher em muitas séries; vem `[]`. */
+  episode_run_time: z.array(z.number()).default([]),
+  last_episode_to_air: episodioSerieTmdb,
+  /** "Returning Series", "Ended", "Canceled", "In Production", "Planned"... */
+  status: textoOpcional,
+  next_episode_to_air: episodioSerieTmdb,
   seasons: z
     .array(
       z.object({

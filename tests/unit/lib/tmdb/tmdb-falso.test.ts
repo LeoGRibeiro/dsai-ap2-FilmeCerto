@@ -63,8 +63,22 @@ describe("TMDB falso (tests/e2e/tmdb-falso) com o cliente de séries", () => {
       ondeAssistir: { assinatura: [{ nome: "Netflix" }] },
       situacao: "Returning Series",
       proximoEpisodio: "2099-12-12",
+      proximoEpisodioDetalhes: { temporadaNumero: 3, episodioNumero: 1, data: "2099-12-12" },
     });
     expect(await series.obterSerie(999000001)).toBeNull();
+  });
+
+  it("o último episódio exibido de toda série é o 2x8, de hoje em São Paulo (aviso no E2E)", async () => {
+    const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(
+      new Date(),
+    );
+    expect((await series.obterSerie(1399))?.ultimoEpisodioDetalhes).toEqual({
+      id: 139928,
+      nome: "Episódio 2x8",
+      temporadaNumero: 2,
+      episodioNumero: 8,
+      data: hoje,
+    });
   });
 
   it("obterTemporada traz 8 episódios na 1, um sem duração e um não exibido; a 99 é 404", async () => {

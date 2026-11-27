@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
-import { definirAcompanhamento } from "@/features/serie/gravar";
+import { definirAcompanhamento, marcarLido } from "@/features/serie/gravar";
 import { acompanhamentoSerieSchema } from "@/features/serie/schema";
 import { createClient } from "@/lib/supabase/server";
 
 export type EstadoAcompanhamento = { mensagem?: string };
 
 const ERRO_GENERICO = "Não foi possível atualizar seu acompanhamento. Tente novamente.";
+const SESSAO_EXPIRADA = { mensagem: "Sua sessão expirou. Entre novamente." };
 
 export async function alternarAcompanhamento(
   _anterior: EstadoAcompanhamento,
@@ -26,7 +28,7 @@ export async function alternarAcompanhamento(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { mensagem: "Sua sessão expirou. Entre novamente." };
+  if (!user) return SESSAO_EXPIRADA;
 
   const gravado = await definirAcompanhamento(
     supabase,
@@ -37,14 +39,31 @@ export async function alternarAcompanhamento(
 
   if (!gravado.ok) {
     return {
-      mensagem:
-        gravado.erro === "serie-nao-encontrada"
-          ? "Série não encontrada."
-          : ERRO_GENERICO,
+      mensagem: gravado.erro === "serie-nao-encontrada" ? "Série não encontrada." : ERRO_GENERICO,
     };
   }
 
   revalidatePath(`/serie/${resultado.data.tmdbId}`);
-  revalidatePath("/series");
+  revalidatePath("/dashboard");
+  return {};
+}
+
+/** "Marcar como lido" do cartão de avisos do início (um formulário por aviso). */
+export async function marcarAvisoLido(
+  _anterior: EstadoAcompanhamento,
+  formData: FormData,
+): Promise<EstadoAcompanhamento> {
+  const id = z.uuid().safeParse(formData.get("id"));
+  const erro = { mensagem: "Não foi possível marcar o aviso como lido. Tente novamente." };
+  if (!id.success) return erro;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return SESSAO_EXPIRADA;
+
+  if (!(await marcarLido(supabase, user.id, id.data))) return erro;
+  revalidatePath("/dashboard");
   return {};
 }
