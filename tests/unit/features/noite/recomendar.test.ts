@@ -256,6 +256,44 @@ describe("recomendarNoite", () => {
     expect(ids(resultado)).toEqual([3]);
   });
 
+  it("depois de 'Muito longo', nunca devolve filme mais longo que o limite, mesmo se o TMDB devolver", async () => {
+    // O `with_runtime.lte` do TMDB não bate com a duração dos detalhes (#49): 1 e 3 vêm do
+    // /discover com 80 min de limite, mas têm 82 e 90 min; 2 não tem duração conhecida.
+    const { api, chamadas } = apiFalsa(
+      { streaming: [[resumo(1), resumo(2), resumo(3), resumo(4), resumo(5)]] },
+      { duracoes: { 1: 82, 2: null, 3: 90, 4: 78, 5: 80 } },
+    );
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: { ...rodada1, duracaoMax: 80 },
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    expect(chamadas[0]).toMatchObject({ duracaoMax: 80 });
+    expect(ids(resultado)).toEqual([4, 5]);
+  });
+
+  it("com 'Muito longo' e 'Até que horas?', confere a duração pelo menor dos dois", async () => {
+    const { api } = apiFalsa(
+      { streaming: [[resumo(1), resumo(2), resumo(3)]] },
+      { duracoes: { 1: 95, 2: 88, 3: 80 } },
+    );
+
+    const resultado = await recomendarNoite({
+      respostas,
+      estado: { ...rodada1, duracaoMax: 85, tempo: 120 },
+      perfil,
+      excluir: [],
+      api,
+    });
+
+    // O "Até que horas?" deixaria os três; o "Muito longo", que é menor, só deixa o 3.
+    expect(ids(resultado)).toEqual([3]);
+  });
+
   it("sem 'Até que horas?', não confere a duração nos detalhes", async () => {
     const { api } = apiFalsa({ streaming: [[resumo(1)]] }, { duracoes: { 1: 180 } });
 
@@ -485,6 +523,24 @@ describe("recomendarNoite de série", () => {
     });
 
     expect(chamadas[0]).toMatchObject({ duracaoMax: 40 });
+    expect(ids(resultado)).toEqual([2]);
+  });
+
+  it("depois de 'Muito longo', o episódio respeita o limite nos detalhes", async () => {
+    const { api } = apiSerieFalsa([resumo(1), resumo(2)], {
+      1: { duracaoEpisodioMin: 45 },
+      2: { duracaoEpisodioMin: 25 },
+    });
+
+    const resultado = await recomendarNoite({
+      tipo: "serie",
+      respostas: { ...respostas, humor: "animado" },
+      estado: { ...rodada1, duracaoMax: 30 },
+      perfil: semStreaming,
+      excluir: [],
+      api,
+    });
+
     expect(ids(resultado)).toEqual([2]);
   });
 
