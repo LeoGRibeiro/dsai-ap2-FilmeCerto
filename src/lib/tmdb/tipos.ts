@@ -1,11 +1,11 @@
-﻿export type FilmeResumo = {
+export type FilmeResumo = {
   id: number;
   titulo: string;
   tituloOriginal: string;
   sinopse: string;
   posterPath: string | null;
   backdropPath: string | null;
-  /** IDs de gÃªnero do TMDB. */
+  /** IDs de gênero do TMDB. */
   generos: number[];
   ano: number | null;
   nota: number;
@@ -35,47 +35,47 @@ export type FilmeDetalhes = Omit<FilmeResumo, "generos"> & {
   generos: { id: number; nome: string }[];
   duracaoMin: number | null;
   slogan: string | null;
-  /** Key do vÃ­deo no YouTube. */
+  /** Key do vídeo no YouTube. */
   trailerYoutube: string | null;
   elenco: MembroElenco[];
   direcao: string[];
   ondeAssistir: OndeAssistir | null;
   parecidos: FilmeResumo[];
-  /** ClassificaÃ§Ã£o indicativa: a do Brasil ou a dos EUA convertida; `null` sem nenhuma. */
+  /** Classificação indicativa: a do Brasil ou a dos EUA convertida; `null` sem nenhuma. */
   classificacao: ClassificacaoBR | null;
 };
 
 export type OrdemDescoberta = "popularidade" | "nota" | "lancamento";
 
-/** ClassificaÃ§Ã£o indicativa brasileira, na ordem do TMDB (`certification.lte` segue essa ordem). */
+/** Classificação indicativa brasileira, na ordem do TMDB (`certification.lte` segue essa ordem). */
 export type ClassificacaoBR = "L" | "10" | "12" | "14" | "16" | "18";
 
 export type FiltrosDescoberta = {
-  /** Qualquer um destes gÃªneros. */
+  /** Qualquer um destes gêneros. */
   generos?: number[];
-  /** Todos estes gÃªneros juntos; quando presente, tem precedÃªncia sobre `generos`. */
+  /** Todos estes gêneros juntos; quando presente, tem precedência sobre `generos`. */
   todosGeneros?: number[];
   semGeneros?: number[];
-  /** DisponÃ­vel por assinatura em algum destes provedores (watch_region=BR). */
+  /** Disponível por assinatura em algum destes provedores (watch_region=BR). */
   provedores?: number[];
   duracaoMin?: number;
   duracaoMax?: number;
   notaMin?: number;
   votosMin?: number;
-  /** Ano de lanÃ§amento (primary_release_year). */
+  /** Ano de lançamento (primary_release_year). */
   ano?: number;
-  /** LanÃ§ado atÃ© esta data, `AAAA-MM-DD` (primary_release_date.lte). */
+  /** Lançado até esta data, `AAAA-MM-DD` (primary_release_date.lte). */
   lancadoAte?: string;
-  /** ClassificaÃ§Ã£o indicativa brasileira mÃ¡xima; filmes sem classificaÃ§Ã£o BR ficam de fora. */
+  /** Classificação indicativa brasileira máxima; filmes sem classificação BR ficam de fora. */
   classificacaoMax?: ClassificacaoBR;
   ordem?: OrdemDescoberta;
   pagina?: number;
 };
 
 /**
- * SÃ©rie num resultado de lista, no mesmo formato de `FilmeResumo` para as telas reaproveitarem
- * os cartÃµes: `titulo` vem de `name` e `ano`, da estreia (`first_air_date`). Os `generos` sÃ£o
- * IDs de gÃªnero de TV (`/genre/tv/list`), outra lista que a dos filmes.
+ * Série num resultado de lista, no mesmo formato de `FilmeResumo` para as telas reaproveitarem
+ * os cartões: `titulo` vem de `name` e `ano`, da estreia (`first_air_date`). Os `generos` são
+ * IDs de gênero de TV (`/genre/tv/list`), outra lista que a dos filmes.
  */
 export type SerieResumo = FilmeResumo;
 
@@ -98,25 +98,25 @@ export type EpisodioPrevisto = {
 
 export type SerieDetalhes = Omit<SerieResumo, "generos"> & {
   generos: { id: number; nome: string }[];
-  /** DuraÃ§Ã£o mÃ©dia do episÃ³dio, em minutos. */
+  /** Duração média do episódio, em minutos. */
   duracaoEpisodioMin: number | null;
   /** Sem os especiais (temporada 0), em ordem. */
   temporadas: Temporada[];
   slogan: string | null;
-  /** Key do vÃ­deo no YouTube. */
+  /** Key do vídeo no YouTube. */
   trailerYoutube: string | null;
   elenco: MembroElenco[];
-  /** Quem criou a sÃ©rie. */
+  /** Quem criou a série. */
   criacao: string[];
-  /** ClassificaÃ§Ã£o indicativa no Brasil. */
+  /** Classificação indicativa no Brasil. */
   classificacao: ClassificacaoBR | null;
   ondeAssistir: OndeAssistir | null;
   /**
-   * `status` do TMDB, sem traduÃ§Ã£o ("Returning Series", "Ended"...). Opcional, como
-   * `proximoEpisodio`, para quem monta detalhes Ã  mÃ£o (o wizard) nÃ£o precisar dele.
+   * `status` do TMDB, sem tradução ("Returning Series", "Ended"...). Opcional, como
+   * `proximoEpisodio`, para quem monta detalhes à mão (o wizard) não precisar dele.
    */
   situacao?: string | null;
-  /** Data de exibiÃ§Ã£o do prÃ³ximo episÃ³dio, `AAAA-MM-DD`. */
+  /** Data de exibição do próximo episódio, `AAAA-MM-DD`. */
   proximoEpisodio?: string | null;
   /** Dados completos do próximo episódio informado pela TMDB. */
   proximoEpisodioDetalhes?: EpisodioPrevisto | null;
@@ -126,16 +126,16 @@ export type Episodio = {
   numero: number;
   nome: string;
   sinopse: string;
-  /** DuraÃ§Ã£o em minutos; `null` quando o TMDB nÃ£o sabe (ou manda 0). */
+  /** Duração em minutos; `null` quando o TMDB não sabe (ou manda 0). */
   duracaoMin: number | null;
-  /** Data de exibiÃ§Ã£o, `AAAA-MM-DD`. */
+  /** Data de exibição, `AAAA-MM-DD`. */
   data: string | null;
   stillPath: string | null;
-  /** Nota mÃ©dia; `null` sem votos. */
+  /** Nota média; `null` sem votos. */
   nota: number | null;
 };
 
-/** Uma temporada com os episÃ³dios, para a pÃ¡gina `/serie/{id}/temporada/{n}`. */
+/** Uma temporada com os episódios, para a página `/serie/{id}/temporada/{n}`. */
 export type TemporadaDetalhes = {
   numero: number;
   nome: string;
@@ -147,8 +147,8 @@ export type TemporadaDetalhes = {
 };
 
 /**
- * Filtros do `/discover/tv`: os dos filmes, menos a classificaÃ§Ã£o (o TMDB nÃ£o filtra sÃ©ries por
- * ela). `duracaoMin` e `duracaoMax` valem para o episÃ³dio; `ano` e `lancadoAte`, para a estreia.
+ * Filtros do `/discover/tv`: os dos filmes, menos a classificação (o TMDB não filtra séries por
+ * ela). `duracaoMin` e `duracaoMax` valem para o episódio; `ano` e `lancadoAte`, para a estreia.
  */
 export type FiltrosDescobertaSerie = Omit<FiltrosDescoberta, "classificacaoMax">;
 

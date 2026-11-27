@@ -91,7 +91,7 @@ git shortlog -sn 4ac8b98..origin/main
 | Clientes (autores da AP1, **não** escrevem código) | Alexsandro Costa ([@sandroccosta](https://github.com/sandroccosta)) e Jonathan Fagundes ([@jonathanfufu](https://github.com/jonathanfufu)) |
 | Professor | Gustavo Pinto |
 
-- **Prazo final:** 24/11/2026.
+- **Prazo final:** 30/11/2026 (adiado de 24/11, avisado em 24/11).
 - **Requisitos:** [docs/ap2/pedido-do-cliente.md](docs/ap2/pedido-do-cliente.md), em ordem de prioridade.
 - **Escopo e decisões gerais:** [SPEC/2026-11-17-visao-geral-ap2.md](SPEC/2026-11-17-visao-geral-ap2.md).
 - **Backlog:** issues do GitHub, de #2 a #9.

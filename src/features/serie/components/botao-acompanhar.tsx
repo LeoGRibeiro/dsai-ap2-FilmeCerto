@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { cn } from "cn";
 import { Bell, BellRing } from "lucide-react";

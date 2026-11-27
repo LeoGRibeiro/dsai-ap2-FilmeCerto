@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import { CACHE_CLASSIFICACAO, classificacaoDaSerie } from "@/lib/tmdb/classificacao";
 import { clienteTmdbPadrao, type ClienteTmdb, type Parametros } from "@/lib/tmdb/cliente";
@@ -62,7 +62,7 @@ function paraResumo(serie: SerieTmdb): SerieResumo {
   };
 }
 
-/** MÃ©dia de `episode_run_time`; sem ela, a duraÃ§Ã£o do Ãºltimo episÃ³dio exibido. */
+/** Média de `episode_run_time`; sem ela, a duração do último episódio exibido. */
 function duracaoEpisodio(serie: DetalhesSerieTmdb): number | null {
   const duracoes = serie.episode_run_time.filter((minutos) => minutos > 0);
   if (duracoes.length === 0) return serie.last_episode_to_air?.runtime || null;
@@ -123,7 +123,7 @@ function paraTemporada(temporada: TemporadaTmdb): TemporadaDetalhes {
   };
 }
 
-/** FunÃ§Ãµes de sÃ©ries sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
+/** Funções de séries sobre um cliente qualquer; os testes passam um cliente com `fetch` falso. */
 export function criarApiSeries(cliente: ClienteTmdb) {
   return {
     async descobrirSeries(filtros: FiltrosDescobertaSerie = {}): Promise<Pagina<SerieResumo>> {
@@ -147,7 +147,7 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       });
     },
 
-    /** Temporada `numero` com os episÃ³dios; `null` se a sÃ©rie ou a temporada nÃ£o existem. */
+    /** Temporada `numero` com os episódios; `null` se a série ou a temporada não existem. */
     obterTemporada(serieId: number, numero: number): Promise<TemporadaDetalhes | null> {
       return nuloSe404(async () => {
         const dados = await cliente.requisitar(`/tv/${serieId}/season/${numero}`, {}, CACHE_SERIE);
@@ -155,19 +155,19 @@ export function criarApiSeries(cliente: ClienteTmdb) {
       });
     },
 
-    /** SÃ³ a classificaÃ§Ã£o (`/tv/{id}/content_ratings`); lanÃ§a se o TMDB falhar. */
+    /** Só a classificação (`/tv/{id}/content_ratings`); lança se o TMDB falhar. */
     async classificacaoSerie(id: number): Promise<ClassificacaoBR | null> {
       const dados = await cliente.requisitar(`/tv/${id}/content_ratings`, {}, CACHE_CLASSIFICACAO);
       return classificacaoDaSerie(validar(classificacoesSerieTmdb, dados).results);
     },
 
-    /** GÃªneros de TV: outra lista que a dos filmes, com IDs prÃ³prios. */
+    /** Gêneros de TV: outra lista que a dos filmes, com IDs próprios. */
     async generosSeries(): Promise<{ id: number; nome: string }[]> {
       const dados = await cliente.requisitar("/genre/tv/list", {}, CACHE_SERIE);
       return paraGeneros(validar(generosTmdb, dados).genres);
     },
 
-    /** Busca por nome (`/search/tv`), sem `region`: a busca de sÃ©ries nÃ£o filtra por paÃ­s. */
+    /** Busca por nome (`/search/tv`), sem `region`: a busca de séries não filtra por país. */
     async buscarSeries(texto: string, pagina = 1): Promise<Pagina<SerieResumo>> {
       const consulta = texto.trim();
       if (!consulta) return PAGINA_VAZIA;

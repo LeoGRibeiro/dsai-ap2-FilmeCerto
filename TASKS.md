@@ -41,6 +41,14 @@
 - [x] **Navegação lenta (#42, PR #43, 23/11, branch `fix/navegacao-rapida`):** spec [2026-11-23-navegacao-rapida.md](SPEC/2026-11-23-navegacao-rapida.md). Medido na produção: cada clique levava de 0,5 s a 1,8 s para trocar a tela, sem retorno visual. Causas: nenhuma rota de `(app)` tinha `loading.tsx` (o Next 16 não pré-carrega rota dinâmica sem ele), proxy e header chamavam `getUser()` (ida ao Auth) a cada requisição e a busca recarregava o documento. Correção: `loading.tsx` com esqueleto em todas as rotas, `getClaims()` no proxy e em `obterUsuarioAtual`, layout de `(app)` em paralelo, `next/form` nas buscas e cartões que só pré-carregam com intenção (mouse, toque ou foco). **Armadilha achada no E2E:** com `loading.tsx`, o layout de `(app)` pré-carregado fica no cache do cliente mesmo quando redireciona; sem limpar, o onboarding terminava num loop `/dashboard` ↔ `/onboarding`. Toda action que muda sessão ou preferências tem que chamar `revalidatePath("/", "layout")` antes do `redirect`. Mesclado em 24/11.
 - [x] **Filtro por idade e classificação (#38, PR #39) e botões do dashboard (#40, PR #41):** mesclados em 24/11. As migrations `filtros_conteudo`, `filtro_idade` e `limite_sala_noite` já estão na produção (13 de 13 em `supabase migration list --linked`).
 - [x] **Medição da navegação na produção (24/11, `23593a8`, critério 10 da spec, [comentário na #42](https://github.com/LeoGRibeiro/dsai-ap2-FilmeCerto/issues/42#issuecomment-7131862129)):** do clique à tela nova, header e cartões levam de 2 a 36 ms (antes, de 507 a 1.778 ms), e o RSC de `/sobre` leva 275 ms (antes, ~700 ms). **As respostas do wizard levam de 317 a 375 ms (antes, 808 a 1.204 ms), acima dos 100 ms:** são a mesma rota `/noite`, só com o `searchParams` diferente, e o esqueleto não aparece, porque a troca espera o servidor.
+- [x] **Acompanhar série, primeira parte (#45, PR #46, Lucas, 24/11):** spec [2026-11-24-aviso-episodio-novo.md](SPEC/2026-11-24-aviso-episodio-novo.md), botão "Avisar sobre novos episódios" na página da série e tabelas `acompanhamentos_series` e `avisos_episodios` (migration `20261124145207_aviso_episodio_novo`). Mesclado pelo botão do GitHub, sem trailers e sem testes. Faltam a verificação periódica, a gravação dos avisos, a tela de avisos e os testes (critérios 4 a 11 da spec).
+- [x] **Entrega (24/11, branch `docs/readme-entrega`):** README com as URLs, as funcionalidades de 23 e 24/11, o `cloc` de 24/11 (15.553 linhas: 6.684 da aplicação e 8.869 de testes) e a situação dos critérios. Correção dos acentos e do BOM dos arquivos do PR #46 (#47); a migration ficou como estava, porque migration publicada não se edita.
+- [x] **Teste completo da produção (24/11, `7038a2e`):** Chrome logado na conta do Leonardo (telas logadas) e Playwright sem login (públicas, redirecionamentos e 390 px). Funcionam: páginas públicas e 404, redirecionamento para o login com `next`, início (140 títulos, sem imagem quebrada), "Gerar outras recomendações", "Me surpreenda", wizard de filme e de série (4 cliques, "Voltar", motivo, "termina às", trailer, "Até que horas?", os 4 motivos do "Esse não", "Já vi" com "Marcar e trocar", limite de 5 trocas, família até 12), "Vou ver esse!" e "Compartilhar", noite a dois (sala, respostas, copiar link, WhatsApp, sala inexistente, convidado sem login), reações e listas (exclusivas e persistentes), acompanhar série, temporada, busca por nome, aba Séries e por filtros, filtro por idade (aviso, +18 fora da busca, página bloqueada sem nome nem imagens), `/metricas`, menu do usuário e 13 telas sem rolagem horizontal em 390 px. Console sem erros. A conta voltou ao estado de antes (filtro "Sem filtro"); ficou só a escolha "Aprendendo a Lição", que o "Como foi?" pergunta 3 h depois. Não testados na produção (exigem outra conta ou senha): a segunda pessoa da noite a dois e o login do MCP; os dois estão nos E2E do CI.
+- **Achados do teste de 24/11:**
+  1. **Bug (#49):** "Muito longo" não encurta a próxima sugestão. Com `max=80`, vieram filmes de 82, 86 e 90 min: o limite só vai ao `with_runtime.lte` do TMDB, e os detalhes só são conferidos com "Até que horas?".
+  2. **Limitação do filtro por idade:** com "Até 10 anos", 2 de 140 títulos do início eram 12 (Nausicaä, `/filme/81`, e De Volta para o Futuro, `/filme/105`). O `certification.lte` do TMDB aceita o filme se alguma data no Brasil estiver no limite; a página usa a mais alta. A spec `filtro-idade` aceitou que o TMDB aplica o limite; corrigir exige conferir nos detalhes.
+  3. **Duração de série distorcida:** sem `episode_run_time`, vale o último episódio (final de Game of Thrones: 80 min), então a série mostra "Episódios de 1h 20min" e a Temporada 1 "cerca de 13h 20min" na página da série contra "cerca de 9h 25min" na da temporada.
+  4. **Menores:** a noite a dois oferece "Sozinho" em "Com quem vai assistir?"; série sem votos mostra "★ 0.0".
 - **Lição de processo (23/11):** `git revert --no-edit` não passa pelo hook `commit-msg` e gera commit sem trailers. Use `git revert --no-commit <sha>` e depois `git commit` com a mensagem e os trailers.
 
 ### Situação dos critérios em 24/11 (`main` em `23593a8`)
@@ -60,11 +68,18 @@
 
 - Os merges dos PRs #37, #39, #41 e #43 foram feitos pelo botão do GitHub e saíram sem trailers. Mesmo assim, a parcela ficou acima de 80%, porque os PRs trouxeram commits com trailers.
 
-### Próximo passo (entrega em 24/11)
+### Próximo passo (entrega adiada para 30/11)
 
-1. **Lucas:** aprovar o PR `chore/sessoes-2026-11-24` (este arquivo e o registro da sessão de 24/11) e mesclar **pelo terminal**, com trailers. Pelo botão, a parcela de trailers cai.
-2. **No fim:** `/api/health` com o SHA da `main` depois do merge, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
-3. **Se houver tempo (fora do prazo da spec):** dar retorno visual imediato no cartão de resposta do wizard (`useLinkStatus` do `next/link`), para as respostas passarem a sensação de troca na hora. Precisa de issue e de ajuste na spec `navegacao-rapida`.
+O prazo foi adiado de 24/11 para **30/11** (avisado em 24/11). Na próxima sessão, começar pelo item 2 e pelo bug #49.
+
+1. [x] **`supabase db push` (24/11):** a migration `20261124145207_aviso_episodio_novo` está na produção, e `/serie/1399` voltou a abrir com o botão "Avisar sobre novos episódios".
+2. **Lucas:** aprovar o PR de `docs/readme-entrega` e mesclar **pelo terminal**, com trailers (seção "Como o Lucas mescla cada PR").
+3. **Lucas:** registrar a sessão do GPT-6 que gerou os commits do PR #46 em `prompts/sessoes/` e a linha em `prompts/custos.md`.
+4. **No fim:** `/api/health` com o SHA da `main` depois do merge, CI verde na `main` e a autoverificação da seção 0 do AGENTS.md.
+5. **Leonardo, próxima sessão:** corrigir o #49 (conferir `duracaoMax` nos detalhes em `src/features/noite/recomendar.ts`, com teste que falha sem a mudança); depois, se valer, os achados 2 a 4 do teste de 24/11, cada um com issue.
+6. **Para quem continuar:** terminar o aviso de episódio novo (critérios 4 a 11 da spec), com testes, para a cobertura das linhas novas não cair.
+7. **Com o prazo novo:** subir as métricas abaixo do mínimo (linhas novas e a parcela de commits do Lucas, que só muda com trabalho real dele).
+8. **Se houver tempo (fora do prazo da spec):** dar retorno visual imediato no cartão de resposta do wizard (`useLinkStatus` do `next/link`), para as respostas passarem a sensação de troca na hora. Precisa de issue e de ajuste na spec `navegacao-rapida`.
 
 ### Pendente de configuração manual
 
