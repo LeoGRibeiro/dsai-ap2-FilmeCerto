@@ -28,6 +28,17 @@ describe("proxy", () => {
     },
   );
 
+  it.each(["/compartilhado/filme/550", "/compartilhado/serie/1399"])(
+    "sem sessão, a página pública %s abre sem ir ao login",
+    async (rota) => {
+      sessao(null);
+
+      const resposta = await proxy(new NextRequest(`http://localhost${rota}`));
+
+      expect(resposta.headers.get("location")).toBeNull();
+    },
+  );
+
   it("com sessão, a página da série segue", async () => {
     sessao({ id: "u-1" });
 

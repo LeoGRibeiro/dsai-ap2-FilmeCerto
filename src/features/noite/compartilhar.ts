@@ -1,5 +1,5 @@
 import { terminaAs } from "@/features/noite/termina";
-import { caminhoMidia, type TipoMidia } from "@/lib/midia";
+import { caminhoCompartilhado, type TipoMidia } from "@/lib/midia";
 
 /**
  * "Hoje vamos ver {título}, termina às {hora}" (SPEC/2026-11-18-noite-compartilhar.md); de uma
@@ -16,9 +16,12 @@ export function mensagemDaNoite(
   return duracaoMin ? `${mensagem}, termina às ${terminaAs(agora, duracaoMin)}` : mensagem;
 }
 
-/** URL absoluta da página do filme (ou da série), a partir da origem em que o app está aberto. */
+/**
+ * URL absoluta da página pública do filme (ou da série), a partir da origem em que o app está
+ * aberto: quem recebe vê o título sem conta (SPEC/2026-11-25-compartilhar-publico.md).
+ */
 export function urlDoFilme(origem: string, tmdbId: number, tipo: TipoMidia = "filme"): string {
-  return `${origem}${caminhoMidia({ tipo, tmdbId })}`;
+  return `${origem}${caminhoCompartilhado({ tipo, tmdbId })}`;
 }
 
 /** Link do WhatsApp com a mensagem e, na linha de baixo, o link do filme, tudo codificado. */

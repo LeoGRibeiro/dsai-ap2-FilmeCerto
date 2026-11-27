@@ -218,7 +218,7 @@ describe("ResultadoNoite", () => {
     const link = screen.getByRole("link", { name: "Compartilhar no WhatsApp" });
     const texto = new URL(link.getAttribute("href")!).searchParams.get("text");
     expect(texto).toMatch(/^Hoje vamos ver um episódio de Dark, termina às \d{1,2}h\d{2}\n/);
-    expect(texto).toMatch(/\/serie\/77$/);
+    expect(texto).toMatch(/\/compartilhado\/serie\/77$/);
   });
 
   it("só depois do 'Vou ver esse!' oferece compartilhar o filme escolhido", async () => {
