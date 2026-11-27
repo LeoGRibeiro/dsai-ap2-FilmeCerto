@@ -49,8 +49,8 @@ const botao = (nome: string) => screen.getByRole("button", { name: nome });
 const avancar = () => screen.getByRole("button", { name: /^(Próximo|Pular)$/ });
 
 /** Marca Ação, evita Terror (opcional), escolhe duração e frequência e para no passo pedido. */
-async function irAte(passo: number, usuario = userEvent.setup()) {
-  render(<OnboardingWizard />);
+async function irAte(passo: number, usuario = userEvent.setup(), next?: string) {
+  render(<OnboardingWizard next={next} />);
   await usuario.click(botao("Ação"));
   if (passo === 1) return usuario;
   await usuario.click(avancar());
@@ -295,5 +295,16 @@ describe("OnboardingWizard", () => {
     expect(dados.getAll("streamings")).toEqual(["8"]);
     expect(dados.getAll("amados")).toEqual(["3"]);
     expect(dados.getAll("rejeitados")).toEqual(["101"]);
+    expect(dados.has("next")).toBe(false);
+  });
+
+  it("Concluir envia o destino do convite junto com as respostas", async () => {
+    const usuario = await irAte(7, undefined, "/noite/juntos/abc");
+    await usuario.click(botao("Concluir"));
+
+    await waitFor(() => expect(salvarPreferencias).toHaveBeenCalledTimes(1));
+    const dados = vi.mocked(salvarPreferencias).mock.calls[0]?.[1] as FormData;
+    expect(dados.get("next")).toBe("/noite/juntos/abc");
+    expect(dados.getAll("generos")).toEqual(["28"]);
   });
 });

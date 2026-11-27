@@ -6,7 +6,7 @@ import type { z } from "zod";
 
 import { traduzirErroAuth } from "@/features/auth/erros";
 import type { CampoCadastro, CampoLogin, EstadoFormulario } from "@/features/auth/estado";
-import { sanitizarNext } from "@/features/auth/redirecionamento";
+import { caminhoComNext, sanitizarNext } from "@/features/auth/redirecionamento";
 import { cadastroSchema, loginSchema } from "@/features/auth/schema";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,7 +83,8 @@ export async function cadastrar(
     return { mensagem: traduzirErroAuth(error.code), valores };
   }
 
-  redirecionarComSessaoNova("/onboarding");
+  // O destino do convite (ex.: a sala da "Noite a dois") segue para depois do onboarding.
+  redirecionarComSessaoNova(caminhoComNext("/onboarding", sanitizarNext(texto(formData, "next"))));
 }
 
 export async function sair(): Promise<void> {

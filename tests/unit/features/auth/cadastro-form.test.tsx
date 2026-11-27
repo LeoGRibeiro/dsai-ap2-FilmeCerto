@@ -55,3 +55,34 @@ describe("CadastroForm", () => {
     expect(cadastrar).toHaveBeenCalledOnce();
   });
 });
+
+describe("CadastroForm com destino", () => {
+  it("envia o next junto com o cadastro", async () => {
+    cadastrar.mockResolvedValueOnce({});
+    render(<CadastroForm next="/noite/juntos/abc" />);
+    await preencher({});
+
+    expect(cadastrar).toHaveBeenCalledOnce();
+    const dados = cadastrar.mock.calls[0]![1] as FormData;
+    expect(dados.get("next")).toBe("/noite/juntos/abc");
+  });
+
+  it("o link Entrar mantém o destino", () => {
+    render(<CadastroForm next="/noite/juntos/abc" />);
+
+    expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fnoite%2Fjuntos%2Fabc",
+    );
+  });
+
+  it("sem destino, não envia next e o link Entrar fica sem next", async () => {
+    cadastrar.mockResolvedValueOnce({});
+    render(<CadastroForm />);
+    expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
+    await preencher({});
+
+    const dados = cadastrar.mock.calls.at(-1)![1] as FormData;
+    expect(dados.has("next")).toBe(false);
+  });
+});

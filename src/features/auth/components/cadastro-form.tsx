@@ -8,14 +8,17 @@ import { Campo } from "@/features/auth/components/campo";
 import { MensagemErro } from "@/features/auth/components/mensagem-erro";
 import { useFormularioAuth } from "@/features/auth/components/use-formulario-auth";
 import type { CampoCadastro } from "@/features/auth/estado";
+import { caminhoComNext } from "@/features/auth/redirecionamento";
 import { cadastroSchema } from "@/features/auth/schema";
 
-export function CadastroForm() {
+/** `next`: destino já sanitizado, levado até o fim do onboarding (SPEC/2026-11-25-convite-cadastro.md). */
+export function CadastroForm({ next }: { next?: string }) {
   const { estado, erros, mensagem, formAction, enviando, aoEnviar } =
     useFormularioAuth<CampoCadastro>(cadastrar, cadastroSchema);
 
   return (
     <form action={formAction} onSubmit={aoEnviar} noValidate className="flex flex-col gap-5">
+      {next && <input type="hidden" name="next" value={next} />}
       <MensagemErro mensagem={mensagem} />
       <Campo
         name="nome"
@@ -51,7 +54,10 @@ export function CadastroForm() {
       </Button>
       <p className="text-muted-foreground text-center text-sm">
         Já tem conta?{" "}
-        <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+        <Link
+          href={caminhoComNext("/login", next)}
+          className="text-primary underline-offset-4 hover:underline"
+        >
           Entrar
         </Link>
       </p>

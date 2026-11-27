@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { caminhoComNext, sanitizarNext } from "@/features/auth/redirecionamento";
 import { gravarOnboarding } from "@/features/preferencias/gravar";
 import { onboardingSchema } from "@/features/preferencias/schema";
 import { createClient } from "@/lib/supabase/server";
@@ -31,11 +32,14 @@ export async function salvarPreferencias(
     return { mensagem: resultado.error.issues[0]?.message ?? ERRO_GENERICO };
   }
 
+  // Destino do convite (ex.: a sala da "Noite a dois"); sem ele, o dashboard.
+  const destino = sanitizarNext(formData.get("next")?.toString());
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=%2Fonboarding");
+  if (!user) redirect(caminhoComNext("/login", caminhoComNext("/onboarding", destino)));
 
   // Título e gêneros dos filmes vêm do TMDB no servidor, não do navegador.
   if ((await gravarOnboarding(supabase, user.id, resultado.data, obterFilme)) === "erro") {
@@ -43,7 +47,7 @@ export async function salvarPreferencias(
   }
 
   // O layout de (app) pode estar no cache do cliente, pré-carregado quando ainda mandava para
-  // o onboarding: sem limpar, /dashboard e /onboarding se redirecionam em loop.
+  // o onboarding: sem limpar, o destino e /onboarding se redirecionam em loop.
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(destino);
 }

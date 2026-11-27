@@ -8,6 +8,7 @@ import { Campo } from "@/features/auth/components/campo";
 import { MensagemErro } from "@/features/auth/components/mensagem-erro";
 import { useFormularioAuth } from "@/features/auth/components/use-formulario-auth";
 import type { CampoLogin } from "@/features/auth/estado";
+import { caminhoComNext } from "@/features/auth/redirecionamento";
 import { loginSchema } from "@/features/auth/schema";
 
 export function LoginForm({ next }: { next?: string }) {
@@ -40,7 +41,10 @@ export function LoginForm({ next }: { next?: string }) {
       </Button>
       <p className="text-muted-foreground text-center text-sm">
         Ainda não tem conta?{" "}
-        <Link href="/cadastro" className="text-primary underline-offset-4 hover:underline">
+        <Link
+          href={caminhoComNext("/cadastro", next)}
+          className="text-primary underline-offset-4 hover:underline"
+        >
           Criar conta
         </Link>
       </p>
